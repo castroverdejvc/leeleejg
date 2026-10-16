@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LeeLEEJG</title>
+<meta name="theme-color" content="#1E7BF2">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="iconos/icono-192.png">
+<link rel="apple-touch-icon" href="iconos/icono-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="LeeLEEJG">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Nunito:wght@600;700;800;900&family=Playwrite+ES:wght@300;400&display=swap">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+
+<!-- ============ ZONA DE LOS NIÑOS ============ -->
+<div id="zonaNino">
+  <div class="franja-prueba" id="franjaPrueba" hidden>Usuario de pruebas: estas lecturas no cuentan en el progreso de ningún niño</div>
+  <header class="top" id="topNino">
+    <div class="top-in">
+      <button class="logo" type="button" data-ir="inicio" aria-label="LeeLEEJG, ir al inicio"><span data-icono="logo"></span><span>LeeLEE<b>JG</b></span></button>
+      <nav class="nav" id="navNino" aria-label="Secciones">
+        <button type="button" data-nav="inicio"><span data-icono="casa"></span><span>Inicio</span></button>
+        <button type="button" data-nav="historias"><span data-icono="libro"></span><span>Historias</span></button>
+        <button type="button" data-nav="calendario"><span data-icono="calendario"></span><span>Calendario</span></button>
+        <button type="button" data-nav="cromos"><span data-icono="album"></span><span>Mis cromos</span></button>
+        <button type="button" data-nav="practicar"><span data-icono="lapiz"></span><span>Practicar</span></button>
+        <button type="button" data-nav="repaso"><span data-icono="hoja"></span><span>Fichas</span></button>
+      </nav>
+      <button class="yo-btn" id="yoBtn" type="button" aria-haspopup="true" aria-expanded="false"><span class="av" id="yoAv"></span><span class="n" id="yoNom"></span><span class="pill-prueba" id="yoPrueba" hidden>Pruebas</span><span data-icono="abajo"></span></button>
+    </div>
+    <div class="menu" id="menuYo" hidden>
+      <button type="button" data-ir="quien"><span data-icono="usuarios"></span>Cambiar de lector</button>
+      <button type="button" data-ir="mipantalla"><span data-icono="imagen"></span>Mi pantalla</button>
+      <button type="button" data-ir="asi"><span data-icono="letra"></span>Así quiero leer</button>
+      <hr>
+      <button type="button" data-ir="evolucion"><span data-icono="candado"></span>Familia y profesorado</button>
+    </div>
+  </header>
+  <main class="main" id="mainNino">
+    <section id="s-quien" class="pantalla" hidden></section>
+    <section id="s-inicio" class="pantalla" hidden></section>
+    <section id="s-calendario" class="pantalla" hidden></section>
+    <section id="s-historias" class="pantalla" hidden></section>
+    <section id="s-asi" class="pantalla" hidden></section>
+    <section id="s-mic" class="pantalla" hidden></section>
+    <section id="s-nooye" class="pantalla" hidden></section>
+    <section id="s-lectura" class="pantalla" hidden></section>
+    <section id="s-fin" class="pantalla" hidden></section>
+    <section id="s-pregunta" class="pantalla" hidden></section>
+    <section id="s-pista" class="pantalla" hidden></section>
+    <section id="s-calculo" class="pantalla" hidden></section>
+    <section id="s-juntos" class="pantalla" hidden></section>
+    <section id="s-cromonuevo" class="pantalla" hidden></section>
+    <section id="s-cromos" class="pantalla" hidden></section>
+    <section id="s-cromo" class="pantalla" hidden></section>
+    <section id="s-practicar" class="pantalla" hidden></section>
+    <section id="s-practicafin" class="pantalla" hidden></section>
+    <section id="s-mipantalla" class="pantalla" hidden></section>
+    <section id="s-repaso" class="pantalla" hidden></section>
+    <section id="s-repasoitem" class="pantalla" hidden></section>
+    <section id="s-repasofin" class="pantalla" hidden></section>
+    <section id="s-dictado" class="pantalla" hidden></section>
+    <section id="s-dictadofin" class="pantalla" hidden></section>
+    <section id="s-temas" class="pantalla" hidden></section>
+  </main>
+</div>
+
+<!-- ============ ZONA DE FAMILIA Y PROFESORADO ============ -->
+<section id="s-pin" class="pantalla" hidden></section>
+<div id="zonaAdulto" class="adulto" hidden>
+  <aside class="lateral">
+    <button class="logo" type="button" data-ir="inicio"><span data-icono="logo"></span><span>LeeLEE<b>JG</b></span></button>
+    <nav aria-label="Familia y profesorado">
+      <button type="button" data-ir="inicio"><span data-icono="casa"></span>Inicio</button>
+      <button type="button" data-nava="evolucion"><span data-icono="barras"></span>Evolución</button>
+      <button type="button" data-nava="revisar"><span data-icono="hoja"></span>Revisar lecturas</button>
+      <button type="button" data-nava="grupo"><span data-icono="usuarios"></span>Grupo</button>
+      <button type="button" data-nava="fichas"><span data-icono="hoja"></span>Fichas de clase</button>
+      <div class="sep">Configuración</div>
+      <button type="button" data-nava="perfil"><span data-icono="persona"></span>Perfil</button>
+      <button type="button" data-nava="imagenes"><span data-icono="imagen"></span>Mis imágenes</button>
+      <button type="button" data-nava="vozsonido"><span data-icono="altavoz"></span>Voz y sonido</button>
+      <button type="button" data-nava="datos"><span data-icono="engranaje"></span>Datos y copias</button>
+    </nav>
+    <div class="lema"><span data-icono="brote"></span><span>Leer hoy.<br>Un gran mañana.</span></div>
+  </aside>
+  <main class="adulto-main">
+    <div class="adulto-cab no-imprimir"><span data-icono="usuarios"></span>Familia y profesorado</div>
+    <section id="s-evolucion" class="pantalla" hidden></section>
+    <section id="s-revisar" class="pantalla" hidden></section>
+    <section id="s-grupo" class="pantalla" hidden></section>
+    <section id="s-fichas" class="pantalla" hidden></section>
+    <section id="s-perfil" class="pantalla" hidden></section>
+    <section id="s-imagenes" class="pantalla" hidden></section>
+    <section id="s-vozsonido" class="pantalla" hidden></section>
+    <section id="s-datos" class="pantalla" hidden></section>
+    <section id="s-informe" class="pantalla" hidden></section>
+  </main>
+</div>
+
+<div id="capa"></div>
+
+<script src="js/base.js"></script>
+<script src="js/local.js"></script>
+<script src="js/voz.js"></script>
+<script src="js/oido.js"></script>
+<script src="js/recorte.js"></script>
+<script src="js/temas.js"></script>
+<script src="js/nino.js"></script>
+<script src="js/lectura.js"></script>
+<script src="js/fichas.js"></script>
+<script src="js/dictado.js"></script>
+<script src="js/adulto.js"></script>
+<script src="js/sincro.js"></script>
+<script src="js/arranque.js"></script>
+</body>
+</html>
