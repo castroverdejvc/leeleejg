@@ -1,4 +1,4 @@
-/* LeeLEEJG · copias entre la tablet y el ordenador (por OneDrive)
+/* LeeLEEJG · copias entre la tablet y el ordenador (por Google Drive)
    Cada aparato guarda una «copia» (un archivo LeeLEEJG-….leelee.json/.txt) y el otro la junta con lo suyo:
    - lecturas: se suman; si la misma lectura está en los dos, gana la más completa o la revisada;
    - perfiles: gana el cambiado más tarde, pero se juntan los registros (repaso, dictado, temas) y el plan;
@@ -6,6 +6,7 @@
    Nada se borra al juntar. */
 'use strict';
 const SINCRO_DIAS_AUDIO = 30;
+const NUBE = 'Google Drive';   // donde la familia deja las copias (carpeta «LeeLEEJG» de Mi unidad)
 const CAMPOS_LOCALES = new Set(['voz','vozPrograma','perfil','volumen','mod', ...PKEYS]);   // propios de cada aparato
 const LISTAS_PERFIL = ['repasoLog','dictadoLog','temasLog'];
 const clon = x => x==null ? x : JSON.parse(JSON.stringify(x));
@@ -145,7 +146,7 @@ function resumenUnion(r){
 const nombreCopia = () => { const a=(EST.aparato&&EST.aparato.nombre)||'tablet'; const f=new Date(); const dd=n=>String(n).padStart(2,'0');
   return `LeeLEEJG-${a.replace(/[^A-Za-z0-9]+/g,'')}-${f.getFullYear()}-${dd(f.getMonth()+1)}-${dd(f.getDate())}-${dd(f.getHours())}${dd(f.getMinutes())}.leelee.txt`; };
 
-/* --- en el ordenador: la carpeta LeeLEEJG de OneDrive --- */
+/* --- en el ordenador: la carpeta LeeLEEJG de Google Drive --- */
 async function sincroOrdenador({enviar=true}={}){
   let s; try{ s=await api('/api/sincro'); }catch(e){ return {disponible:false}; }
   if(!s.disponible) return s;
@@ -154,10 +155,10 @@ async function sincroOrdenador({enviar=true}={}){
     try{ const c = await (await fetch('/api/sincro/archivo?n='+encodeURIComponent(f.nombre))).json();
       const r = await unirCopia(c); if(!r.propia && r.total){ res.unidos.push({nombre:f.nombre, aparato:(c.aparato&&c.aparato.nombre)||'', r}); res.total+=r.total; }
       await postJSON('/api/sincro/importado', {nombre:f.nombre, fecha:f.fecha});
-    }catch(e){ registrar('Copia de OneDrive '+f.nombre+': '+e.message); }
+    }catch(e){ registrar('Copia de '+NUBE+' '+f.nombre+': '+e.message); }
   }
   if(res.total) await cargarDatos();   // lo juntado pasa a la pantalla antes de hacer la copia del ordenador
-  if(enviar) await enviarOrdenador().catch(e=>registrar('Enviar a OneDrive: '+e.message));
+  if(enviar) await enviarOrdenador().catch(e=>registrar('Enviar a '+NUBE+': '+e.message));
   return res;
 }
 async function enviarOrdenador(){
@@ -165,12 +166,12 @@ async function enviarOrdenador(){
   await api('/api/sincro/guardar?n='+encodeURIComponent('LeeLEEJG-ordenador.leelee.json'), {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(copia)});
 }
 
-/* --- en la tablet: compartir con OneDrive y abrir un archivo --- */
+/* --- en la tablet (o el ordenador sin Google Drive): compartir o descargar la copia y abrir un archivo --- */
 async function enviarTablet(){
   const copia = await crearCopia();
   const nombre = nombreCopia(); const archivo = new File([JSON.stringify(copia)], nombre, {type:'text/plain'});
   let compartido=false;
-  if(navigator.canShare && navigator.canShare({files:[archivo]})){
+  if(enLocal() && navigator.canShare && navigator.canShare({files:[archivo]})){
     try{ await navigator.share({files:[archivo], title:'Copia de LeeLEEJG'}); compartido=true; }
     catch(e){ if(e && e.name==='AbortError') return {cancelado:true}; }
   }
@@ -190,20 +191,24 @@ async function traerTablet(){
 
 /* --- tarjeta en «Datos y copias» --- */
 function sincroHTML(info){
-  const cab = `<h3>${ic('nube')} Tablet y ordenador (OneDrive)</h3>`;
+  const cab = `<h3>${ic('nube')} Tablet y ordenador (${NUBE})</h3>`;
+  const fecha = f => esc(new Date(f).toLocaleString('es-ES',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}));
+  const botonesMano = (enviar, traer) => `<div class="botones" style="margin-top:10px"><button class="btn btn-p" type="button" id="btnEnviarSin">${ic('nube')} ${enviar}</button><button class="btn" type="button" id="btnTraerSin">${ic('descarga')} ${traer}</button></div>`;
   if(enLocal()){
-    const ult = info && info.ultimaCopia ? 'Última vez enviado: '+esc(new Date(info.ultimaCopia).toLocaleString('es-ES',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})) : 'Todavía no se ha enviado nada.';
+    const ult = info && info.ultimaCopia ? 'Última vez enviado: '+fecha(info.ultimaCopia) : 'Todavía no se ha enviado nada.';
     return `<div class="card ajuste" id="cardSincro">${cab}
-      <p class="nota"><b>Enviar:</b> elige <b>OneDrive</b> y guarda el archivo en la carpeta <b>LeeLEEJG</b>. El ordenador lo junta solo la próxima vez que se abra.<br>
-      <b>Traer:</b> busca en OneDrive, carpeta LeeLEEJG, el archivo <b>LeeLEEJG-ordenador</b>. Se juntan las lecturas de los dos sitios; no se borra nada.</p>
-      <p class="nota" style="margin-top:6px">${ult}</p>
-      <div class="botones" style="margin-top:10px"><button class="btn btn-p" type="button" id="btnEnviarSin">${ic('nube')} Enviar a OneDrive</button><button class="btn" type="button" id="btnTraerSin">${ic('descarga')} Traer del ordenador</button></div></div>`;
+      <p class="nota"><b>Enviar:</b> elige <b>Drive</b> y guarda el archivo en la carpeta <b>LeeLEEJG</b> de Mi unidad. El ordenador lo junta solo la próxima vez que se abra.<br>
+      <b>Traer:</b> busca en Drive, carpeta LeeLEEJG, el archivo <b>LeeLEEJG-ordenador</b>. Se juntan las lecturas de los dos sitios; no se borra nada.</p>
+      <p class="nota" style="margin-top:6px">${ult}</p>${botonesMano('Enviar a '+NUBE, 'Traer del ordenador')}</div>`;
   }
-  if(!info || !info.disponible) return `<div class="card ajuste" id="cardSincro">${cab}<p class="nota">No encuentro OneDrive en este ordenador. Si lo instalas e inicias sesión, el programa guardará y recogerá las copias de la tablet en la carpeta OneDrive\\LeeLEEJG.</p></div>`;
+  if(!info || !info.disponible) return `<div class="card ajuste" id="cardSincro">${cab}
+    <p class="nota">No encuentro ${NUBE} en este ordenador. Con <b>Google Drive para ordenadores</b> instalado y la sesión iniciada, el programa recoge solo las copias de la tablet en <b>Mi unidad › LeeLEEJG</b> y deja allí la suya.</p>
+    <p class="nota" style="margin-top:6px">Mientras tanto, a mano: <b>Guardar copia</b> la deja en Descargas (súbela a Drive › LeeLEEJG desde drive.google.com) y <b>Traer copia</b> abre la que haya enviado la tablet.</p>
+    ${botonesMano('Guardar copia', 'Traer copia de la tablet')}</div>`;
   const tabl = info.archivos.filter(a=>!a.propio);
   return `<div class="card ajuste" id="cardSincro">${cab}
     <p class="nota">Carpeta: <b>${esc(info.carpeta)}</b><br>Cada vez que se abre, el programa junta las copias que la tablet ha dejado ahí y deja la suya (<b>LeeLEEJG-ordenador</b>) para que la tablet la pueda traer.</p>
-    <p class="nota" style="margin-top:6px">${tabl.length ? `Copias de la tablet: ${tabl.length} (${tabl.filter(a=>!a.importado).length} sin juntar).` : 'Todavía no hay copias de la tablet.'}${info.propia ? ' · Copia del ordenador: '+esc(new Date(info.propia).toLocaleString('es-ES',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})) : ''}</p>
+    <p class="nota" style="margin-top:6px">${tabl.length ? `Copias de la tablet: ${tabl.length} (${tabl.filter(a=>!a.importado).length} sin juntar).` : 'Todavía no hay copias de la tablet.'}${info.propia ? ' · Copia del ordenador: '+fecha(info.propia) : ''}</p>
     <div class="botones" style="margin-top:10px"><button class="btn btn-p" type="button" id="btnSincroPC">${ic('recargar')} Juntar y enviar ahora</button></div></div>`;
 }
 function activarSincro(){
@@ -211,7 +216,7 @@ function activarSincro(){
   const trasUnir = r => { if(!r) return; if(r.propia){ dialogo({titulo:'Es la copia de este mismo aparato', html:'<p class="nota">Elige la copia del otro aparato (en el ordenador se llama «LeeLEEJG-ordenador»).</p>', botones:[{t:'Vale',cls:'btn-p'}]}); return; }
     dialogo({titulo:r.total?'Datos juntados':'No había nada nuevo', html:`<p class="nota">${r.total?'Se ha añadido: '+esc(resumenUnion(r))+'.':'Este aparato ya tenía todo lo de esa copia.'}</p>`, botones:[{t:'Vale',cls:'btn-p', fn:()=>{ if(r.total) location.reload(); }}], alCerrar:()=>{ if(r.total) location.reload(); }}); };
   const fallo = e => dialogo({titulo:'No se pudo', html:`<p class="nota">${esc(e.message||e)}</p>`, botones:[{t:'Vale',cls:'btn-p'}]});
-  const be=$('#btnEnviarSin'); if(be) be.onclick=async()=>{ ocupado(be,'Preparando la copia…'); try{ const r=await enviarTablet(); if(!r.cancelado) aviso(r.compartido?'Copia enviada':'Copia descargada: súbela a OneDrive › LeeLEEJG'); if(actual==='datos') ir('datos'); }catch(e){ fallo(e); } libre(be); };
+  const be=$('#btnEnviarSin'); if(be) be.onclick=async()=>{ ocupado(be,'Preparando la copia…'); try{ const r=await enviarTablet(); if(!r.cancelado) aviso(r.compartido?'Copia enviada':'Copia guardada en Descargas: súbela a Drive › LeeLEEJG'); if(actual==='datos') ir('datos'); }catch(e){ fallo(e); } libre(be); };
   const bt=$('#btnTraerSin'); if(bt) bt.onclick=async()=>{ ocupado(bt,'Juntando…'); try{ trasUnir(await traerTablet()); }catch(e){ fallo(e); } libre(bt); };
   const bp=$('#btnSincroPC'); if(bp) bp.onclick=async()=>{ ocupado(bp,'Juntando y enviando…'); try{ const r=await sincroOrdenador(); trasUnir({total:r.total||0, ...sumar((r.unidos||[]).map(u=>u.r))}); }catch(e){ fallo(e); } libre(bp); };
 }
