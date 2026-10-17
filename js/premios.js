@@ -1,13 +1,15 @@
 /* LeeLEEJG · premios: actividades hechas, álbum de criaturas, juegos que se abren y tareas atrasadas.
    Todo se calcula a partir de lo hecho (lecturas, dictados y repasos), así no se descuadra al juntar la tablet y el ordenador. */
 'use strict';
-const PREMIOS_DEF = {criatura:2, juego:5, minutos:15, trasLeer:true};
+const PREMIOS_DEF = {criatura:2, juego:5, minutos:15, trasLeer:true, tele:10, teleGuarda:true};
 const premiosCfg = () => ({...PREMIOS_DEF, ...(aj.premios||{})});
 
-/* actividades = lecturas terminadas + dictados + repasos de fichas */
-function actividadesDe(p=perfil()){
-  const c=cfgDe(p); return sesDe(p.id).filter(s=>!s.incompleta).length + (c.dictadoLog||[]).length + (c.repasoLog||[]).length;
+/* actividades (ejercicios) = lecturas terminadas + dictados + repasos de fichas + rondas de «As letras» */
+function ejerciciosDe(p=perfil(), desde=null){
+  const c=cfgDe(p), d=desde?new Date(desde):null, vale=f=>!d || new Date(f)>=d;
+  return sesDe(p.id).filter(s=>!s.incompleta && vale(s.fecha)).length + ['dictadoLog','repasoLog','letrasLog'].reduce((a,k)=>a+(c[k]||[]).filter(x=>vale(x.f)).length, 0);
 }
+const actividadesDe = (p=perfil()) => ejerciciosDe(p);
 /* azar con semilla: el orden de las criaturas es distinto para cada niño pero siempre el mismo */
 function semilla(txt){ let h=2166136261; for(const ch of String(txt)){ h^=ch.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; }
 function azar(seed){ let a=seed||1; return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
@@ -146,6 +148,7 @@ function comprobarPremios(){
   const v=vistos||{criaturas:[], juegos:1};
   const nuevas=tengo.filter(id=>!v.criaturas.includes(id)).map(criatura).filter(Boolean);
   const juegoNuevo = juegos>v.juegos && typeof JUEGOS!=='undefined' ? JUEGOS[juegos-1] : null; const masJuegos=juegos-v.juegos;
+  avisarTele(p);
   if(!nuevas.length && !juegoNuevo) return;
   cfg.premiosVistos={criaturas:tengo, juegos}; guardarAj();
   const html = (primera?`<p class="sub" style="margin-bottom:6px">¡Por todo lo que ya has leído${nuevas.length?`, tienes ${nuevas.length===1?'una criatura':nuevas.length+' criaturas'}`:''}${masJuegos>0?` y ${masJuegos===1?'un juego nuevo':masJuegos+' juegos nuevos'}`:''}!</p>`:'') + (nuevas.length?`<div class="nuevas-cri">${nuevas.slice(0,3).map(c=>`<div class="cri-carta ${c.rareza===3?'rara':''}">${criaturaSVG(c)}<b>${esc(c.nombre)}</b><span class="nota">${TIPOS_CRIATURA[c.tipo].emo} ${TIPOS_CRIATURA[c.tipo].n}${c.especial?' · ¡especial!':''}</span></div>`).join('')}</div>${nuevas.length>3?`<p class="nota">…y ${nuevas.length-3} más en tu álbum.</p>`:''}`:'')
@@ -186,7 +189,7 @@ function semanaHTML(p){
   const enSemana = f => new Date(f) >= desde;
   const ses=sesDe(p.id).filter(s=>enSemana(s.fecha)), hechas=ses.filter(s=>!s.incompleta);
   const dias=[...Array(7)].map((_,i)=>{ const d=new Date(desde); d.setDate(d.getDate()+i); const k=claveDia(d); return {d, k, lee:hechas.filter(s=>claveDia(s.fecha)===k).length, juego:Math.round(((cfg.juegoDias||{})[k]||0)/60)}; });
-  const dic=(cfg.dictadoLog||[]).filter(x=>enSemana(x.f)), rep=(cfg.repasoLog||[]).filter(x=>enSemana(x.f));
+  const dic=(cfg.dictadoLog||[]).filter(x=>enSemana(x.f)), rep=(cfg.repasoLog||[]).filter(x=>enSemana(x.f)).concat((cfg.letrasLog||[]).filter(x=>enSemana(x.f)));
   const gus=(cfg.gustosLog||[]).filter(x=>enSemana(x.f)), adi=(cfg.adivLog||[]).filter(x=>enSemana(x.f));
   const comp=media(hechas.map(pctComp)), ppm=media(hechas.map(s=>s.ppm||0).filter(Boolean));
   const at=atrasadasDe(p), tot=actividadesDe(p), cri=criaturasDe(p).length, jue=juegosAbiertos(p);
@@ -195,7 +198,7 @@ function semanaHTML(p){
   const ult={}; gus.forEach(x=>{ ult[x.q]=x.r; });
   const cifra=(n,t,col='var(--primary)')=>`<div class="card cifra-s"><b style="color:${col}">${n}</b><span class="nota">${t}</span></div>`;
   return `<p class="nota" style="margin:4px 0 12px">Del ${esc(desde.toLocaleDateString('es-ES',{day:'numeric',month:'long'}))} a hoy.</p>
-  <div class="cifras-s">${cifra(hechas.length, hechas.length===1?'lectura terminada':'lecturas terminadas')}${cifra(dias.filter(d=>d.lee).length+' de 7','días con lectura','var(--green)')}${cifra(comp==null||isNaN(comp)?'–':Math.round(comp)+' %','comprensión','#8B5CF6')}${cifra(ppm?Math.round(ppm):'–','palabras por minuto','#F5A300')}${cifra(dic.length+rep.length,'dictados y repasos','#0EA5B7')}${cifra(dias.reduce((a,d)=>a+d.juego,0)+' min','de juegos','#DB2777')}</div>
+  <div class="cifras-s">${cifra(hechas.length, hechas.length===1?'lectura terminada':'lecturas terminadas')}${cifra(dias.filter(d=>d.lee).length+' de 7','días con lectura','var(--green)')}${cifra(comp==null||isNaN(comp)?'–':Math.round(comp)+' %','comprensión','#8B5CF6')}${cifra(ppm?Math.round(ppm):'–','palabras por minuto','#F5A300')}${cifra(dic.length+rep.length,'dictados y repasos','#0EA5B7')}${cifra(dias.reduce((a,d)=>a+d.juego,0)+' min','de juegos','#DB2777')}${premiosCfg().tele>0?cifra(Math.floor(teleDe(p).saldo)+' min','de tele para el finde','#0F766E'):''}${cifra((cfg.letrasLog||[]).filter(x=>enSemana(x.f)).length,'rondas de «As letras»','#B45309')}</div>
   <div class="graf-2" style="margin-top:18px"><div class="card bloque"><h3 style="margin-bottom:10px">Día a día</h3><table><thead><tr><th>Día</th><th>Lecturas</th><th>Juegos</th></tr></thead><tbody>${dias.map(d=>`<tr><td>${esc(d.d.toLocaleDateString('es-ES',{weekday:'long', day:'numeric'}))}</td><td>${d.lee?'<span class="nb bien">'+d.lee+'</span>':'<span class="nb medio">0</span>'}</td><td>${d.juego?d.juego+' min':'–'}</td></tr>`).join('')}</tbody></table></div>
     <div class="card bloque"><h3 style="margin-bottom:10px">Para tener en cuenta</h3><ul class="lista-log">
       <li>${at.length?`<b>${at.length} ${at.length===1?'historia atrasada':'historias atrasadas'}</b> (se le recuerdan al entrar).`:'Ninguna historia atrasada. ¡Al día!'}</li>
@@ -206,7 +209,7 @@ function semanaHTML(p){
 }
 function premiosAdultoHTML(p){
   const c=premiosCfg(), sel=(id,vals,v,suf)=>`<select id="${id}">${vals.map(x=>`<option value="${x}" ${x===v?'selected':''}>${x===0?'Sin límite':x+suf}</option>`).join('')}</select>`;
-  return `<div class="card bloque" style="margin-bottom:18px"><h3 style="margin-bottom:6px">Premios y juegos</h3><p class="nota" style="margin-bottom:12px">Para toda la familia. Cuentan como actividad: cada lectura terminada, cada dictado y cada repaso de fichas. ${esc(p.nombre)} lleva ${actividadesDe(p)}: ${criaturasDe(p).length} criaturas y ${juegosAbiertos(p)} juegos.</p>
+  return teleAdultoHTML(p) + `<div class="card bloque" style="margin-bottom:18px"><h3 style="margin-bottom:6px">Premios y juegos</h3><p class="nota" style="margin-bottom:12px">Para toda la familia. Cuentan como actividad: cada lectura terminada, cada dictado, cada repaso de fichas y cada ronda de «As letras». ${esc(p.nombre)} lleva ${actividadesDe(p)}: ${criaturasDe(p).length} criaturas y ${juegosAbiertos(p)} juegos.</p>
     <div class="fam-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
       <div class="campo"><label for="prCri">Una criatura cada</label>${sel('prCri',[1,2,3,4,5],c.criatura,' actividades')}</div>
       <div class="campo"><label for="prJue">Un juego nuevo cada</label>${sel('prJue',[3,4,5,6,8,10],c.juego,' actividades')}</div>
@@ -215,7 +218,9 @@ function premiosAdultoHTML(p){
     <p class="nota" style="margin-top:8px">El usuario de pruebas no tiene límite de tiempo.</p></div>`;
 }
 function activarPremiosAdulto(){
-  const guarda=()=>{ aj.premios={criatura:+$('#prCri').value, juego:+$('#prJue').value, minutos:+$('#prMin').value, trasLeer:$('#prLeer').getAttribute('aria-checked')==='true'}; guardarAj(); aviso('Guardado'); };
-  ['#prCri','#prJue','#prMin'].forEach(s=>$(s).onchange=guarda);
-  $('#prLeer').onclick=()=>{ const b=$('#prLeer'); b.setAttribute('aria-checked', String(b.getAttribute('aria-checked')!=='true')); guarda(); };
+  const sw=id=>$(id).getAttribute('aria-checked')==='true';
+  const guarda=()=>{ aj.premios={criatura:+$('#prCri').value, juego:+$('#prJue').value, minutos:+$('#prMin').value, trasLeer:sw('#prLeer'), tele:+$('#prTele').value, teleGuarda:sw('#prTeleGuarda')}; guardarAj(); aviso('Guardado'); };
+  ['#prCri','#prJue','#prMin','#prTele'].forEach(s=>$(s).onchange=guarda);
+  ['#prLeer','#prTeleGuarda'].forEach(id=>$(id).onclick=()=>{ const b=$(id); b.setAttribute('aria-checked', String(b.getAttribute('aria-checked')!=='true')); guarda(); });
+  activarTeleAdulto(lectorVisto());
 }

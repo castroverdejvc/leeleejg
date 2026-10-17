@@ -36,6 +36,7 @@ definir('inicio', {nav:'inicio', pintar(){
       ${hecha?'<span class="pill verde">'+ic('check')+(hoyLeida?' ¡Ya la has leído hoy!':' ¡Ya la has leído!')+'</span>':''}
       <button class="btn btn-p btn-xl" type="button" id="btnLeerHoy">${hecha?'Leer otra vez':'Leer'} ${ic('flecha')}</button></div></article>
   ${premiosHTML()}
+  ${teleHTML()}
   ${sorpresaHTML()}
   ${chipsTemasHTML()}
   <div class="fila2">
