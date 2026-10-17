@@ -65,7 +65,7 @@ function deBase64(b64, tipo){ const bin=atob(b64); const u=new Uint8Array(bin.le
 
 async function guardarAjYa(){ guardarCfgPerfil(); sellarCambios(); clearTimeout(tGuardarAj); await postJSON('/api/ajustes', aj); }
 
-async function crearCopia({audios=true}={}){
+async function crearCopia({audios=true, diasAudio=SINCRO_DIAS_AUDIO}={}){
   await guardarAjYa();
   const d = await api('/api/datos');
   const fichas = await api('/api/fichas').catch(()=>[]);
@@ -75,7 +75,7 @@ async function crearCopia({audios=true}={}){
   for(const [k, mt] of Object.entries(await api('/api/misimagenes').catch(()=>({})))){
     try{ const r=await fetch('/mis-imagenes/'+k+'.jpg?v='+mt); if(r.ok) imagenes[k]={mtime:mt, b64: await aBase64(await r.blob())}; }catch(e){}
   }
-  const grab = {}; const desde = Date.now() - SINCRO_DIAS_AUDIO*864e5;
+  const grab = {}; const desde = Date.now() - diasAudio*864e5;
   if(audios) for(const s of (d.sesiones||[])){
     if(!s.audio || !(Date.parse(s.fecha) >= desde)) continue;
     try{ const r=await fetch('/api/audio/'+s.id); if(r.ok){ const b=await r.blob(); grab[s.id]={tipo:b.type||'audio/webm', b64: await aBase64(b)}; } }catch(e){}
