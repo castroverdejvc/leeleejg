@@ -159,11 +159,12 @@ definir('dictado', {nav:'repaso', pintar(){
 
 definir('dictadofin', {nav:'repaso', pintar(){
   const l=dic.l, bien=dic.res.filter(r=>r.ok).length;
-  aj.dictadoLog=aj.dictadoLog||[]; aj.dictadoLog.push({f:new Date().toISOString(), l, fuente:dic.fuente.id==='lecturas'?'Historias':dic.fuente.titulo, n:dic.res.length, bien, mal:dic.res.filter(r=>!r.ok).map(r=>({w:r.w, e:r.mal}))}); aj.dictadoLog=aj.dictadoLog.slice(-200); guardarAj();
+  aj.dictadoLog=aj.dictadoLog||[]; aj.dictadoLog.push({f:new Date().toISOString(), l, fuente:dic.fuente.id==='lecturas'?'Historias':dic.fuente.titulo, n:dic.res.length, bien, mal:dic.res.filter(r=>!r.ok).map(r=>({w:r.w, e:r.mal}))}); aj.dictadoLog=aj.dictadoLog.slice(-2000); guardarAj();
   $('#s-dictadofin').innerHTML = `<div class="card buen-trabajo"><h1>${l==='en'?'Great job!':l==='gl'?'Bo traballo!':'¡Buen trabajo!'}</h1><p class="sub">Dictado: ${bien} de ${dic.res.length} ${dic.res.length===1?'palabra':'palabras'} bien escritas a la primera.</p>
     <div class="tarjetas-pal">${dic.res.map(r=>{ const it=dic.items.find(x=>x.w===r.w)||{}; return `<div class="tp"><span class="ft">${it.img?imgHTML(it.img):'✏️'}</span><b style="${r.ok?'':'color:var(--coral)'}">${esc(r.w)} ${r.ok?`<i>${ic('check')}</i>`:''}</b>${!r.ok&&r.mal?`<span class="nota">${r.mal==='?'?'No la sabías':'Escribiste: '+esc(r.mal)}</span>`:''}</div>`; }).join('')}</div>${libroSVG()}
     <div class="botones" style="max-width:640px;margin:0 auto"><button class="btn btn-p btn-g" type="button" data-ir="inicio">${ic('casa')} Volver al inicio</button><button class="btn btn-borde btn-g" type="button" id="dcOtro">${ic('lapiz')} Otro dictado</button></div></div>`;
   $('#dcOtro').onclick=()=>empezarDictado(dic.fuente.id);
+  setTimeout(()=>{ if(actual==='dictadofin') comprobarPremios(); }, 2500);
   confeti($('#s-dictadofin .buen-trabajo')); sonido('cromo');
   decir(FRASE_D.fin[l](nombre()), l);
 }});

@@ -27,12 +27,16 @@ definir('inicio', {nav:'inicio', pintar(){
   $('#s-inicio').innerHTML = `
   <div class="banda" style="--c:${esc(yo.color)};--cs:${SUAVE[yo.color]||'#E2EEFF'}">${fo?`<img class="fondo" src="${fo}" alt="">`:''}<span class="circulo">${fy?`<img src="${fy}" alt="">`:esc(iniciales(yo.nombre))}</span><b>¡Hola, ${esc(yo.nombre)}!</b><button class="btn btn-mini banda-btn" type="button" data-ir="mipantalla">${ic('imagen')} Mi pantalla</button></div>
   ${avisoTemasHTML()}
+  ${atrasadasHTML()}
+  ${temporadaHTML()}
   ${marcapaginasHTML()}
   <article class="card hoy"><div class="ft">${imgHTML(h.portada,true)}</div>
     <div class="tx"><span class="pill">${h.especial?iconoEspecial(h.especial)+' ':''}Tu historia de hoy · Día ${diaPersonal(h)||dHoy}</span>
       <h1>${esc(conNombre(h.titulo))}</h1><p>${esc(conNombre(h.resumen))}</p>
       ${hecha?'<span class="pill verde">'+ic('check')+(hoyLeida?' ¡Ya la has leído hoy!':' ¡Ya la has leído!')+'</span>':''}
       <button class="btn btn-p btn-xl" type="button" id="btnLeerHoy">${hecha?'Leer otra vez':'Leer'} ${ic('flecha')}</button></div></article>
+  ${premiosHTML()}
+  ${sorpresaHTML()}
   ${chipsTemasHTML()}
   <div class="fila2">
     <button class="acceso verde" type="button" data-ir="cromos"><span class="mini-fotos">${fotosCromos}</span><span><b>Mis cromos</b><span class="nota">${Object.keys(c).length} de ${CONT.historias.length} conseguidos.</span></span><span class="ir">${ic('dcha')}</span></button>
@@ -42,7 +46,8 @@ definir('inicio', {nav:'inicio', pintar(){
   <button class="acceso blanco" type="button" data-ir="calendario"><span class="icono-g">${ic('calendario')}</span><span><b>Ver mi calendario</b>${pend?`<span class="nota">Tienes ${pend} ${pend===1?'historia':'historias'} sin leer de otros días.</span>`:''}</span><span class="ir">${ic('dcha')}</span></button>`;
   $('#btnLeerHoy').onclick=()=>empezarHistoria(h);
   if($('#btnSeguirHist')) $('#btnSeguirHist').onclick=seguirDondeLoDejo;
-  activarAvisoTemas($('#s-inicio'));
+  activarAvisoTemas($('#s-inicio')); activarAtrasadas($('#s-inicio')); activarTemporada($('#s-inicio'));
+  setTimeout(()=>{ if(actual==='inicio') comprobarPremios(); }, 400);
 }});
 
 /* ---------- 03 · Calendario ---------- */
@@ -96,7 +101,7 @@ definir('historias', {nav:'historias', pintar(tema){
     $('#s-historias').innerHTML = `<button class="volver" type="button" id="volTemas">${ic('atras')} Todos los temas</button>
     <div class="cab-filtros"><div><h1 class="tit">${esc(m.nombre)}</h1><p class="sub">${esc(conNombre(m.desc||''))}</p></div>${filtro}</div>
     <div class="historias">${hs.length?hs.map(h=>{ const ok=disponible(h);
-      return `<button type="button" class="hist${ok?'':' bloq'}" data-h="${h.id}"><span class="ft">${imgHTML(h.portada)}${diaPersonal(h)?`<span class="dianum">Día ${diaPersonal(h)}</span>`:''}${c[h.id]?'<span class="ok">✓ Leída</span>':''}</span><span class="tx"><b>${esc(conNombre(h.titulo))}</b><span class="nota">${ok?esc(conNombre(h.resumen)):(diaPersonal(h)?'Se abre el '+esc(fechaLarga(fechaDia(diaPersonal(h)))):'Cuando subas de nivel')}</span><span class="chip n${h.nivel}" style="justify-self:start">Nivel ${h.nivel}</span></span></button>`; }).join(''):'<p class="vacio">No hay historias de este nivel aquí.</p>'}</div>`;
+      return `<button type="button" class="hist${ok?'':' bloq'}" data-h="${h.id}"><span class="ft">${imgHTML(h.portada)}${diaPersonal(h)?`<span class="dianum">Día ${diaPersonal(h)}</span>`:''}${c[h.id]?'<span class="ok">✓ Leída</span>':''}</span><span class="tx"><b>${esc(conNombre(h.titulo))}</b><span class="nota">${ok?esc(conNombre(h.resumen)):h.temporada?'Solo en '+esc(nombreTemporada(h.temporada)):(diaPersonal(h)?'Se abre el '+esc(fechaLarga(fechaDia(diaPersonal(h)))):'Cuando subas de nivel')}</span><span class="chip n${h.nivel}" style="justify-self:start">Nivel ${h.nivel}</span></span></button>`; }).join(''):'<p class="vacio">No hay historias de este nivel aquí.</p>'}</div>`;
     $('#volTemas').onclick=()=>ir('historias', null);
     $$('#s-historias .hist').forEach(b=>b.onclick=()=>{ const h=historia(b.dataset.h); if(disponible(h)) empezarHistoria(h); });
   }
@@ -128,12 +133,14 @@ let coleccion=null;
 definir('cromos', {nav:'cromos', pintar(){
   const c=leidas(); const als=albumesDe(); if(!coleccion || !als.find(a=>a.id===coleccion)) coleccion=als[0].id;
   const A=als.find(a=>a.id===coleccion); const completos=als.filter(a=>a.completo).length; const falta=A.total-A.n;
-  $('#s-cromos').innerHTML = `<div class="album-cab"><div><h1 class="tit">Mis cromos</h1><p class="sub">Un álbum para cada tema. ¡Complétalos!</p></div><div class="contador">${ic('estrella').replace('<svg','<svg width="34" height="34"')}<div><b>${Object.keys(c).length} de ${CONT.historias.length}</b><br><span>cromos${completos?` · ${completos} ${completos===1?'álbum completo':'álbumes completos'}`:''}</span></div></div></div>
+  const huecos=barajarCon(A.hs.map((h,i)=>({h, n:i+1})), semilla('album-'+perfil().id+'-'+A.id));
+  $('#s-cromos').innerHTML = `${albumTabsHTML('cromos')}<div class="album-cab"><div><h1 class="tit">Mis cromos</h1><p class="sub">Un álbum para cada tema. ¡Complétalos!</p></div><div class="contador">${ic('estrella').replace('<svg','<svg width="34" height="34"')}<div><b>${Object.keys(c).length} de ${CONT.historias.length}</b><br><span>cromos${completos?` · ${completos} ${completos===1?'álbum completo':'álbumes completos'}`:''}</span></div></div></div>
   <div class="colecciones">${als.map(a=>`<button type="button" data-col="${a.id}" aria-pressed="${a.id===coleccion}" class="${a.mio?'mio':''}">${a.T.emo} ${esc(a.T.nombre)} <span>(${a.n}/${a.total})</span>${a.completo?' 🏆':''}</button>`).join('')}</div>
   <div class="card album-prog${A.completo?' completo':''}"><span class="emo-g">${A.completo?'🏆':A.T.emo}</span><div class="tx"><b>Álbum de ${esc(A.T.nombre)}${A.mio?' <span class="chip tu-tema">⭐ Tu tema</span>':''}</b><span class="nota">${A.completo?'¡Lo has completado!':`Tienes ${A.n} de ${A.total}. ${falta===1?'Te falta 1 cromo':'Te faltan '+falta+' cromos'}.`}</span><span class="barra-t"><i style="width:${Math.round(100*A.n/A.total)}%;background:var(--green)"></i></span></div></div>
-  <div class="cromos">${A.hs.map(h=> c[h.id]
-    ? `<button type="button" class="cromo" data-h="${h.id}"><span class="ft">${imgHTML(h.portada)}</span><b>${esc(conNombre(h.titulo))}</b></button>`
-    : `<div class="cromo bloq" title="${esc(diaPersonal(h)?'Día '+diaPersonal(h):'Nivel '+h.nivel)}">${ic('candado')}<span class="nota">${diaPersonal(h)?'Día '+diaPersonal(h):'Nivel '+h.nivel}</span></div>`).join('')}</div>`;
+  <div class="cromos">${huecos.map(({h,n})=> c[h.id]
+    ? `<button type="button" class="cromo" data-h="${h.id}"><span class="num">${n}</span><span class="ft">${imgHTML(h.portada)}</span><b>${esc(conNombre(h.titulo))}</b></button>`
+    : `<div class="cromo bloq"><span class="num">${n}</span><span class="hueco-n">${n}</span><span class="nota">${h.temporada?esc(nombreTemporada(h.temporada)):'¿?'}</span></div>`).join('')}</div>`;
+  activarAlbumTabs();
   $$('#s-cromos [data-col]').forEach(b=>b.onclick=()=>{ coleccion=b.dataset.col; ir('cromos'); });
   $$('#s-cromos .cromo[data-h]').forEach(b=>b.onclick=()=>ir('cromo', b.dataset.h));
 }});

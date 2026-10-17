@@ -127,15 +127,16 @@ definir('nooye', {pintar(){
 definir('lectura', {nav:'historias', pintar(modo){
   if(modo==='seguir' && lect){ reanudarLectura(); return; }
   const h=hist;
-  $('#s-lectura').innerHTML = `<div class="card lect-card leyendo"><div class="lect-cab"><span class="t">${diaPersonal(h)?'Día '+diaPersonal(h):esc((temaDeMundo(h.mundo)||{nombre:''}).nombre)} · ${esc(conNombre(h.titulo))}</span><span class="der">${marcaLectura(h)?'<button class="btn btn-mini" type="button" id="btnDesdeInicio">Empezar desde el principio</button>':''}<span class="mic-ind" id="micInd"><i></i><span id="micTxt">Preparando…</span></span></span></div>
+  $('#s-lectura').innerHTML = `<div class="card lect-card leyendo"><div class="lect-cab"><span class="t">${diaPersonal(h)?'Día '+diaPersonal(h):esc((temaDeMundo(h.mundo)||{nombre:''}).nombre)} · ${esc(conNombre(h.titulo))}</span><span class="der">${marcaLectura(h)?'<button class="btn btn-mini" type="button" id="btnDesdeInicio">Empezar desde el principio</button>':''}<button class="btn btn-mini btn-sig-pal" type="button" id="btnSigPal" title="Si ya la has leído y no se pone verde">Siguiente ${ic('dcha')}</button><span class="mic-ind" id="micInd"><i></i><span id="micTxt">Preparando…</span></span></span></div>
     <div class="texto ${claseTexto()} ${aj.img==='sin'?'sin-fotos':''}" id="texto"></div>
     <div class="lect-barra"><button class="ico-btn" type="button" id="btnFrase" aria-label="Escuchar la frase">${ic('altavoz')}</button><div class="prog"><i id="progLect"></i></div>
       <button class="ico-btn" type="button" id="btnPausa" aria-label="Pausa">${ic('pausa2')}</button><button class="btn btn-p" type="button" id="btnTermine">Terminé ${ic('check')}</button></div></div>
-  <p class="ayuda-tecla">Si una palabra es difícil, tócala. · Papá o mamá: la barra espaciadora avanza una palabra.</p>`;
+  <p class="ayuda-tecla">Si una palabra es difícil, tócala. · Si ya la has leído y no se pone verde, pulsa «Siguiente».</p>`;
   aplicarLetra();
   palabras = pintarTexto($('#texto'), h.lineas);
   $('#texto').addEventListener('click', e=>{ const w=e.target.closest('.w'); if(w) ayudaPalabra(+w.dataset.i); });
   $('#btnPausa').onclick=pausar;
+  $('#btnSigPal').onclick=()=>{ if(!lect || !lect.activa || lect.pausadoDesde) return; lect.forzado=(lect.puntero||0)+1; alinear(); };
   $('#btnTermine').onclick=()=>terminarDeLeer();
   if($('#btnDesdeInicio')) $('#btnDesdeInicio').onclick=()=>{ aj.marcapaginas=null; guardarAj(); cancelarLectura(); empezarHistoria(h); };
   $('#btnFrase').onclick=()=>{ const i=Math.min(lect?lect.puntero||0:0, palabras.length-1); const p=palabras[i].el.closest('p'); if(lect) lect.frases=(lect.frases||0)+1; decir(p.textContent.replace(/\s+/g,' ').trim()); };
@@ -224,6 +225,10 @@ async function cerrarLectura(){
   if(l.oidoId){ l.activa=true; alinear(); l.activa=false; }
   const blob=await pararGrabacion(l); if(lect===l) lect=null;
   const oyo = l.oyendo && !l.srFallo && (l.oidoId ? l.finales.length>0 : (l.txtPrevio+' '+l.txtSesion).trim().length>0);
+  // ritmo de este niño: un niño que lee sílaba a sílaba tarda 10-15 s por palabra y no por eso lo ha leído mal
+  const tiempos = palabras.map((w,i)=>l.tOk[i]).filter(t=>t!=null);
+  const huecos = tiempos.slice(1).map((t,i)=>t-tiempos[i]).filter(x=>x>0).sort((a,b)=>a-b);
+  const limite = Math.max(6, 3*(huecos.length ? huecos[Math.floor(huecos.length/2)] : 2));
   let prevT=null, pendientes=0;
   const estados = palabras.map((w,i)=>{
     const o={p:w.p, e:'ok'}; if(w.foto) o.d=1; if(l.tOk[i]!=null) o.t=+(+l.tOk[i]).toFixed(2);
@@ -231,15 +236,22 @@ async function cerrarLectura(){
     if(l.ayudas.has(i)){ o.e='ayuda'; o.m=1; }
     else if(oyo){
       if(!(l.ok && l.ok[i])){ o.e='pendiente'; o.a=1; pendientes++; }
-      else if(prevT!=null && l.tOk[i]-prevT>4){ o.e='pendiente'; o.a=1; pendientes++; }
+      else if(prevT!=null && l.tOk[i]-prevT>limite){ o.e='pendiente'; o.a=1; pendientes++; }
     }
     if(oyo && l.tOk[i]!=null) prevT=l.tOk[i];
     return o;
   });
+  // palabras cortas (el, la, en, por…) que el oído casi nunca separa: si la de antes y la de después se oyeron, cuentan como leídas
+  if(oyo) estados.forEach((o,i)=>{ if(o.e!=='pendiente' || normalizar(o.p).length>3) return;
+    let a=i-1; while(a>=0 && estados[a].e==='pendiente' && normalizar(estados[a].p).length<=3) a--;
+    let b=i+1; while(b<estados.length && estados[b].e==='pendiente' && normalizar(estados[b].p).length<=3) b++;
+    const oida = k => k>=0 && k<estados.length && (estados[k].e==='ok' || estados[k].e==='ayuda');
+    if(oida(a) && oida(b) && b-a<=4){ o.e='ok'; o.i=1; delete o.a; pendientes--; } });
   const p=perfil();
   sesion={ id:nuevoId(), v:4, fecha:new Date().toISOString(), lectorId:p.id, lector:p.nombre, prueba:!!p.prueba, historiaId:hist.id, dia:diaPersonal(hist)||hist.dia, titulo:conNombre(hist.titulo), mundo:hist.mundo, nivel:hist.nivel,
     segundos:Math.round(seg), totalPalabras:palabras.length, ppm:Math.round((palabras.length-ini)/(seg/60)), palabras:estados, ...(ini?{desdePalabra:ini}:{}), auto:oyo, oido:l.oidoId?'vosk':(l.sr?'navegador':'ninguno'),
     oidoStats: l.rt ? {peticiones:l.rt.n, msMedio:Math.round(l.rt.suma/l.rt.n), msMax:Math.round(l.rt.max), retrasoMedio: l.retrasos&&l.retrasos.length ? +media(l.retrasos).toFixed(2) : null, reconocidas:l.ok?l.ok.filter(Boolean).length:0} : null,
+    oidoTexto: (l.oidoId ? l.finales.map(f=>f.w).join(' ') : (l.txtPrevio+' '+l.txtSesion)).trim().slice(0,2000) || undefined, oidoLimite: oyo ? +limite.toFixed(1) : undefined,
     frasesEscuchadas:l.frases||0, letra:aj.letra, tam:aj.tam, imagenes:aj.img, preguntas:[], aciertos:0, totalPreguntas:hist.preguntas.length, calculo:null, revisada: pendientes===0, incompleta:true };
   if(sesion.oidoStats) registrar(`Oído ${sesion.oido}: ${sesion.oidoStats.reconocidas}/${palabras.length} palabras reconocidas, retraso medio ${sesion.oidoStats.retrasoMedio} s, petición media ${sesion.oidoStats.msMedio} ms (máx ${sesion.oidoStats.msMax})`);
   audioBlob=blob;
@@ -344,7 +356,7 @@ definir('cromonuevo', {nav:'cromos', pintar(){
   coleccion=TA.id;
   if(albumCompleto){ setTimeout(()=>{ confeti($('#cromoCaja')); sonido('bien'); }, 1600); }
   decir(albumCompleto ? `¡Nuevo cromo, ${nombre()}! ¡Y has completado el álbum de ${TA.nombre}!` : eraNueva ? `¡Nuevo cromo, ${nombre()}! ${conNombre(h.titulo)}.` : `¡Muy bien, ${nombre()}! Has terminado la historia.`);
-  delete sesion.incompleta; guardarSesionActual();
+  delete sesion.incompleta; guardarSesionActual().then(()=>setTimeout(()=>{ if(actual==='cromonuevo') comprobarPremios(); }, albumCompleto?3600:2600));
 }});
 /* guarda la lectura en curso (cada vez que avanza); las peticiones van en fila para no pisarse */
 let colaGuardar=Promise.resolve();

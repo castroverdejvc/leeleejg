@@ -30,7 +30,7 @@ function pedirPinNuevo(cb){
 }
 
 /* ---------- 26 · Evolución ---------- */
-let tabEvo='lecturas';
+let tabEvo='semana';
 function semanas(ms, n=6){
   if(!ms.length) return [];
   const lunes=d=>{ const x=new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x.getTime(); };
@@ -48,7 +48,7 @@ function barras(vals, etq, {max=100, color='#7DD9A8', suf=''}={}){
 const pctComp = s => { const n=preguntasHechas(s); return n ? Math.round(100*(s.aciertos||0)/n) : null; };
 definir('evolucion', {zona:'adulto', pintar(tab){
   if(tab) tabEvo=tab; const p=lectorVisto(); const ms=sesDe(p.id);
-  const TABS=[['lecturas','Lecturas'],['temas','Temas e intereses'],['grabaciones','Grabaciones'],['palabras','Palabras'],['calculo','Cálculo']];
+  const TABS=[['semana','Esta semana'],['lecturas','Lecturas'],['temas','Temas e intereses'],['grabaciones','Grabaciones'],['palabras','Palabras'],['calculo','Cálculo'],['premios','Premios y gustos']];
   let cuerpo='';
   if(tabEvo==='lecturas'){
     const sem=semanas(ms);
@@ -62,6 +62,10 @@ definir('evolucion', {zona:'adulto', pintar(tab){
       <button class="btn btn-mini" type="button" data-oir="${s.id}">${ic('play')} Escuchar</button><button class="btn btn-mini" type="button" data-rev="${s.id}">Revisar</button><button class="btn btn-mini btn-rojo" type="button" data-delg="${s.id}">Eliminar</button></div>`; }).join(''):'<p class="vacio">Todavía no hay grabaciones.</p>'}</div>`;
   } else if(tabEvo==='temas'){
     cuerpo = temasAdultoHTML(p);
+  } else if(tabEvo==='semana'){
+    cuerpo = semanaHTML(p);
+  } else if(tabEvo==='premios'){
+    cuerpo = premiosAdultoHTML(p) + gustosAdultoHTML(p);
   } else if(tabEvo==='palabras'){
     const dif=palabrasDificiles(ms).slice(0,40), dom=palabrasDominadas(ms), pr=Object.entries(p.cfg&&p.cfg.practica||aj.practica||{});
     cuerpo = `<div class="graf-2"><div class="card bloque"><h3 style="margin-bottom:12px">Palabras que le cuestan</h3>${dif.length?`<div class="palabras-chips">${dif.map(x=>`<span>${esc(x.p)}<small>${esc(silabear(x.p).join('-'))} · ${x.n}</small></span>`).join('')}</div>`:'<p class="vacio">Ninguna por ahora. Se apuntan cuando pide ayuda o al revisar una grabación.</p>'}</div>
@@ -80,6 +84,7 @@ definir('evolucion', {zona:'adulto', pintar(tab){
   if($('#btnInforme')) $('#btnInforme').onclick=()=>ir('informe', p.id);
   activarAccionesLecturas('#s-evolucion');
   if(tabEvo==='temas') activarTemasAdulto(p);
+  if(tabEvo==='premios') activarPremiosAdulto();
 }});
 function tablaLecturas(ms){
   if(!ms.length) return '<p class="vacio">Todavía no hay lecturas.</p>';
@@ -128,7 +133,8 @@ definir('revisar', {zona:'adulto', pintar(id){
       <div><b>Marca la lectura de esta palabra: <span style="font-family:var(--f-lect);font-size:1.5rem">${esc(w.texto)}</span></b>${p.e==='ayuda'?' <span class="nb medio">pidió ayuda</span>':''}${p.e==='pendiente'?' <span class="nb medio">el programa no la oyó bien</span>':''}</div>
       <div class="marcar"><button type="button" class="m-ok" data-v="ok" aria-pressed="${v==='ok'&&!!p.r}"><i></i>Lectura correcta</button><button type="button" class="m-pr" data-v="practica" aria-pressed="${v==='practica'}"><i></i>Necesita práctica</button><button type="button" class="m-nc" data-v="noclaro" aria-pressed="${v==='noclaro'}"><i></i>Audio no claro</button></div>
       <div class="botones"><button class="btn btn-g" type="button" id="revAnt" ${pos<=0?'disabled':''}>${ic('izq')} Anterior</button><span class="nota" style="align-self:center;flex:0;white-space:nowrap">${pos>=0?(pos+1)+' de '+m.length:''}</span><button class="btn btn-g" type="button" id="revSig" ${pos<0||pos>=m.length-1?'disabled':''}>Siguiente ${ic('dcha')}</button><button class="btn btn-p btn-g" type="button" id="revGuardar">Guardar revisión</button></div>
-      <p class="nota">Toca cualquier palabra de la frase para revisarla aunque el programa no la haya marcado.</p></div>`;
+      <p class="nota">Toca cualquier palabra de la frase para revisarla aunque el programa no la haya marcado.</p>
+      ${s.oidoTexto?`<details class="oido-texto"><summary class="nota"><b>Lo que entendió el programa</b></summary><p class="nota">${esc(s.oidoTexto)}</p></details>`:''}</div>`;
   if(s.audio){ revP=crearReproductor($('#revAudio'), '/api/audio/'+s.id); if(p.t!=null) setTimeout(()=>revP && revP.trozo(p.t), 400); }
   else $('#revAudio').innerHTML='<p class="nota">Esta lectura no tiene grabación.</p>';
   $('#revLista').onclick=()=>ir('revisar', null);

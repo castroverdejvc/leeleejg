@@ -125,12 +125,13 @@ function resultado(ok){
 }
 definir('repasofin', {nav:'repaso', pintar(){
   const unicos=[...new Map(rep.res.map(r=>[r.p.id, r])).values()]; const bien=unicos.filter(r=>rep.res.filter(x=>x.p.id===r.p.id).every(x=>x.ok)).length;
-  aj.repasoLog=aj.repasoLog||[]; aj.repasoLog.push({f:new Date().toISOString(), n:unicos.length, bien, fichas:[...new Set(unicos.map(r=>r.f.id))]}); aj.repasoLog=aj.repasoLog.slice(-200); guardarAj();
+  aj.repasoLog=aj.repasoLog||[]; aj.repasoLog.push({f:new Date().toISOString(), n:unicos.length, bien, fichas:[...new Set(unicos.map(r=>r.f.id))]}); aj.repasoLog=aj.repasoLog.slice(-2000); guardarAj();
   const l=(rep.items[0]&&rep.items[0].f.idioma)||'es';
   $('#s-repasofin').innerHTML = `<div class="card buen-trabajo"><h1>${l==='en'?'Great job!':l==='gl'?'Bo traballo!':'¡Buen trabajo!'}</h1><p class="sub">Has repasado ${unicos.length} ${unicos.length===1?'palabra':'palabras'} · ${bien} a la primera.</p>
     <div class="tarjetas-pal">${unicos.map(r=>`<div class="tp"><span class="ft">${imgPalabra(r.p)}</span><b style="${rep.res.filter(x=>x.p.id===r.p.id).every(x=>x.ok)?'':'color:var(--coral)'}">${esc(r.p.t)} ${rep.res.filter(x=>x.p.id===r.p.id).every(x=>x.ok)?`<i>${ic('check')}</i>`:''}</b>${r.p.es?`<span class="nota">${esc(r.p.es)}</span>`:''}</div>`).join('')}</div>${libroSVG()}
     <div class="botones" style="max-width:640px;margin:0 auto"><button class="btn btn-p btn-g" type="button" data-ir="inicio">${ic('casa')} Volver al inicio</button><button class="btn btn-borde btn-g" type="button" data-ir="repaso">${ic('hoja')} Fichas</button></div></div>`;
   confeti($('#s-repasofin .buen-trabajo')); sonido('cromo');
+  setTimeout(()=>{ if(actual==='repasofin') comprobarPremios(); }, 2500);
   decir(l==='en'?'Great job!':l==='gl'?'Bo traballo!':`¡Buen trabajo, ${nombre()}!`, l);
 }});
 

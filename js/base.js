@@ -74,6 +74,7 @@ const ICON = {
   pata:'<svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16" rx="5" ry="4.2"/><circle cx="6" cy="10" r="2.2"/><circle cx="10" cy="6.5" r="2.2"/><circle cx="14" cy="6.5" r="2.2"/><circle cx="18" cy="10" r="2.2"/></svg>',
   informe:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h8M9 17h5"/></svg>',
   pausa2:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>',
+  juego:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12a4 4 0 0 1 4 4v1a4 4 0 0 1-7 2.6L14 15h-4l-1 .6A4 4 0 0 1 2 13v-1a4 4 0 0 1 4-4z"/><path d="M7 11v3M5.5 12.5h3"/><circle cx="16" cy="11.5" r=".6" fill="currentColor"/><circle cx="18" cy="13.5" r=".6" fill="currentColor"/></svg>',
   descarga:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
   x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
 };
@@ -117,8 +118,8 @@ function claveDePalabra(p){ const l=String(p).toLowerCase(); return CONT.palabra
 /* ================= AJUSTES Y LECTORES ================= */
 const COLORES = ['#1E7BF2','#8B5CF6','#18B47B','#E5484D','#F5A300','#0EA5B7','#DB2777','#64748B'];
 const SUAVE = {'#1E7BF2':'#D7E8FF','#8B5CF6':'#EAE2FF','#18B47B':'#D6F3E6','#E5484D':'#FDE1E1','#F5A300':'#FFF0CC','#0EA5B7':'#D4F2F6','#DB2777':'#FCE1EE','#64748B':'#E5EAF1','#1463E6':'#D7E8FF','#1FA982':'#D6F3E6','#E8503B':'#FDE1E1','#F2A900':'#FFF0CC'};
-const PKEYS = ['tam','letra','img','nivel','inicio','adelantar','practica','repaso','repasoLog','dictado','dictadoLog','temas','plan','temasLog','pideMas','espacio','marcapaginas'];
-const cfgBase = p => ({tam: window.innerWidth<700 ? 30 : 44, letra:'imprenta', img:'con', nivel:0, inicio:null, adelantar: !!(p && p.prueba), practica:{}, repaso:{}, repasoLog:[], dictado:{}, dictadoLog:[], temas:[], plan:{}, temasLog:[], pideMas:[], espacio:'normal', marcapaginas:null});
+const PKEYS = ['tam','letra','img','nivel','inicio','adelantar','practica','repaso','repasoLog','dictado','dictadoLog','temas','plan','temasLog','pideMas','espacio','marcapaginas','gustosLog','adivLog','juegoDias','premiosVistos','recordatorio'];
+const cfgBase = p => ({tam: window.innerWidth<700 ? 30 : 44, letra:'imprenta', img:'con', nivel:0, inicio:null, adelantar: !!(p && p.prueba), practica:{}, repaso:{}, repasoLog:[], dictado:{}, dictadoLog:[], temas:[], plan:{}, temasLog:[], pideMas:[], espacio:'normal', marcapaginas:null, gustosLog:[], adivLog:[], juegoDias:{}, premiosVistos:null, recordatorio:null});
 /* perfil con el que empieza un aparato nuevo (se cambia el nombre en Usuarios, o se traen los del ordenador) */
 const PERFIL_INICIAL = () => ({id:'lector1', nombre:'Lector', color:COLORES[0]});
 const ajPorDefecto = () => ({perfiles:[{...PERFIL_INICIAL(), cfg:cfgBase()}], perfil:'lector1', pin:'', voz:'', volumen:.9, audioPreguntas:true, ...cfgBase()});
