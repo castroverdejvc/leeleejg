@@ -12,7 +12,7 @@ document.addEventListener('click', e=>{ const b=e.target.closest('[data-lec]'); 
 definir('pin', {zona:'pin', pintar(){
   let val=''; const s=$('#s-pin');
   const pinta=(msg='')=>{ s.innerHTML = `<div class="pin-pant"><div class="pin-ilus"><span class="blob"></span>${imgHTML('buho',true)}<span class="frase">Aprender<br>también<br>es crecer</span></div>
-    <div class="pin-caja"><div class="logo" style="font-size:1.5rem">${ic('logo')}<span>LeeLEE<b>JG</b></span></div><h1 class="tit">Acceso de adultos</h1><p class="sub">Introduce tu PIN de 4 dígitos</p>
+    <div class="pin-caja"><div class="logo" style="font-size:1.5rem">${icLogo()}<span>LeeLEE<b>JG</b></span></div><h1 class="tit">Acceso de adultos</h1><p class="sub">Introduce tu PIN de 4 dígitos</p>
       <div class="pin-puntos">${[0,1,2,3].map(i=>`<i class="${i<val.length?'on':''}"></i>`).join('')}</div>
       <div class="teclado">${[1,2,3,4,5,6,7,8,9].map(k=>`<button type="button" data-k="${k}">${k}</button>`).join('')}<button type="button" class="cero" data-k="0">0</button><button type="button" data-k="b" aria-label="Borrar">${ic('borrar')}</button></div>
       <p class="pin-msg">${esc(msg)}</p><button class="btn btn-p btn-g" type="button" id="pinEntrar" style="min-width:300px">Entrar</button><button class="btn" type="button" id="pinVolver" style="min-width:160px">Volver</button></div></div>`;
@@ -207,7 +207,7 @@ definir('imagenes', {zona:'adulto', pintar(tab){
     <div><h3>Recortar imagen</h3><div class="recorte" id="recorte" style="aspect-ratio:${imgDestino.tipo==='foto'?'1':'1.5'}">${recorte?'':`<div style="position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-3);font-weight:800;text-align:center;padding:10px">Elige una imagen y muévela con el ratón o el dedo</div>`}<div class="marco"></div></div>
       <div class="zoom"><span>−</span><input type="range" id="imgZoom" min="1" max="4" step="0.01" value="${recorte?recorte.z:1}" aria-label="Zoom"><span>+</span></div></div>
     <div class="previa"><h3>Vista previa</h3><canvas id="imgPrevia" width="${imgDestino.tipo==='foto'?180:240}" height="${imgDestino.tipo==='foto'?180:160}" class="${imgDestino.tipo==='foto'?'redonda':''}"></canvas><button class="btn btn-borde" type="button" id="imgUsar" ${recorte?'':'disabled'}>Usar esta imagen</button></div></div>
-  <div class="card bloque" style="margin-top:18px"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center"><h3>${tabImg==='foto'?'¿De quién es la foto?':tabImg==='personajes'?'Personajes de las historias':'Portadas y palabras'}</h3>${tabImg==='dibujos'?`<input class="buscar" id="imgBuscar" type="search" placeholder="Buscar palabra (p. ej. murciélago)" value="${esc(buscaImg)}">`:''}</div><div class="lista-img" id="listaImg"></div></div>`;
+  <div class="card bloque" style="margin-top:18px"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center"><h3>${tabImg==='foto'?'¿De quién es la foto? (o el logo del programa)':tabImg==='personajes'?'Personajes de las historias':'Portadas y palabras'}</h3>${tabImg==='dibujos'?`<input class="buscar" id="imgBuscar" type="search" placeholder="Buscar palabra (p. ej. murciélago)" value="${esc(buscaImg)}">`:''}</div><div class="lista-img" id="listaImg"></div></div>`;
   pintarListaImg();
   $$('#s-imagenes [data-ti]').forEach(b=>b.onclick=()=>{ recorte=null; ir('imagenes', b.dataset.ti); });
   $('#imgArchivo').onchange=e=>{ const f=e.target.files[0]; if(f) cargarRecorte(f); };
@@ -221,7 +221,7 @@ let buscaImg='';
 function pintarListaImg(){
   const it=(k,t,sub)=>{ const src=fotoURL(k); return `<button type="button" class="it-img" data-k="${esc(k)}" data-t="${esc(t)}" aria-pressed="${imgDestino&&imgDestino.clave===k}"><span class="ft">${src?`<img src="${src}" alt="">`:esc(CONT.emoji[k]||'🖼️')}${MIS[k]?'<span class="tuya">Tuya</span>':''}</span><b>${esc(t)}</b>${sub?`<span class="nota">${esc(sub)}</span>`:''}</button>`; };
   let h='';
-  if(tabImg==='foto') h=aj.perfiles.map(p=>it('lector_'+p.id, p.nombre, p.prueba?'pruebas':'')).join('');
+  if(tabImg==='foto') h=aj.perfiles.map(p=>it('lector_'+p.id, p.nombre, p.prueba?'pruebas':'')).join('') + it('logo', 'Logo del programa', 'arriba, al lado de LeeLEEJG');
   else if(tabImg==='personajes') h=PERSONAJES.filter(x=>x.clave!=='lector').map(x=>it(x.clave, conNombre(x.nombre), 'sale junto a su nombre')).join('');
   else { const q=normalizar(buscaImg||''); h=(q?'':CONT.mundos.map(m=>it(m.foto, m.nombre, 'portada')).join('')) + Object.entries(CONT.palabras).filter(([p])=>!q||normalizar(p).includes(q)).slice(0, q?120:36).map(([p,k])=>it(k,p,'')).join(''); }
   $('#listaImg').innerHTML=h;

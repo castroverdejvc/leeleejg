@@ -136,7 +136,16 @@ const claveLector = (p=perfil()) => MIS['lector_'+p.id] ? 'lector_'+p.id : (p.id
 function fotoLector(p=perfil()){ const k=claveLector(p); return MIS[k] ? '/mis-imagenes/'+k+'.jpg?v='+MIS[k] : null; }
 function fondoLector(p=perfil()){ if(p.fondo==='__nada') return null; if(MIS['fondo_'+p.id] && (!p.fondo || p.fondo==='fondo_'+p.id)) return fotoURL('fondo_'+p.id, true); return p.fondo ? fotoURL(p.fondo, true) : null; }
 const avatarHTML = (p, cls='') => { const f=fotoLector(p); return `<span class="av ${cls}" style="--c:${esc(p.color)}">${f?`<img src="${f}" alt="">`:esc(iniciales(p.nombre))}</span>`; };
+/* Logo del programa: la foto que la familia pone en Mis imágenes › Mi foto › «Logo del programa» (se guarda en el aparato, no en la web) */
+const icLogo = () => MIS.logo ? `<img class="logo-foto" src="/mis-imagenes/logo.jpg?v=${MIS.logo}" alt="">` : ICON.logo;
+function pintarLogo(){
+  const url = MIS.logo ? '/mis-imagenes/logo.jpg?v='+MIS.logo : null;
+  $$('[data-icono="logo"]').forEach(e=>{ e.innerHTML = url ? `<img class="logo-foto" src="${url}" alt="">` : ICON.logo; e.dataset.hecho='1'; e.style.display='inline-flex'; });
+  let fav=document.querySelector('link[rel="icon"]'); if(!fav){ fav=document.createElement('link'); fav.rel='icon'; document.head.appendChild(fav); }
+  fav.href = url || 'iconos/icono-192.png';
+}
 function pintarCabecera(){
+  pintarLogo();
   const p=perfil(); $('#yoAv').outerHTML = avatarHTML(p).replace('class="av ','id="yoAv" class="av ');
   $('#yoNom').textContent=p.nombre; $('#yoPrueba').hidden=!p.prueba; $('#franjaPrueba').hidden=!p.prueba;
 }
