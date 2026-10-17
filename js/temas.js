@@ -16,7 +16,9 @@ const ALBUM_FIESTAS = {id:'fiestas', nombre:'Días especiales', mundos:['fiestas
 const temaDe = id => TEMAS.find(t=>t.id===id) || (id==='fiestas' ? ALBUM_FIESTAS : null);
 const temaDeMundo = m => TEMAS.find(t=>t.mundos.includes(m)) || (m==='fiestas' ? ALBUM_FIESTAS : null);
 const descTema = t => t.desc || conNombre((CONT.mundos.find(m=>m.id===t.mundos[0])||{}).desc || '');
-const ordenH = (a,b) => (a.nivel-b.nivel) || ((a.dia||900)-(b.dia||900)) || String(a.id).localeCompare(String(b.id));
+/* de más fácil a más difícil y, dentro de cada nivel, de más corta a más larga (así cada vez son un poco más largas) */
+const largoH = h => h._largo || (h._largo = h.lineas.reduce((a,l)=>a+String(l).split(/\s+/).length,0));
+const ordenH = (a,b) => (a.nivel-b.nivel) || (largoH(a)-largoH(b)) || ((a.dia||900)-(b.dia||900)) || String(a.id).localeCompare(String(b.id));
 function historiasTema(id){ const t=temaDe(id); return t ? CONT.historias.filter(h=>t.mundos.includes(h.mundo)).sort(ordenH) : []; }
 const nombreTema = id => (temaDe(id)||{nombre:id}).nombre;
 
@@ -152,7 +154,7 @@ function misTemasHTML(p=perfil()){
 /* ---------- álbumes de cromos por tema ---------- */
 function albumesDe(p=perfil()){
   const ts=temasDe(p); const orden=[...ts, ...TEMAS.map(t=>t.id).filter(t=>!ts.includes(t)), 'fiestas'];
-  const leid=leidasDe(p.id);
+  const leid=typeof cromosDe==='function' ? cromosDe(p) : leidasDe(p.id);
   return orden.map(id=>{ const T=temaDe(id), hs=historiasTema(id); const n=hs.filter(h=>leid[h.id]).length; return {id, T, hs, n, total:hs.length, mio:ts.includes(id), completo: hs.length>0 && n===hs.length}; }).filter(a=>a.total);
 }
 

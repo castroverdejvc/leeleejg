@@ -164,7 +164,7 @@ definir('grupo', {zona:'adulto', pintar(){
 }});
 
 /* ---------- 29 · Editar perfil ---------- */
-const NIVELES=[[1,'Estoy empezando'],[2,'Ya leo palabras'],[3,'Leo frases'],[4,'Leo historias']];
+const NIVELES=[[1,'Estoy empezando'],[2,'Ya leo palabras'],[3,'Leo frases'],[4,'Leo historias'],[5,'Leo historias largas']];
 const CURSOS=['','Infantil 5 años','1.º de Primaria','2.º de Primaria','3.º de Primaria','Otro'];
 let perfilNuevo=null;
 definir('perfil', {zona:'adulto', pintar(modo){

@@ -49,7 +49,7 @@ function fuentesDictado(){
 const palabraSimple = w => /^[\p{L}]+$/u.test(w) && w.length>=2 && w.length<=12;
 function palabrasDeFicha(f){ return (f.palabras||[]).filter(p=>palabraSimple(String(p.t||'').trim())).map(p=>({w:String(p.t).trim().toLowerCase(), img:p.img||null, es:p.es||''})); }
 function palabrasDeLecturas(tema){
-  const niv=nivelActualDe(); const lim=[[3,5],[3,6],[4,8],[4,10]][Math.max(0,Math.min(3,niv-1))];
+  const niv=nivelActualDe(); const lim=[[3,5],[3,6],[4,8],[4,10],[4,11]][Math.max(0,Math.min(4,niv-1))];
   const T=tema && temaDe(tema); const delTema=h=>!T || T.mundos.includes(h.mundo);
   let hs = [...new Set(misSes().slice().reverse().map(s=>s.historiaId))].map(historia).filter(h=>h && delTema(h)).slice(0,10);
   if(!hs.length) hs = T ? historiasTema(tema).filter(h=>h.nivel<=niv).slice(0,10) : [historiaDeHoy()];

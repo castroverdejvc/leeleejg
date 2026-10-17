@@ -16,8 +16,8 @@ function personajeDe(texto){
 }
 function pintarTexto(cont, lineas){
   cont.innerHTML=''; const lista=[];
-  lineas.forEach(l=>{
-    const p=document.createElement('p');
+  lineas.forEach((l,li)=>{
+    const p=document.createElement('p'); p.dataset.li=li;
     tokenizar(conNombre(l)).forEach(tk=>{
       if(tk.esp) p.appendChild(document.createTextNode(' '));
       const norm=normalizar(tk.texto);
@@ -29,12 +29,33 @@ function pintarTexto(cont, lineas){
       if(clave){ const f=document.createElement('span'); f.className='fp'; f.appendChild(w); f.insertAdjacentHTML('beforeend', imgHTML(clave)); nodo=f; }
       if(norm){ w.dataset.i=lista.length; const pal=limpiar(tk.texto); const t=(CONT.trozos||{})[pal];
         const silRaw = t ? t.slice() : silabear(pal);
-        lista.push({el:w, norm, p:pal, foto:tk.tipo==='foto', clave, sylEls:[...w.children], silRaw, sil:silRaw.map(normalizar).filter(Boolean)}); }
+        lista.push({el:w, norm, p:pal, foto:tk.tipo==='foto', clave, sylEls:[...w.children], silRaw, sil:silRaw.map(normalizar).filter(Boolean), linea:li}); }
       p.appendChild(nodo);
     });
     cont.appendChild(p);
   });
   return lista;
+}
+
+/* ---------- leer juntos: una frase el niño y la siguiente papá, mamá o la voz del programa ---------- */
+const JUNTOS_TXT = {no:'👦 Leo yo solo', adulto:'👨‍👧 Con papá o mamá', voz:'🔊 Con la voz'};
+function marcarJuntos(){
+  const modo=aj.juntos||'no';
+  palabras.forEach(w=>{ w.adulto = modo!=='no' && w.linea%2===1; });
+  $$('#texto p').forEach(p=>{ const ad = modo!=='no' && (+p.dataset.li)%2===1; p.classList.toggle('linea-adulto', ad); p.dataset.quien = ad ? (modo==='voz'?'🔊 La voz':'👨‍👧 Papá o mamá') : ''; });
+}
+function saltarLineaAdulto(){
+  const l=lect; if(!l) return; const w=palabras[l.puntero||0]; if(!w || !w.adulto) return;
+  let j=l.puntero; while(j<palabras.length && palabras[j].linea===w.linea) j++;
+  l.turnoLinea=null; l.forzado=j; alinear();
+}
+/* lo llama alinear(): cuando el turno es de la línea del adulto */
+function turnoJuntos(ptr){
+  const l=lect; if(!l || !l.activa || l.pausadoDesde) return; const w=palabras[ptr]; const b=$('#btnSigPal');
+  if(!w || !w.adulto){ if(b) b.innerHTML='Siguiente '+ic('dcha'); return; }
+  if(b) b.innerHTML = aj.juntos==='voz' ? '🔊 Leyendo…' : 'Ya ha leído papá o mamá '+ic('dcha');
+  if(l.turnoLinea===w.linea) return; l.turnoLinea=w.linea;
+  if(aj.juntos==='voz'){ const p=w.el.closest('p'); const linea=w.linea; decir(p.textContent.replace(/\s+/g,' ').trim()).then(()=>{ if(lect===l && l.turnoLinea===linea){ const x=palabras[l.puntero||0]; if(x && x.linea===linea) saltarLineaAdulto(); } }); }
 }
 
 /* ---------- empezar una historia ---------- */
@@ -127,16 +148,18 @@ definir('nooye', {pintar(){
 definir('lectura', {nav:'historias', pintar(modo){
   if(modo==='seguir' && lect){ reanudarLectura(); return; }
   const h=hist;
-  $('#s-lectura').innerHTML = `<div class="card lect-card leyendo"><div class="lect-cab"><span class="t">${diaPersonal(h)?'Día '+diaPersonal(h):esc((temaDeMundo(h.mundo)||{nombre:''}).nombre)} · ${esc(conNombre(h.titulo))}</span><span class="der">${marcaLectura(h)?'<button class="btn btn-mini" type="button" id="btnDesdeInicio">Empezar desde el principio</button>':''}<button class="btn btn-mini btn-sig-pal" type="button" id="btnSigPal" title="Si ya la has leído y no se pone verde">Siguiente ${ic('dcha')}</button><span class="mic-ind" id="micInd"><i></i><span id="micTxt">Preparando…</span></span></span></div>
+  $('#s-lectura').innerHTML = `<div class="card lect-card leyendo"><div class="lect-cab"><span class="t">${diaPersonal(h)?'Día '+diaPersonal(h):esc((temaDeMundo(h.mundo)||{nombre:''}).nombre)} · ${esc(conNombre(h.titulo))}</span><span class="der">${marcaLectura(h)?'<button class="btn btn-mini" type="button" id="btnDesdeInicio">Empezar desde el principio</button>':''}<button class="btn btn-mini btn-juntos" type="button" id="btnJuntos" title="Leer solo, con papá o mamá, o con la voz del programa">${JUNTOS_TXT[aj.juntos||'no']}</button><button class="btn btn-mini btn-sig-pal" type="button" id="btnSigPal" title="Si ya la has leído y no se pone verde">Siguiente ${ic('dcha')}</button><span class="mic-ind" id="micInd"><i></i><span id="micTxt">Preparando…</span></span></span></div>
     <div class="texto ${claseTexto()} ${aj.img==='sin'?'sin-fotos':''}" id="texto"></div>
     <div class="lect-barra"><button class="ico-btn" type="button" id="btnFrase" aria-label="Escuchar la frase">${ic('altavoz')}</button><div class="prog"><i id="progLect"></i></div>
       <button class="ico-btn" type="button" id="btnPausa" aria-label="Pausa">${ic('pausa2')}</button><button class="btn btn-p" type="button" id="btnTermine">Terminé ${ic('check')}</button></div></div>
   <p class="ayuda-tecla">Si una palabra es difícil, tócala. · Si ya la has leído y no se pone verde, pulsa «Siguiente».</p>`;
   aplicarLetra();
   palabras = pintarTexto($('#texto'), h.lineas);
+  marcarJuntos();
+  $('#btnJuntos').onclick=()=>{ const orden=['no','adulto','voz']; aj.juntos=orden[(orden.indexOf(aj.juntos||'no')+1)%3]; guardarAj(); const ptr=lect?lect.puntero||0:0; if(ptr>0){ $('#btnJuntos').innerHTML=JUNTOS_TXT[aj.juntos]; marcarJuntos(); return; } cancelarLectura(); ir('lectura'); };
   $('#texto').addEventListener('click', e=>{ const w=e.target.closest('.w'); if(w) ayudaPalabra(+w.dataset.i); });
   $('#btnPausa').onclick=pausar;
-  $('#btnSigPal').onclick=()=>{ if(!lect || !lect.activa || lect.pausadoDesde) return; lect.forzado=(lect.puntero||0)+1; alinear(); };
+  $('#btnSigPal').onclick=()=>{ if(!lect || !lect.activa || lect.pausadoDesde) return; const w=palabras[lect.puntero||0]; if(w && w.adulto){ saltarLineaAdulto(); return; } lect.forzado=(lect.puntero||0)+1; alinear(); };
   $('#btnTermine').onclick=()=>terminarDeLeer();
   if($('#btnDesdeInicio')) $('#btnDesdeInicio').onclick=()=>{ aj.marcapaginas=null; guardarAj(); cancelarLectura(); empezarHistoria(h); };
   $('#btnFrase').onclick=()=>{ const i=Math.min(lect?lect.puntero||0:0, palabras.length-1); const p=palabras[i].el.closest('p'); if(lect) lect.frases=(lect.frases||0)+1; decir(p.textContent.replace(/\s+/g,' ').trim()); };
@@ -233,6 +256,7 @@ async function cerrarLectura(){
   const estados = palabras.map((w,i)=>{
     const o={p:w.p, e:'ok'}; if(w.foto) o.d=1; if(l.tOk[i]!=null) o.t=+(+l.tOk[i]).toFixed(2);
     if(i<ini){ o.prev=1; return o; }   // leída antes de dejarlo (marcapáginas)
+    if(w.adulto){ o.e='adulto'; return o; }   // la leyó papá, mamá o la voz (leer juntos)
     if(l.ayudas.has(i)){ o.e='ayuda'; o.m=1; }
     else if(oyo){
       if(!(l.ok && l.ok[i])){ o.e='pendiente'; o.a=1; pendientes++; }
@@ -252,7 +276,7 @@ async function cerrarLectura(){
     segundos:Math.round(seg), totalPalabras:palabras.length, ppm:Math.round((palabras.length-ini)/(seg/60)), palabras:estados, ...(ini?{desdePalabra:ini}:{}), auto:oyo, oido:l.oidoId?'vosk':(l.sr?'navegador':'ninguno'),
     oidoStats: l.rt ? {peticiones:l.rt.n, msMedio:Math.round(l.rt.suma/l.rt.n), msMax:Math.round(l.rt.max), retrasoMedio: l.retrasos&&l.retrasos.length ? +media(l.retrasos).toFixed(2) : null, reconocidas:l.ok?l.ok.filter(Boolean).length:0} : null,
     oidoTexto: (l.oidoId ? l.finales.map(f=>f.w).join(' ') : (l.txtPrevio+' '+l.txtSesion)).trim().slice(0,2000) || undefined, oidoLimite: oyo ? +limite.toFixed(1) : undefined,
-    frasesEscuchadas:l.frases||0, letra:aj.letra, tam:aj.tam, imagenes:aj.img, preguntas:[], aciertos:0, totalPreguntas:hist.preguntas.length, calculo:null, revisada: pendientes===0, incompleta:true };
+    ...(palabras.some(w=>w.adulto)?{juntos:aj.juntos}:{}), frasesEscuchadas:l.frases||0, letra:aj.letra, tam:aj.tam, imagenes:aj.img, preguntas:[], aciertos:0, totalPreguntas:hist.preguntas.length, calculo:null, revisada: pendientes===0, incompleta:true };
   if(sesion.oidoStats) registrar(`Oído ${sesion.oido}: ${sesion.oidoStats.reconocidas}/${palabras.length} palabras reconocidas, retraso medio ${sesion.oidoStats.retrasoMedio} s, petición media ${sesion.oidoStats.msMedio} ms (máx ${sesion.oidoStats.msMax})`);
   audioBlob=blob;
   if(aj.marcapaginas && aj.marcapaginas.historiaId===hist.id){ aj.marcapaginas=null; guardarAj(); }
@@ -345,7 +369,7 @@ definir('cromonuevo', {nav:'cromos', pintar(){
   const T=pasos(); const miAudio = audioBlob || (sesion.audio ? '/api/audio/'+sesion.id : null);
   $('#s-cromonuevo').innerHTML = `<div class="card" style="padding:20px 26px 6px">${cabPaso(T, {t: eraNueva?'Tu nuevo cromo':'Historia terminada', cls:'verde'})}</div>
   <div class="card cromo-g" id="cromoCaja" style="margin-top:-10px;border-top-left-radius:0;border-top-right-radius:0"><div class="carta"><div class="ft">${imgHTML(h.portada,true)}</div><div class="pie"><b>${esc(conNombre(h.titulo))}</b><span>${TA.emo} ${esc(TA.nombre)} · ${nA} de ${hsA.length}</span></div></div>
-    <div class="tx"><h1>${eraNueva?'¡Nuevo cromo!':'¡Muy bien!'}</h1><p class="sub">${albumCompleto?`🏆 ¡Has completado el álbum de ${esc(TA.nombre)}!`:eraNueva?`Has aprendido sobre ${esc(m.nombre.toLowerCase())}.`:'Ya tenías este cromo en tu álbum.'}</p>
+    <div class="tx"><h1>${eraNueva?'¡Nuevo cromo!':'¡Muy bien!'}</h1><p class="sub">${albumCompleto?`🏆 ¡Has completado el álbum de ${esc(TA.nombre)}!`:eraNueva?`Has aprendido sobre ${esc(m.nombre.toLowerCase())}.`:'¡Cromo repetido! Ya tenías este, así que te llevas un repe para cambiar con otro niño.'}</p>
       <div class="res-mini"><span class="chip">Preguntas ${sesion.aciertos} de ${sesion.totalPreguntas}</span>${sesion.calculo?`<span class="chip">Números ${sesion.calculo.ok?'✓':'con ayuda'}</span>`:''}<span class="chip">${sesion.segundos<60?sesion.segundos+' segundos':mmss(sesion.segundos)+' min'}</span></div>
       ${miAudio?`<button class="btn btn-verde btn-g btn-bloque" type="button" id="btnEscucharme">${ic('altavoz')} Escucharme</button>`:''}
       <button class="btn btn-borde btn-g btn-bloque" type="button" data-ir="cromos">${ic('album')} Ver mi álbum</button>

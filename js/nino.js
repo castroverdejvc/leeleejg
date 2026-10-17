@@ -5,7 +5,7 @@
 definir('quien', {pintar(){
   const ps=aj.perfiles.slice().sort((a,b)=>(!!a.prueba)-(!!b.prueba));
   $('#s-quien').innerHTML = `<div class="centro"><h1 class="tit">¿Quién va a leer hoy?</h1><p class="sub">Elige tu perfil para empezar.</p></div>
-  <div class="quien-grid">${ps.map(p=>{ const f=fotoLector(p), fo=fondoLector(p); const n=Object.keys(leidasDe(p.id)).length;
+  <div class="quien-grid">${ps.map(p=>{ const f=fotoLector(p), fo=fondoLector(p); const n=Object.keys(cromosDe(p)).length;
     return `<button type="button" class="quien${p.prueba?' prueba':''}" data-p="${esc(p.id)}" style="--c:${esc(p.color)};--cs:${SUAVE[p.color]||'#E2EEFF'}">
       <span class="ft">${fo?`<img src="${fo}" alt="">`:''}</span><span class="circulo">${f?`<img src="${f}" alt="">`:esc(iniciales(p.nombre))}</span>
       <b>${esc(p.nombre)}</b><span class="nota">${p.prueba?'Para probar · no cuenta':`${n} ${n===1?'cromo':'cromos'}`}</span><span class="btn">Entrar</span></button>`; }).join('')}</div>
@@ -40,7 +40,7 @@ definir('inicio', {nav:'inicio', pintar(){
   ${sorpresaHTML()}
   ${chipsTemasHTML()}
   <div class="fila2">
-    <button class="acceso verde" type="button" data-ir="cromos"><span class="mini-fotos">${fotosCromos}</span><span><b>Mis cromos</b><span class="nota">${Object.keys(c).length} de ${CONT.historias.length} conseguidos.</span></span><span class="ir">${ic('dcha')}</span></button>
+    <button class="acceso verde" type="button" data-ir="cromos"><span class="mini-fotos">${fotosCromos}</span><span><b>Mis cromos</b><span class="nota">${Object.keys(cromosDe(perfil())).length} de ${CONT.historias.length} conseguidos.</span></span><span class="ir">${ic('dcha')}</span></button>
     <button class="acceso amarillo" type="button" data-ir="repaso"><span class="icono-g" style="color:#C98A00">${ic('hoja')}</span><span><b>Fichas y dictado</b><span class="nota">${!FICHAS.length?'Te dicto palabras y tú me dices cómo se escriben.':pendRep?`Repaso de hoy: ${pendRep} ${pendRep===1?'palabra':'palabras'}. Y dictado.`:'¡Repaso de hoy hecho! ¿Un dictado?'}</span></span><span class="ir">${ic('dcha')}</span></button>
     <button class="acceso morado" type="button" data-ir="practicar"><span class="icono-g" style="color:#7C5CF0">${ic('lapiz')}</span><span><b>Practicar</b><span class="nota">Las palabras que más te cuestan.</span></span><span class="ir">${ic('dcha')}</span></button>
   </div>
@@ -85,11 +85,11 @@ definir('calendario', {nav:'calendario', pintar(){
 
 /* ---------- 04 · Elige una historia ---------- */
 let temaVisto=null;
-const NIVEL_TXT=['Todos','Nivel 1','Nivel 2','Nivel 3','Nivel 4'];
+const NIVEL_TXT=['Todos','Nivel 1','Nivel 2','Nivel 3','Nivel 4','Nivel 5'];
 definir('historias', {nav:'historias', pintar(tema){
   if(tema!==undefined) temaVisto=tema;
   const niv=aj.nivel||0;
-  const filtro=`<div class="niveles">${[0,1,2,3,4].map(n=>`<button type="button" class="n${n}" data-niv="${n}" aria-pressed="${n===niv}">${NIVEL_TXT[n]}</button>`).join('')}</div>`;
+  const filtro=`<div class="niveles">${[0,1,2,3,4,5].map(n=>`<button type="button" class="n${n}" data-niv="${n}" aria-pressed="${n===niv}">${NIVEL_TXT[n]}</button>`).join('')}</div>`;
   const c=leidas();
   if(!temaVisto){
     $('#s-historias').innerHTML = `<div class="cab-filtros"><div><h1 class="tit">Elige una historia</h1><p class="sub">Descubre animales, héroes, deportes y muchas cosas más.</p></div>${filtro}</div>
@@ -116,6 +116,7 @@ definir('asi', {nav:'', pintar(){
     <div class="grupo-aj"><b>Tipo de letra</b><div class="opciones-g"><button type="button" class="op-g" data-letra="imprenta" aria-pressed="${aj.letra!=='ligada'}"><span class="muestra" style="font-family:var(--f-lect)">Aa</span>Imprenta</button><button type="button" class="op-g" data-letra="ligada" aria-pressed="${aj.letra==='ligada'}"><span class="muestra lig">Aa</span>Ligada</button></div></div>
     <div class="grupo-aj"><b>Espacio entre letras</b><div class="opciones-g"><button type="button" class="op-g" data-esp="normal" aria-pressed="${aj.espacio!=='amplio'}"><span class="muestra" style="font-family:var(--f-lect)">casa</span>Normal</button><button type="button" class="op-g" data-esp="amplio" aria-pressed="${aj.espacio==='amplio'}"><span class="muestra" style="font-family:var(--f-lect);letter-spacing:.18em">casa</span>Amplio</button></div><span class="nota">Con más espacio entre letras y palabras se lee mejor si las letras «bailan».</span></div>
     <div class="grupo-aj"><b>Tamaño de letra</b><div class="tam-btns"><button type="button" data-tam="-" aria-label="Letra más pequeña">A−</button><span id="tamV">${aj.tam}</span><button type="button" data-tam="+" aria-label="Letra más grande">A+</button></div></div>
+    <div class="grupo-aj"><b>¿Cómo leemos?</b><div class="opciones-g">${['no','adulto','voz'].map(m=>`<button type="button" class="op-g" data-jun="${m}" aria-pressed="${(aj.juntos||'no')===m}"><span class="muestra">${JUNTOS_TXT[m].split(' ')[0]}</span>${JUNTOS_TXT[m].split(' ').slice(1).join(' ')}</button>`).join('')}</div><span class="nota">«Juntos»: el niño lee una frase y la siguiente la lee papá o mamá (o la voz del programa). También se cambia al leer, con el botón de arriba.</span></div>
     <div class="grupo-aj"><b>Imágenes en la lectura</b><div class="opciones-g"><button type="button" class="op-g" data-img="con" aria-pressed="${aj.img!=='sin'}">${imgHTML('perro')}Con fotos</button><button type="button" class="op-g" data-img="sin" aria-pressed="${aj.img==='sin'}"><span class="muestra" style="color:var(--ink-3)">${ic('imagen')}</span>Sin fotos</button></div></div></div>
     <div><div class="card vista"><b>Vista previa</b><div class="texto" id="vistaTexto"></div><p class="nota">Las palabras leídas se ven <b style="color:var(--green)">verdes</b>, la palabra que toca tiene <b style="color:var(--primary-d)">subrayado azul</b> y las que faltan se ven azul oscuro.</p></div>
     <button class="btn btn-p btn-g btn-bloque" type="button" id="btnGuardarAsi" style="margin-top:18px">Guardar</button></div></div>`;
@@ -124,6 +125,7 @@ definir('asi', {nav:'', pintar(){
   pv(); aplicarLetra();
   $$('#s-asi [data-letra]').forEach(b=>b.onclick=()=>{ aj.letra=b.dataset.letra; $$('#s-asi [data-letra]').forEach(x=>x.setAttribute('aria-pressed', String(x===b))); pv(); });
   $$('#s-asi [data-esp]').forEach(b=>b.onclick=()=>{ aj.espacio=b.dataset.esp; $$('#s-asi [data-esp]').forEach(x=>x.setAttribute('aria-pressed', String(x===b))); pv(); });
+  $$('#s-asi [data-jun]').forEach(b=>b.onclick=()=>{ aj.juntos=b.dataset.jun; $$('#s-asi [data-jun]').forEach(x=>x.setAttribute('aria-pressed', String(x===b))); });
   $$('#s-asi [data-img]').forEach(b=>b.onclick=()=>{ aj.img=b.dataset.img; $$('#s-asi [data-img]').forEach(x=>x.setAttribute('aria-pressed', String(x===b))); pv(); });
   $$('#s-asi [data-tam]').forEach(b=>b.onclick=()=>{ aj.tam=Math.max(22, Math.min(84, aj.tam+(b.dataset.tam==='+'?4:-4))); $('#tamV').textContent=aj.tam; aplicarLetra(); });
   $('#btnGuardarAsi').onclick=()=>{ guardarAj(); aviso('Guardado'); ir('inicio'); };
@@ -132,14 +134,15 @@ definir('asi', {nav:'', pintar(){
 /* ---------- 21 · Mis cromos ---------- */
 let coleccion=null;
 definir('cromos', {nav:'cromos', pintar(){
-  const c=leidas(); const als=albumesDe(); if(!coleccion || !als.find(a=>a.id===coleccion)) coleccion=als[0].id;
+  const c=cromosDe(perfil()), rep=repesDe(perfil()); const nRep=Object.values(rep).reduce((a,b)=>a+b,0); const als=albumesDe(); if(!coleccion || !als.find(a=>a.id===coleccion)) coleccion=als[0].id;
   const A=als.find(a=>a.id===coleccion); const completos=als.filter(a=>a.completo).length; const falta=A.total-A.n;
   const huecos=barajarCon(A.hs.map((h,i)=>({h, n:i+1})), semilla('album-'+perfil().id+'-'+A.id));
   $('#s-cromos').innerHTML = `${albumTabsHTML('cromos')}<div class="album-cab"><div><h1 class="tit">Mis cromos</h1><p class="sub">Un álbum para cada tema. ¡Complétalos!</p></div><div class="contador">${ic('estrella').replace('<svg','<svg width="34" height="34"')}<div><b>${Object.keys(c).length} de ${CONT.historias.length}</b><br><span>cromos${completos?` · ${completos} ${completos===1?'álbum completo':'álbumes completos'}`:''}</span></div></div></div>
+  <div class="card repes-barra"><span class="emo-g">🔁</span><div class="tx"><b>${nRep?`Tienes ${nRep} ${nRep===1?'cromo repetido':'cromos repetidos'}`:'Cromos repetidos'}</b><span class="nota">${nRep?'Cámbialos con otro niño de casa por cromos que te falten.':'Cuando vuelves a leer una historia que ya tenías, consigues un repe para cambiar.'}</span></div><button class="btn btn-p" type="button" data-ir="cambiar">Cambiar cromos</button></div>
   <div class="colecciones">${als.map(a=>`<button type="button" data-col="${a.id}" aria-pressed="${a.id===coleccion}" class="${a.mio?'mio':''}">${a.T.emo} ${esc(a.T.nombre)} <span>(${a.n}/${a.total})</span>${a.completo?' 🏆':''}</button>`).join('')}</div>
   <div class="card album-prog${A.completo?' completo':''}"><span class="emo-g">${A.completo?'🏆':A.T.emo}</span><div class="tx"><b>Álbum de ${esc(A.T.nombre)}${A.mio?' <span class="chip tu-tema">⭐ Tu tema</span>':''}</b><span class="nota">${A.completo?'¡Lo has completado!':`Tienes ${A.n} de ${A.total}. ${falta===1?'Te falta 1 cromo':'Te faltan '+falta+' cromos'}.`}</span><span class="barra-t"><i style="width:${Math.round(100*A.n/A.total)}%;background:var(--green)"></i></span></div></div>
   <div class="cromos">${huecos.map(({h,n})=> c[h.id]
-    ? `<button type="button" class="cromo" data-h="${h.id}"><span class="num">${n}</span><span class="ft">${imgHTML(h.portada)}</span><b>${esc(conNombre(h.titulo))}</b></button>`
+    ? `<button type="button" class="cromo" data-h="${h.id}"><span class="num">${n}</span>${rep[h.id]?`<span class="repe">×${rep[h.id]+1}</span>`:''}${c[h.id]==='cambio'?'<span class="repe cambiado" title="Te lo dieron en un cambio">🔁</span>':''}<span class="ft">${imgHTML(h.portada)}</span><b>${esc(conNombre(h.titulo))}</b></button>`
     : `<div class="cromo bloq"><span class="num">${n}</span><span class="hueco-n">${n}</span><span class="nota">${h.temporada?esc(nombreTemporada(h.temporada)):'¿?'}</span></div>`).join('')}</div>`;
   activarAlbumTabs();
   $$('#s-cromos [data-col]').forEach(b=>b.onclick=()=>{ coleccion=b.dataset.col; ir('cromos'); });

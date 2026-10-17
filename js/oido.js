@@ -118,6 +118,7 @@ function alinear(forzarPintado){
   palabras.forEach((w,i)=>{ if(st.ok[i] && l.tOk[i]==null){ l.tOk[i] = st.tw[i]!=null ? st.tw[i] : ahora; if(st.tw[i]!=null){ (l.retrasos=l.retrasos||[]).push(Math.max(0, ahora-st.tw[i])); } } });
   l.ok=palabras.map((w,i)=>!!st.ok[i]); l.puntero=st.ptr; l.spActual=st.sp;
   pintarSeguimiento(st.ptr, st.sp);
+  if(typeof turnoJuntos==='function') turnoJuntos(st.ptr);
   if(st.ptr>=palabras.length && !l.finPendiente && l.activa){ l.finPendiente=true; setTimeout(()=>{ if(lect===l && l.activa) terminarDeLeer(); }, 1100); }
 }
 /* pinta: verde lo leído (también sílaba a sílaba), subrayado azul la palabra que toca */
