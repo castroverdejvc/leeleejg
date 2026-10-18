@@ -120,11 +120,12 @@ async function probarMic(){
   const est=$('#estadoMic'), btn=$('#btnProbarMic'); if(!est) return;
   try{
     const st=await navigator.mediaDevices.getUserMedia({audio:true});
+    if(actual!=='mic'){ st.getTracks().forEach(t=>t.stop()); return; }   // ya se ha salido de la pantalla
     const a=ctxAudio(); try{ await a.resume(); }catch(e){}
     const an=a.createAnalyser(); an.fftSize=512; const src=a.createMediaStreamSource(st); src.connect(an);
     pruebaMic={st, src, fin:false}; const yo=pruebaMic; const barras=$$('#medidor i'); const t0=Date.now(); let pico=0, oido=0;
     est.className='estado-mic'; est.textContent='Te escucho… di «hola».'; btn.disabled=true;
-    (function bucle(){ if(yo.fin || actual!=='mic') return;
+    (function bucle(){ if(yo.fin) return; if(actual!=='mic'){ if(pruebaMic===yo) pararPruebaMic(); return; }
       const v=nivel(an); pico=Math.max(pico*0.96, v); const on=Math.round(pico*barras.length*1.4);
       barras.forEach((b,i)=>b.classList.toggle('on', i<on)); if(v>0.16) oido++;
       if(oido>6){ est.className='estado-mic ok'; est.textContent='¡Se oye bien!'; micProbado=true; sinMic=false; btn.disabled=false; btn.innerHTML='¡A leer! '+ic('flecha'); btn.onclick=()=>ir('lectura'); pararPruebaMic(); return; }
@@ -164,7 +165,10 @@ definir('lectura', {nav:'historias', pintar(modo){
   if($('#btnDesdeInicio')) $('#btnDesdeInicio').onclick=()=>{ aj.marcapaginas=null; guardarAj(); cancelarLectura(); empezarHistoria(h); };
   $('#btnFrase').onclick=()=>{ const i=Math.min(lect?lect.puntero||0:0, palabras.length-1); const p=palabras[i].el.closest('p'); if(lect) lect.frases=(lect.frases||0)+1; decir(p.textContent.replace(/\s+/g,' ').trim()); };
   empezarLectura();
-}, salir(p){ if(p!=='fin' && lect && lect.activa){ guardarMarcapaginas(); cancelarLectura(); } }});
+}, salir(p){
+  if(p!=='fin' && lect && lect.activa){ guardarMarcapaginas(); cancelarLectura(); }
+  else if(p!=='fin' && lect && !lect.activa){ const l=lect; lect=null; pararGrabacion(l); }   // se sale mientras se prepara el micrófono
+}});
 
 async function empezarLectura(){
   callar();
@@ -172,7 +176,7 @@ async function empezarLectura(){
   const yo=lect; const txt=$('#micTxt');
   if(!sinMic){
     if(EST.cargando){ txt.textContent='Preparando el oído…'; await esperarCarga(25); if(lect!==yo) return; }
-    lect.grabando = await iniciarGrabacion(); if(lect!==yo) return;
+    yo.grabando = await iniciarGrabacion(); if(lect!==yo){ pararGrabacion(yo); return; }
   }
   lect.activa=true; lect.t0=performance.now();
   if(lect.grabando){ lect.oyendo = (EST.oido==='vosk' && aj.oidoModo!=='internet' && await iniciarOidoLocal()) || iniciarReconocimientoNavegador() || (EST.oido==='vosk' && aj.oidoModo==='internet' && await iniciarOidoLocal()); }
@@ -210,7 +214,7 @@ function ayudaPalabra(i){
   const w=palabras[i]; if(!w) return;
   const k=w.clave || claveDePalabra(w.p); const texto=w.el.textContent;
   if(lect && lect.activa){ lect.ayudas.add(i); w.el.classList.add('ayudada'); }
-  const d=dialogo({cls:'ayuda-pal', html:`<div class="ft">${k?imgHTML(k,true):'📖'}</div><div class="silabas-g">${silabasHTML(limpiar(texto)||texto)}</div>`,
+  dialogo({cls:'ayuda-pal', html:`<div class="ft">${k?imgHTML(k,true):'📖'}</div><div class="silabas-g">${silabasHTML(limpiar(texto)||texto)}</div>`,
     botones:[{t:ic('altavoz')+' Escuchar', cls:'btn-p', mantener:true, fn:()=>oirPalabra(texto)},{t:ic('recargar')+' Volver a leer', fn:()=>{}}]});
   oirPalabra(texto);
   if(lect && lect.activa) aviso('Ayuda guardada');
@@ -235,7 +239,7 @@ definir('fin', {nav:'historias', pintar(){
 }, salir(p){ if(p!=='lectura' && p!=='pregunta' && lect && !sesion) cerrarLectura(); }});
 
 /* «Ver preguntas»: se cierra la lectura (se guarda ya, a medias) y empiezan las preguntas */
-async function finalizarLectura(){ if(!lect) return; await cerrarLectura(); qi=0; qEst=null; ir('pregunta'); }
+async function finalizarLectura(){ if(!lect || lect.cerrando) return; await cerrarLectura(); qi=0; qEst=null; ir('pregunta'); }
 /* Cierra la lectura y la guarda como «incompleta» con su grabación; las preguntas la van completando.
    Así, si el niño sale o se cierra la ventana, no se pierde lo leído (marcapáginas). */
 async function cerrarLectura(){
@@ -273,7 +277,7 @@ async function cerrarLectura(){
     if(oida(a) && oida(b) && b-a<=4){ o.e='ok'; o.i=1; delete o.a; pendientes--; } });
   const p=perfil();
   sesion={ id:nuevoId(), v:4, fecha:new Date().toISOString(), lectorId:p.id, lector:p.nombre, prueba:!!p.prueba, historiaId:hist.id, dia:diaPersonal(hist)||hist.dia, titulo:conNombre(hist.titulo), mundo:hist.mundo, nivel:hist.nivel,
-    segundos:Math.round(seg), totalPalabras:palabras.length, ppm:Math.round((palabras.length-ini)/(seg/60)), palabras:estados, ...(ini?{desdePalabra:ini}:{}), auto:oyo, oido:l.oidoId?'vosk':(l.sr?'navegador':'ninguno'),
+    segundos:Math.round(seg), totalPalabras:palabras.length, ppm:Math.round(palabras.slice(ini).filter(w=>!w.adulto).length/(seg/60)), palabras:estados, ...(ini?{desdePalabra:ini}:{}), auto:oyo, oido:l.oidoId?'vosk':(l.sr?'navegador':'ninguno'),
     oidoStats: l.rt ? {peticiones:l.rt.n, msMedio:Math.round(l.rt.suma/l.rt.n), msMax:Math.round(l.rt.max), retrasoMedio: l.retrasos&&l.retrasos.length ? +media(l.retrasos).toFixed(2) : null, reconocidas:l.ok?l.ok.filter(Boolean).length:0} : null,
     oidoTexto: (l.oidoId ? l.finales.map(f=>f.w).join(' ') : (l.txtPrevio+' '+l.txtSesion)).trim().slice(0,2000) || undefined, oidoLimite: oyo ? +limite.toFixed(1) : undefined,
     ...(palabras.some(w=>w.adulto)?{juntos:aj.juntos}:{}), frasesEscuchadas:l.frases||0, letra:aj.letra, tam:aj.tam, imagenes:aj.img, preguntas:[], aciertos:0, totalPreguntas:hist.preguntas.length, calculo:null, revisada: pendientes===0, incompleta:true };
@@ -368,8 +372,8 @@ definir('cromonuevo', {nav:'cromos', pintar(){
     sesion.aciertos=sesion.preguntas.filter(p=>p.ok).length; delete sesion.incompleta;
     $('#s-cromonuevo').innerHTML = `<div class="card" style="padding:20px 26px 6px">${cabPaso(pasos(), {t:'Lectura extra terminada', cls:'verde'})}</div>` + finExtraHTML(h, sesion);
     const miAudio = audioBlob || (sesion.audio ? '/api/audio/'+sesion.id : null); const be=$('#btnEscucharme'); if(be && miAudio) be.onclick=()=>sonarAudio(miAudio);
-    guardarSesionActual().then(()=>{ const c=$('#s-cromonuevo .fin-extra h1'); const m=minutosDeSesion(perfil(), sesion); if(m>0){ confeti($('#cromoCaja')); sonido('cromo'); decir(`¡Muy bien, ${nombre()}! Has ganado ${minTxt(m)} de tele.`); avisarTele(perfil(), true); } else decir(`¡Muy bien, ${nombre()}!`); });
-    return; } const eraNueva=!leidas()[h.id]; const m=mundoDe(h.mundo);
+    guardarSesionActual().then(()=>{ const m=minutosDeSesion(perfil(), sesion); if(m>0){ confeti($('#cromoCaja')); sonido('cromo'); decir(`¡Muy bien, ${nombre()}! Has ganado ${minTxt(m)} de tele.`); avisarTele(perfil(), true); } else decir(`¡Muy bien, ${nombre()}!`); });
+    return; } const eraNueva=!cromosDe(perfil())[h.id]; const m=mundoDe(h.mundo);
   const TA=temaDeMundo(h.mundo)||{id:h.mundo, nombre:m.nombre, emo:'⭐'}; const hsA=historiasTema(TA.id); const lA=leidas(); const nA=hsA.filter(x=>lA[x.id]||x.id===h.id).length; const albumCompleto=eraNueva && hsA.length>0 && nA===hsA.length;
   sesion.aciertos=sesion.preguntas.filter(p=>p.ok).length;
   const T=pasos(); const miAudio = audioBlob || (sesion.audio ? '/api/audio/'+sesion.id : null);

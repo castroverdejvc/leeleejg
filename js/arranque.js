@@ -4,7 +4,8 @@ $('#yoBtn').onclick=e=>{ const m=$('#menuYo'); m.hidden=!m.hidden; $('#yoBtn').s
 
 /* lee contenido, ajustes y lecturas (también se usa después de juntar una copia de otro aparato) */
 async function cargarDatos(){
-  const [cont, est, datos, mis] = await Promise.all([api('contenido.json'), api('/api/estado').catch(()=>EST), api('/api/datos').catch(()=>({})), api('/api/misimagenes').catch(()=>({}))]);
+  // si no se pueden leer los datos, no se sigue (con los ajustes por defecto se guardarían encima de los buenos)
+  const [cont, est, datos, mis] = await Promise.all([api('contenido.json'), api('/api/estado').catch(()=>EST), api('/api/datos'), api('/api/misimagenes').catch(()=>({}))]);
   CONT=cont; EST=est; MIS=mis||{}; if(EST.cargando) vigilarEstado();
   await cargarFichas();
   aj = ajPorDefecto();
@@ -15,7 +16,7 @@ async function cargarDatos(){
   if(!aj.perfiles.some(p=>p.prueba)) aj.perfiles.push({id:'pruebas', nombre:'Pruebas', color:'#64748B', prueba:true, cfg:cfgBase({prueba:true})});
   Object.assign(aj, cfgBase(perfil()), perfil().cfg||{});
   SES=(datos.sesiones||[]).map(normSesion).sort((a,b)=>a.fecha<b.fecha?-1:1);
-  huellasAj=null; sellarCambios();   // punto de partida para saber qué cambia desde ahora
+  guardarCfgPerfil(); huellasAj=null; sellarCambios();   // punto de partida para saber qué cambia desde ahora
   return datos;
 }
 
@@ -54,6 +55,6 @@ async function sincroAlAbrir(){
 /* Primera vez en una tablet: traer lo del ordenador o empezar aquí */
 function bienvenidaAparato(){
   dialogo({titulo:'LeeLEEJG en este aparato', html:`<p class="nota" style="margin-bottom:6px">Si ya usáis LeeLEEJG en el ordenador, trae sus datos (niños, temas, lecturas): busca en Google Drive, carpeta <b>LeeLEEJG</b>, el archivo <b>LeeLEEJG-ordenador</b>.</p><p class="nota">Si no, empieza aquí y pon el nombre del niño en <b>Familia › Usuarios</b>.</p>`,
-    botones:[{t:'Traer los datos del ordenador', cls:'btn-p', fn:async()=>{ try{ const r=await traerTablet(); if(r && r.total) location.reload(); else if(r && r.propia) aviso('Ese archivo es de este mismo aparato'); }catch(e){ dialogo({titulo:'No se pudo', html:`<p class="nota">${esc(e.message)}</p>`, botones:[{t:'Vale',cls:'btn-p'}]}); } }},
+    botones:[{t:'Traer los datos del ordenador', cls:'btn-p', fn:async()=>{ try{ const r=await traerTablet(); if(r && r.total) recargarSinGuardar(); else if(r && r.propia) aviso('Ese archivo es de este mismo aparato'); }catch(e){ dialogo({titulo:'No se pudo', html:`<p class="nota">${esc(e.message)}</p>`, botones:[{t:'Vale',cls:'btn-p'}]}); } }},
       {t:'Empezar aquí', cls:'btn'}]});
 }

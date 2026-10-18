@@ -8,8 +8,7 @@
    - película el fin de semana: hay que haber hecho las lecturas propuestas de los 7 días de la semana
    Los minutos se gastan el sábado y el domingo con el reloj de la tele. */
 'use strict';
-const TELE_DEF = {tele:10, teleExtra:15, teleRelee:5, teleFicha:5};
-const teleCfg = () => { const c=premiosCfg(); return {propuesta:+(c.tele ?? TELE_DEF.tele), extra:+(c.teleExtra ?? TELE_DEF.teleExtra), relee:+(c.teleRelee ?? TELE_DEF.teleRelee), ficha:+(c.teleFicha ?? TELE_DEF.teleFicha)}; };
+const teleCfg = () => { const c=premiosCfg(); return {propuesta:+c.tele||0, extra:+c.teleExtra||0, relee:+c.teleRelee||0, ficha:+c.teleFicha||0}; };   // valores por defecto en PREMIOS_DEF
 const teleActiva = () => { const t=teleCfg(); return t.propuesta>0 || t.extra>0 || t.relee>0 || t.ficha>0; };
 const esFinde = (d=new Date()) => d.getDay()===0 || d.getDay()===6;
 function lunesDe(d=new Date()){ const x=new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; }
@@ -52,7 +51,7 @@ function avisarTele(p=perfil(), callado=false){
   if(t.ganados>c.teleAvisado.min){ const mas=medio(t.ganados-c.teleAvisado.min); c.teleAvisado.min=t.ganados; guardarAj(); if(!callado) aviso(`📺 +${minTxt(mas)} de tele para el fin de semana`); }
   else if(t.ganados<c.teleAvisado.min){ c.teleAvisado.min=t.ganados; guardarAj(); }
 }
-function apuntarTele(p, min, tipo){ const c=cfgDe(p); c.teleLog=(c.teleLog||[]).concat([{f:new Date().toISOString(), min:Math.round(min*10)/10, tipo}]).slice(-1000); guardarAj(); }
+function apuntarTele(p, min, tipo, cuando=new Date()){ const c=cfgDe(p); c.teleLog=(c.teleLog||[]).concat([{f:cuando.toISOString(), min:Math.round(min*10)/10, tipo}]).slice(-1000); guardarAj(); }
 /* minutos que da una lectura concreta (para el final de la lectura) */
 function minutosDeSesion(p, s){
   const T=teleCfg(); const antes=sesDe(p.id).some(x=>x.id!==s.id && !x.incompleta && x.historiaId===s.historiaId && x.fecha<s.fecha);
@@ -80,8 +79,8 @@ function peliPuntosHTML(pe, clic=false){
 function teleHTML(){
   const p=perfil(); if(!teleActiva() || p.prueba) return '';
   const t=teleDe(p), finde=esFinde(), pe=peliculaDe(p);
-  const peliTxt = pe.completa ? (pe.vista?'🎬 Película de esta semana: ¡ya vista!':finde?'🎬 ¡Película desbloqueada!':'🎬 Película: ¡ya la tienes!') : `🎬 Película: ${pe.hechos} de ${pe.total} lecturas de la semana`;
-  return `<button class="acceso tele${finde?' finde':''}" type="button" data-ir="tele"><span class="emo-g">📺</span><span><b>${finde?`¡Es fin de semana! Tienes ${minTxt(t.saldo)} de tele`:`Tele del fin de semana: ${minTxt(t.saldo)}`}</b><span class="nota">${esc(peliTxt)}</span>${peliPuntosHTML(pe)}</span><span class="ir">${ic('dcha')}</span></button>`;
+  const peliTxt = !pe.total ? '' : pe.completa ? (pe.vista?'🎬 Película de esta semana: ¡ya vista!':finde?'🎬 ¡Película desbloqueada!':'🎬 Película: ¡ya la tienes!') : `🎬 Película: ${pe.hechos} de ${pe.total} lecturas de la semana`;
+  return `<button class="acceso tele${finde?' finde':''}" type="button" data-ir="tele"><span class="emo-g">📺</span><span><b>${finde?`¡Es fin de semana! Tienes ${minTxt(t.saldo)} de tele`:`Tele del fin de semana: ${minTxt(t.saldo)}`}</b>${peliTxt?`<span class="nota">${esc(peliTxt)}</span>${peliPuntosHTML(pe)}`:''}</span><span class="ir">${ic('dcha')}</span></button>`;
 }
 
 /* pantalla del reloj de la tele */
@@ -100,19 +99,19 @@ definir('tele', {nav:'inicio', pintar(){
       ${fila('📖','Lecturas del día',d.propuesta,minTxt(T.propuesta))}${fila('📚','Lecturas extra',d.extra,(premiosCfg().extraSegun===false?'':'hasta ')+minTxt(T.extra))}${fila('🔁','Volver a leer',d.relee,minTxt(T.relee))}${fila('✏️','Fichas',d.ficha,`hasta ${minTxt(T.ficha)}`)}
       <tr class="tot"><td>Total</td><td></td><td></td><td><b>${minTxt(t.ganados)}</b></td></tr>${t.gastados>0?`<tr><td>Ya visto</td><td></td><td></td><td>−${minTxt(t.gastados)}</td></tr>`:''}</tbody></table>
       <p class="nota">Las fichas dan ${minTxt(T.ficha)} si no hay ningún fallo; con fallos, la parte de los aciertos.${premiosCfg().extraSegun===false?'':` Las lecturas extra dan ${minTxt(T.extra)} si aciertas 3 de las 4 preguntas a la primera.`}</p>
-      <div class="botones"><button class="btn btn-p" type="button" data-ir="extra">📚 Lecturas extra (+${minTxt(T.extra)})</button></div></div>
+      ${(CONT.complementarias||[]).length?`<div class="botones"><button class="btn btn-p" type="button" data-ir="extra">📚 Lecturas extra (+${minTxt(T.extra)})</button></div>`:''}</div>
     <div class="card bloque peli-caja"><h3>🎬 Película del fin de semana</h3>
       <p class="nota">Para ver una película, lee la historia de cada día de la semana (de lunes a domingo).</p>
       ${peliPuntosHTML(pe, true)}
       ${pe.completa ? (pe.vista ? `<p class="sub">¡Ya habéis visto la película de esta semana! 🍿</p>` : `<p class="sub"><b>¡Película desbloqueada!</b> ${finde?'Elegid una película y ¡a disfrutar! 🍿':'Ya puedes verla el fin de semana. 🍿'}</p>${finde?`<button class="btn btn-verde" type="button" id="peliVista">Ya la hemos visto</button>`:''}`)
         : `<p class="sub">Te ${pe.total-pe.hechos===1?'falta 1 lectura':'faltan '+(pe.total-pe.hechos)+' lecturas'}. ${pe.dias.some((x,i)=>!x.hecho && x.h && (x.f<=hoySinHora() || (new Date().getDay()===6 && i===6)))?'Toca un día en rojo para leerla.':''}</p>`}</div></div>`;
   $$('#s-tele [data-peli]').forEach(b=>b.onclick=()=>{ const h=historia(b.dataset.peli); if(h && estaDisponible(h)) empezarHistoria(h); else if(h) aviso('Esa historia todavía no ha llegado'); });
-  const pv=$('#peliVista'); if(pv) pv.onclick=()=>{ const c=cfgDe(p); c.peliLog=(c.peliLog||[]).concat([{f:new Date().toISOString(), semana:claveDia(lunesDe())}]).slice(-200); guardarAj(); sonido('cromo'); ir('tele'); };
+  const pv=$('#peliVista'); if(pv) pv.onclick=()=>{ const c=cfgDe(p); c.peliLog=(c.peliLog||[]).concat([{f:new Date().toISOString(), semana:claveDia(lunesDe())}]).slice(-200); guardarAj(); sonido('cromo'); if(PANT.tele._parar) PANT.tele._parar(); ir('tele'); };
   const b=$('#teleBtn'); if(!b) return;
   let corriendo=false, ini=0; const total=t.saldo*60;
   const pinta=()=>{ const usado=corriendo?(Date.now()-ini)/1000:0; const r=Math.max(0,total-usado); const e=$('#teleReloj'); if(e) e.textContent=mmss(r);
     if(corriendo && r<=0){ parar(); sonido('cromo'); decir(`¡Se acabó la tele, ${nombre()}!`); dialogo({titulo:'¡Se acabó la tele!', html:'<p class="nota">Ya has gastado todos tus minutos. ¡La semana que viene puedes ganar más!</p>', botones:[{t:'Vale', cls:'btn-p', fn:()=>ir('inicio')}], cerrar:false}); } };
-  const parar=()=>{ if(!corriendo) return; corriendo=false; clearInterval(teleReloj); teleReloj=null; const usado=Math.min(total,(Date.now()-ini)/1000)/60; if(usado>=.1) apuntarTele(p, usado, 'visto'); };
+  const parar=()=>{ if(!corriendo) return; corriendo=false; clearInterval(teleReloj); teleReloj=null; const usado=Math.min(total,(Date.now()-ini)/1000)/60; if(usado>=.1) apuntarTele(p, usado, 'visto', new Date(ini)); };
   b.onclick=()=>{ if(!corriendo){ corriendo=true; ini=Date.now(); b.textContent='⏸ Parar'; teleReloj=setInterval(pinta, 1000); decir('¡A disfrutar de la tele!'); } else { parar(); ir('tele'); } };
   PANT.tele._parar=parar;
 }, salir(){ if(PANT.tele._parar) PANT.tele._parar(); PANT.tele._parar=null; clearInterval(teleReloj); teleReloj=null; }});
@@ -162,7 +161,7 @@ function semanaPasadaNinoHTML(){
 }
 function activarSemanaPasadaNino(){ const b=$('#resSemanaOk'); if(b) b.onclick=()=>{ const p=perfil(); cfgDe(p).resumenVisto=claveDia(semanaPasadaDe(p).desde); guardarAj(); const c=$('#resSemana'); if(c) c.remove(); }; }
 function semanaPasadaFamHTML(p){
-  const sp=semanaPasadaDe(p); const lect=sp.det.propuesta.n+sp.det.extra.n+sp.det.relee.n;
+  const sp=semanaPasadaDe(p);
   const f=d=>d.toLocaleDateString('es-ES',{day:'numeric',month:'long'}); const fin=new Date(sp.hasta); fin.setDate(fin.getDate()-1);
   return `<div class="card bloque" style="margin-top:18px"><h3 style="margin-bottom:8px">Semana pasada (del ${esc(f(sp.desde))} al ${esc(f(fin))})</h3>
     <ul class="lista-log"><li>Lecturas: <b>${sp.det.propuesta.n}</b> del día, <b>${sp.det.extra.n}</b> extra y <b>${sp.det.relee.n}</b> releídas · fichas: <b>${sp.det.ficha.n}</b>.</li>

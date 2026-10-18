@@ -6,12 +6,14 @@ const tLect = () => lect ? ((lect.pausadoDesde||performance.now()) - lect.t0 - l
 async function iniciarGrabacion(){
   try{
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) return false;
+    const l=lect;   // la lectura que pide el micrófono (si cambia mientras se espera el permiso, se apaga)
     const st = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,channelCount:1}});
-    lect.stream=st; lect.chunks=[];
-    const rec = new MediaRecorder(st); rec.ondataavailable=e=>{ if(e.data && e.data.size) lect.chunks.push(e.data); }; rec.start(1000); lect.rec=rec;
+    if(!l || lect!==l){ st.getTracks().forEach(t=>t.stop()); return false; }
+    l.stream=st; l.chunks=[];
+    const rec = new MediaRecorder(st); rec.ondataavailable=e=>{ if(e.data && e.data.size) l.chunks.push(e.data); }; rec.start(1000); l.rec=rec;
     const a=ctxAudio(); try{ await a.resume(); }catch(e){}
-    const src=a.createMediaStreamSource(st); lect.src=src;
-    const an = a.createAnalyser(); an.fftSize=512; src.connect(an); lect.an=an;
+    const src=a.createMediaStreamSource(st); l.src=src;
+    const an = a.createAnalyser(); an.fftSize=512; src.connect(an); l.an=an;
     return true;
   }catch(e){ registrar('Micrófono: '+e.message); return false; }
 }

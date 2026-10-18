@@ -31,12 +31,11 @@ function pintarPreparando(t){ let d=document.getElementById('preparando'); if(!d
 function quitarPreparando(){ const d=document.getElementById('preparando'); if(d) d.remove(); }
 
 /* Fotos y letras para usar sin internet: el aparato las va guardando y lo cuenta en una franja pequeña */
-let precarga = {hechos:0, total:0, fin:false};
 function precargarSinInternet(){
   if(!enLocal() || !navigator.serviceWorker.controller) return;
   try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
   navigator.serviceWorker.addEventListener('message', ev=>{
-    const m=ev.data||{}; if(m.tipo!=='precarga') return; precarga=m;
+    const m=ev.data||{}; if(m.tipo!=='precarga') return;
     let f=document.getElementById('franjaPrecarga');
     if(m.fin && !m.error && !m.fallos){ if(f) f.remove(); return; }
     if(!f){ if(m.hechos>=m.total && !m.error) return; f=document.createElement('div'); f.id='franjaPrecarga'; f.className='franja-precarga'; document.body.appendChild(f); }

@@ -1,28 +1,43 @@
 /* LeeLEEJG · copias entre la tablet y el ordenador (por Google Drive)
    Cada aparato guarda una «copia» (un archivo LeeLEEJG-….leelee.json/.txt) y el otro la junta con lo suyo:
    - lecturas: se suman; si la misma lectura está en los dos, gana la más completa o la revisada;
-   - perfiles: gana el cambiado más tarde, pero se juntan los registros (repaso, dictado, temas) y el plan;
-   - fichas, imágenes propias, historias nuevas y grabaciones (de los últimos 30 días): se añaden las que falten.
-   Nada se borra al juntar. */
+   - perfiles y ajustes: cada dato (nivel, temas, repaso, nombre…) lleva su propia marca de cambio (modK) y gana
+     el cambiado más tarde; los registros (repaso, dictado, juegos, tele…) se suman; el plan se junta día a día;
+   - fichas: gana la lista cambiada más tarde (fichasMod);
+   - imágenes propias, historias nuevas y grabaciones: se añaden las que falten;
+   - lo que se borró en un aparato (aj.borrados) se borra también en el otro (a su papelera). */
 'use strict';
 const SINCRO_DIAS_AUDIO = 30;
 const NUBE = 'Google Drive';   // donde la familia deja las copias (carpeta «LeeLEEJG» de Mi unidad)
-const CAMPOS_LOCALES = new Set(['voz','vozPrograma','perfil','volumen','mod','oidoModo', ...PKEYS]);   // propios de cada aparato
+const CAMPOS_LOCALES = new Set(['voz','vozPrograma','perfil','volumen','mod','modK','oidoModo','nube', ...PKEYS]);   // propios de cada aparato (o con marca aparte)
+const APARTE = new Set(['borrados','fichasMod']);   // se juntan con sus propias reglas
 const LISTAS_PERFIL = ['repasoLog','dictadoLog','temasLog','gustosLog','adivLog','letrasLog','teleLog','cambios','juegoLog','peliLog','sobresLog'];
 const clon = x => x==null ? x : JSON.parse(JSON.stringify(x));
 
-/* --- marcas de cambio: así se sabe qué es más nuevo al juntar --- */
+/* --- marcas de cambio: cada dato guarda cuándo cambió (modK), así al juntar gana el cambio más reciente de cada cosa --- */
 let huellasAj = null;
+const huellasDe = (o, salta) => { const h={}; Object.keys(o||{}).forEach(k=>{ if(!salta(k)) h[k]=JSON.stringify(o[k]); }); return h; };
+function huellasPerfil(p){ const h={}; Object.entries(huellasDe(p, k=>k==='cfg'||k==='mod'||k==='modK')).forEach(([k,v])=>h['f:'+k]=v); Object.entries(huellasDe(p.cfg, ()=>false)).forEach(([k,v])=>h['c:'+k]=v); return h; }
+const huellasGenerales = () => huellasDe(aj, k=>CAMPOS_LOCALES.has(k)||APARTE.has(k)||k==='perfiles');
+function marcarCambios(o, antes, ahora, t){
+  let hay=false; new Set([...Object.keys(antes), ...Object.keys(ahora)]).forEach(k=>{ if(antes[k]!==ahora[k]){ o.modK=o.modK||{}; o.modK[k]=t; hay=true; } });
+  if(hay) o.mod=t;
+}
 function sellarCambios(){
-  const ahora=Date.now(), h={};
-  (aj.perfiles||[]).forEach(p=>{ const {mod, ...resto}=p; h['p:'+p.id]=JSON.stringify(resto); });
-  const g={}; Object.keys(aj).sort().forEach(k=>{ if(!CAMPOS_LOCALES.has(k) && k!=='perfiles') g[k]=aj[k]; }); h.g=JSON.stringify(g);
+  const t=Date.now(), h={g:huellasGenerales()};
+  (aj.perfiles||[]).forEach(p=>{ h['p:'+p.id]=huellasPerfil(p); });
   if(huellasAj){
-    (aj.perfiles||[]).forEach(p=>{ if(huellasAj['p:'+p.id]!==h['p:'+p.id]){ p.mod=ahora; } });
-    if(huellasAj.g!==h.g) aj.mod=ahora;
+    (aj.perfiles||[]).forEach(p=>marcarCambios(p, huellasAj['p:'+p.id]||{}, h['p:'+p.id], t));
+    marcarCambios(aj, huellasAj.g, h.g, t);
+  } else {
+    // al cargar: lo que todavía no tiene marca propia (datos de versiones anteriores) queda con marca 0
+    (aj.perfiles||[]).forEach(p=>{ p.modK=p.modK||{}; Object.keys(h['p:'+p.id]).forEach(k=>{ if(p.modK[k]==null) p.modK[k]=0; }); });
+    aj.modK=aj.modK||{}; Object.keys(h.g).forEach(k=>{ if(aj.modK[k]==null) aj.modK[k]=0; });
   }
   huellasAj=h;
 }
+/* marca de un dato: la suya; si es de una versión sin marcas, la del conjunto (o 0 si no lo tiene) */
+const marcaDe = (o, k, tiene) => (o && o.modK && o.modK[k]!=null) ? o.modK[k] : (tiene ? ((o && o.mod) || 0) : 0);
 
 /* --- juntar --- */
 function unirListas(a, b){
@@ -33,16 +48,26 @@ function unirListas(a, b){
   return out;
 }
 function unirPerfil(pl, po){
-  const [gana, pierde] = (po.mod||0) > (pl.mod||0) ? [clon(po), pl] : [clon(pl), po];
-  gana.cfg = gana.cfg || {}; const pc = pierde.cfg || {};
-  LISTAS_PERFIL.forEach(k=>{ if(gana.cfg[k] || pc[k]) gana.cfg[k] = unirListas(gana.cfg[k], pc[k]); });
-  if(gana.cfg.plan || pc.plan) gana.cfg.plan = {...(pc.plan||{}), ...(gana.cfg.plan||{})};
-  return gana;
+  const r=clon(pl); r.cfg=r.cfg||{}; r.modK={...(pl.modK||{})}; const lc=pl.cfg||{}, oc=po.cfg||{};
+  const toma=(clave, tieneL, tieneO, poner)=>{ const a=marcaDe(pl, clave, tieneL), b=marcaDe(po, clave, tieneO); if(b>a){ poner(); r.modK[clave]=b; } };
+  new Set([...Object.keys(pl), ...Object.keys(po)]).forEach(k=>{ if(['id','cfg','mod','modK'].includes(k)) return;
+    toma('f:'+k, k in pl, k in po, ()=>{ if(po[k]===undefined) delete r[k]; else r[k]=clon(po[k]); }); });
+  new Set([...Object.keys(lc), ...Object.keys(oc)]).forEach(k=>{
+    if(LISTAS_PERFIL.includes(k)){ if(lc[k] || oc[k]) r.cfg[k]=unirListas(lc[k], oc[k]); return; }
+    if(k==='plan'){ const oGana=marcaDe(po,'c:plan',true)>marcaDe(pl,'c:plan',true); r.cfg.plan = oGana ? {...(lc.plan||{}), ...(oc.plan||{})} : {...(oc.plan||{}), ...(lc.plan||{})}; return; }
+    if(k==='juegoDias'){ const j={...(lc.juegoDias||{})}; Object.entries(oc.juegoDias||{}).forEach(([d,v])=>{ j[d]=Math.max(j[d]||0, v||0); }); r.cfg.juegoDias=j; return; }   // tiempo jugado en cada aparato
+    toma('c:'+k, k in lc, k in oc, ()=>{ if(oc[k]===undefined) delete r.cfg[k]; else r.cfg[k]=clon(oc[k]); });
+  });
+  r.mod=Math.max(pl.mod||0, po.mod||0) || undefined;
+  return r;
 }
 function unirAjustes(l, o){
   const r = clon(l||{});
   if(!o) return r;
-  if((o.mod||0) > (r.mod||0)){ Object.keys(o).forEach(k=>{ if(!CAMPOS_LOCALES.has(k) && k!=='perfiles') r[k]=clon(o[k]); }); r.mod=o.mod; }
+  r.modK={...(r.modK||{})};
+  new Set([...Object.keys(r), ...Object.keys(o)]).forEach(k=>{ if(CAMPOS_LOCALES.has(k) || APARTE.has(k) || k==='perfiles') return;
+    const a=marcaDe(l, k, l && k in l), b=marcaDe(o, k, k in o); if(b>a){ if(o[k]===undefined) delete r[k]; else r[k]=clon(o[k]); r.modK[k]=b; } });
+  r.mod=Math.max(r.mod||0, o.mod||0) || undefined;
   r.perfiles = r.perfiles || [];
   (o.perfiles||[]).forEach(po=>{ const i=r.perfiles.findIndex(p=>p.id===po.id); if(i<0) r.perfiles.push(clon(po)); else r.perfiles[i]=unirPerfil(r.perfiles[i], po); });
   return r;
@@ -63,14 +88,14 @@ const estrenado = d => !d.ajustes || (!(d.sesiones||[]).some(s=>!s.prueba) && !(
 const aBase64 = blob => new Promise((res, rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(',')[1]||''); r.onerror=()=>rej(r.error); r.readAsDataURL(blob); });
 function deBase64(b64, tipo){ const bin=atob(b64); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return new Blob([u], {type:tipo||'application/octet-stream'}); }
 
-async function guardarAjYa(){ guardarCfgPerfil(); sellarCambios(); clearTimeout(tGuardarAj); await postJSON('/api/ajustes', aj); }
+async function guardarAjYa(){ while(uniendo) await pausa(200); if(recargando) throw new Error('recargando'); guardarCfgPerfil(); sellarCambios(); clearTimeout(tGuardarAj); await postJSON('/api/ajustes', aj); }
 
 async function crearCopia({audios=true, diasAudio=SINCRO_DIAS_AUDIO}={}){
   await guardarAjYa();
   const d = await api('/api/datos');
-  const fichas = await api('/api/fichas').catch(()=>[]);
+  const fichas = await api('/api/fichas');   // si falla, no se hace la copia (una lista vacía borraría las fichas del otro aparato)
   const nuevas = [];
-  for(const n of await api('/api/historias-nuevas').catch(()=>[])){ try{ nuevas.push({nombre:n.archivo, historias: await api('/api/historias-nuevas/'+encodeURIComponent(n.archivo))}); }catch(e){} }
+  for(const n of await api('/api/historias-nuevas').catch(()=>[])){ try{ nuevas.push({nombre:n.archivo, f:n.f||0, historias: await api('/api/historias-nuevas/'+encodeURIComponent(n.archivo))}); }catch(e){} }
   const imagenes = {};
   for(const [k, mt] of Object.entries(await api('/api/misimagenes').catch(()=>({})))){
     try{ const r=await fetch('/mis-imagenes/'+k+'.jpg?v='+mt); if(r.ok) imagenes[k]={mtime:mt, b64: await aBase64(await r.blob())}; }catch(e){}
@@ -88,9 +113,16 @@ async function crearCopia({audios=true, diasAudio=SINCRO_DIAS_AUDIO}={}){
 async function unirCopia(c){
   if(!c || c.tipo!=='LeeLEEJG-copia') throw new Error('Este archivo no es una copia de LeeLEEJG.');
   if(EST.aparato && c.aparato && c.aparato.id===EST.aparato.id) return {propia:true, total:0};
+  while(uniendo) await pausa(200);   // otra unión en marcha (botón a mano y copias automáticas a la vez)
   await guardarAjYa().catch(()=>{});
-  uniendo=true;
-  try{ return await unirCopiaDentro(c); } finally { uniendo=false; }
+  uniendo=true; ajPendiente=false;
+  try{
+    const r = await unirCopiaDentro(c);
+    if(ajPendiente){   // lo que cambió en pantalla mientras se juntaba se junta con lo que ha quedado guardado
+      const d = await api('/api/datos'); await postJSON('/api/ajustes', unirAjustes(d.ajustes||{}, aj));
+    }
+    return r;
+  } finally { uniendo=false; ajPendiente=false; }
 }
 function unirBorrados(a, b){ const m=new Map(); [...(a||[]), ...(b||[])].forEach(x=>{ if(!x||!x.t||x.id==null) return; const k=x.t+':'+x.id; if(!m.has(k) || (x.f||0)>(m.get(k).f||0)) m.set(k, x); }); return [...m.values()].sort((x,y)=>(x.f||0)-(y.f||0)).slice(-2000); }
 async function unirCopiaDentro(c){
@@ -107,8 +139,8 @@ async function unirCopiaDentro(c){
       const mias = await api('/api/fichas').catch(()=>[]);
       const lista = fo>fl ? c.fichas : unirListasPorId(mias, c.fichas);
       if(JSON.stringify(lista)!==JSON.stringify(mias)){ await postJSON('/api/fichas', lista); res.fichas = lista.length; }
-      nuevo.fichasMod = Math.max(fl, fo) || undefined;
     }
+    nuevo.fichasMod = Math.max(fl, fo) || undefined;
     if(borrados.length) nuevo.borrados = borrados;
     const nPerf = (nuevo.perfiles||[]).length - ((local.ajustes||{}).perfiles||[]).length;
     if(JSON.stringify(nuevo)!==antes){ await postJSON('/api/ajustes', nuevo); res.perfiles = Math.max(1, nPerf); }
@@ -130,9 +162,11 @@ async function unirCopiaDentro(c){
   for(const [k, mt] of Object.entries(mis)){ if(imgBorrada(k, mt)){ await api('/api/misimagenes/'+k, {method:'DELETE'}).catch(()=>{}); delete mis[k]; res.borrados++; } }
   for(const [k, im] of Object.entries(c.imagenes||{})){ if(im && im.b64 && !imgBorrada(k, im.mtime) && (!mis[k] || im.mtime>mis[k])){ await api('/api/misimagenes/'+k+'?mtime='+im.mtime, {method:'POST', body:deBase64(im.b64,'image/jpeg')}); res.imagenes++; } }
   // historias nuevas
-  const hay = new Set((await api('/api/historias-nuevas').catch(()=>[])).map(n=>n.archivo));
-  for(const n of hay){ if(B.has('historias:'+n)){ await api('/api/historias-nuevas/'+encodeURIComponent(n), {method:'DELETE'}).catch(()=>{}); res.borrados++; } }
-  for(const n of (c.nuevas||[])){ if(n && n.nombre && !hay.has(n.nombre) && !B.has('historias:'+n.nombre) && Array.isArray(n.historias)){ try{ await postJSON('/api/historias-nuevas', {nombre:n.nombre, historias:n.historias}); res.historias++; }catch(e){} } }
+  const listaNuevas = await api('/api/historias-nuevas').catch(()=>[]);
+  const hay = new Set(listaNuevas.map(n=>n.archivo));
+  const nuevaBorrada = (nombre, f) => B.has('historias:'+nombre) && (f||0) <= B.get('historias:'+nombre);   // si se volvió a añadir después, no se borra
+  for(const {archivo:n, f} of listaNuevas){ if(nuevaBorrada(n, f)){ await api('/api/historias-nuevas/'+encodeURIComponent(n), {method:'DELETE'}).catch(()=>{}); res.borrados++; } }
+  for(const n of (c.nuevas||[])){ if(n && n.nombre && !hay.has(n.nombre) && !nuevaBorrada(n.nombre, n.f) && Array.isArray(n.historias)){ try{ await postJSON('/api/historias-nuevas', {nombre:n.nombre, historias:n.historias}); res.historias++; }catch(e){} } }
   res.total = res.sesiones + res.grabaciones + res.imagenes + res.fichas + res.historias + res.perfiles + res.borrados;
   return res;
 }
@@ -179,12 +213,13 @@ async function enviarTablet(){
   await postJSON('/api/sincro/copia', {}).catch(()=>{});
   return {nombre, compartido};
 }
-function elegirArchivo(){
+/* elegir el archivo de copia (el selector de imágenes es elegirArchivo, en recorte.js) */
+function elegirCopia(){
   return new Promise(res=>{ const i=document.createElement('input'); i.type='file'; i.style.display='none';
     i.onchange=()=>{ const f=i.files && i.files[0]; i.remove(); res(f||null); }; document.body.appendChild(i); i.click(); });
 }
 async function traerTablet(){
-  const f = await elegirArchivo(); if(!f) return null;
+  const f = await elegirCopia(); if(!f) return null;
   let c; try{ c = JSON.parse(await f.text()); }catch(e){ throw new Error('Este archivo no es una copia de LeeLEEJG.'); }
   return unirCopia(c);
 }
@@ -214,7 +249,7 @@ function sincroHTML(info){
 function activarSincro(){
   const ocupado=(b,t)=>{ b.disabled=true; b.dataset.t=b.innerHTML; b.textContent=t; }, libre=b=>{ b.disabled=false; if(b.dataset.t) b.innerHTML=b.dataset.t; };
   const trasUnir = r => { if(!r) return; if(r.propia){ dialogo({titulo:'Es la copia de este mismo aparato', html:'<p class="nota">Elige la copia del otro aparato (en el ordenador se llama «LeeLEEJG-ordenador»).</p>', botones:[{t:'Vale',cls:'btn-p'}]}); return; }
-    dialogo({titulo:r.total?'Datos juntados':'No había nada nuevo', html:`<p class="nota">${r.total?'Se ha añadido: '+esc(resumenUnion(r))+'.':'Este aparato ya tenía todo lo de esa copia.'}</p>`, botones:[{t:'Vale',cls:'btn-p', fn:()=>{ if(r.total) location.reload(); }}], alCerrar:()=>{ if(r.total) location.reload(); }}); };
+    dialogo({titulo:r.total?'Datos juntados':'No había nada nuevo', html:`<p class="nota">${r.total?'Se ha añadido: '+esc(resumenUnion(r))+'.':'Este aparato ya tenía todo lo de esa copia.'}</p>`, botones:[{t:'Vale',cls:'btn-p', fn:()=>{ if(r.total) recargarSinGuardar(); }}], alCerrar:()=>{ if(r.total) recargarSinGuardar(); }}); };
   const fallo = e => dialogo({titulo:'No se pudo', html:`<p class="nota">${esc(e.message||e)}</p>`, botones:[{t:'Vale',cls:'btn-p'}]});
   const be=$('#btnEnviarSin'); if(be) be.onclick=async()=>{ ocupado(be,'Preparando la copia…'); try{ const r=await enviarTablet(); if(!r.cancelado) aviso(r.compartido?'Copia enviada':'Copia guardada en Descargas: súbela a Drive › LeeLEEJG'); if(actual==='datos') ir('datos'); }catch(e){ fallo(e); } libre(be); };
   const bt=$('#btnTraerSin'); if(bt) bt.onclick=async()=>{ ocupado(bt,'Juntando…'); try{ trasUnir(await traerTablet()); }catch(e){ fallo(e); } libre(bt); };

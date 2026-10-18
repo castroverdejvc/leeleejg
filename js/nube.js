@@ -1,7 +1,8 @@
 /* LeeLEEJG · copias automáticas entre el ordenador y la tablet, siempre, sin botones.
    Usa un pequeño programa de Google Apps Script en la cuenta de Google de la familia: guarda las copias en Mi unidad › LeeLEEJG.
-   Cada aparato deja ahí su copia (LeeLEEJG-<aparato>.leelee.json) y junta las de los demás: al abrirse, cada 2 minutos
-   (en pantallas tranquilas, nunca a mitad de una lectura) y al cerrarse. */
+   Cada aparato deja ahí su copia (LeeLEEJG-<aparato>.leelee.json) y junta las de los demás al abrirse y cada 2 minutos
+   (en pantallas tranquilas, nunca a mitad de una lectura); al cerrarse o esconderse solo envía la suya.
+   La copia lleva las grabaciones de los últimos 4 días. */
 'use strict';
 const NUBE_LOCAL = 'leeleejgNube';
 const NUBE_SCRIPT = `// LeeLEEJG · copias automáticas (Google Apps Script). Guarda las copias en Mi unidad › LeeLEEJG.
@@ -65,22 +66,26 @@ let nubeOcupada=false;
 /* junta lo de los otros aparatos y deja la copia de este (solo si ha cambiado algo) */
 async function nubeSincro({soloEnviar=false}={}){
   if(!nubeConf() || nubeOcupada || navigator.onLine===false) return null;
-  nubeOcupada=true; const loc=nubeLocal(); loc.visto=loc.visto||{}; const res={total:0, unidos:[]};
+  nubeOcupada=true; const loc=nubeLocal(); loc.visto=loc.visto||{}; const res={total:0, unidos:[]}; const fallos=[];
   try{
     if(!soloEnviar){
       const l=await nubeGet({accion:'listar'}); const mio=nombreNube();
-      for(const f of (l.archivos||[])){
-        if(f.nombre===mio || loc.visto[f.nombre]===f.fecha) continue;
-        const c=await nubeGet({accion:'leer', nombre:f.nombre});
-        const r=await unirCopia(c); loc.visto[f.nombre]=f.fecha; guardarNubeLocal(loc);
-        if(!r.propia && r.total){ res.total+=r.total; res.unidos.push({nombre:f.nombre, r}); }
-      }
-      if(res.total) await cargarDatos();
+      try{
+        for(const f of (l.archivos||[])){
+          if(f.nombre===mio || loc.visto[f.nombre]===f.fecha) continue;
+          try{   // una copia que falla no impide juntar las demás ni enviar la de este aparato
+            const c=await nubeGet({accion:'leer', nombre:f.nombre});
+            const r=await unirCopia(c); loc.visto[f.nombre]=f.fecha; guardarNubeLocal(loc);
+            if(!r.propia && r.total){ res.total+=r.total; res.unidos.push({nombre:f.nombre, r}); }
+          }catch(e){ fallos.push(f.nombre+': '+e.message); }
+        }
+      } finally { if(res.total) await cargarDatos(); }   // lo ya juntado se carga siempre (si no, se guardaría encima)
     }
     const copia=await crearCopia({diasAudio:4});
     const hu=huellaTexto(JSON.stringify({...copia, fecha:''}));
     if(hu!==loc.huella){ await nubePost({accion:'guardar', nombre:nombreNube(), contenido:JSON.stringify(copia)}); loc.huella=hu; loc.enviada=Date.now(); }
-    loc.ultima=Date.now(); loc.error=null;
+    loc.ultima=Date.now(); loc.error=fallos.length ? 'no se pudo juntar '+fallos.join('; ') : null;
+    if(fallos.length) registrar('Copias automáticas: '+loc.error);
   }catch(e){ loc.error=e.message; registrar('Copias automáticas: '+e.message); }
   finally{ guardarNubeLocal(loc); nubeOcupada=false; }
   return res;
@@ -101,7 +106,7 @@ function nubeArrancar(){
     if(urlNubeValida(url)){ aj.nube={url, clave}; guardarAj(); aviso('Copias automáticas activadas'); } }
   setTimeout(nubeTurno, 2500);
   setInterval(nubeTurno, 120000);
-  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden' && nubeConf()) nubeSincro({soloEnviar:true}); });
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden' && nubeConf() && !recargando) nubeSincro({soloEnviar:true}); });
   window.addEventListener('online', ()=>setTimeout(nubeTurno, 3000));
 }
 
@@ -116,7 +121,7 @@ const codigoNube = () => { const c=nubeConf(); return c ? c.url+'#'+c.clave : ''
 function nubeHTML(){
   const c=nubeConf();
   if(c) return `<div class="card ajuste nube-card" id="cardNube"><h3>${ic('nube')} Copias automáticas</h3>
-    <p class="nota">Activadas: este aparato y el otro se juntan solos (al abrir, cada 2 minutos y al cerrar). Las copias están en Google Drive › Mi unidad › <b>LeeLEEJG</b>.</p>
+    <p class="nota">Activadas: este aparato y el otro se juntan solos (al abrir y cada 2 minutos; al cerrar se envía lo último). Las copias están en Google Drive › Mi unidad › <b>LeeLEEJG</b>.</p>
     <p class="nota" id="nubeEstado" style="margin-top:6px">${nubeEstadoTxt()}</p>
     <div class="botones" style="margin-top:10px"><button class="btn btn-p" type="button" id="nubeYa">${ic('recargar')} Juntar ahora</button><button class="btn" type="button" id="nubeCodigo">Código para el otro aparato</button><button class="btn btn-rojo" type="button" id="nubeQuitar">Desactivar</button></div></div>`;
   if(enLocal()) return `<div class="card ajuste nube-card" id="cardNube"><h3>${ic('nube')} Copias automáticas</h3>

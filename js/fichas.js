@@ -180,7 +180,7 @@ definir('fichas', {zona:'adulto', pintar(id){
     try{ await guardarFichas(); aviso('Ficha guardada'); ir('fichas', null); }catch(e){ dialogo({titulo:'No se pudo guardar', html:`<p class="nota">${esc(e.message)}</p>`, botones:[{t:'Vale',cls:'btn-p'}]}); } };
 }});
 function elegirImagenPalabra(f, p){
-  const d=dialogo({titulo:`Imagen para «${esc(p.t||'…')}»`, botones:[
+  dialogo({titulo:`Imagen para «${esc(p.t||'…')}»`, botones:[
     ...(f.fotos||[]).map((k,i)=>({t:`${ic('imagen')} Recortar de la foto de la ficha${f.fotos.length>1?' '+(i+1):''}`, cls:'btn-p', fn:async()=>{ const bl=await abrirRecorte(fotoURL(k,true),{aspecto:1.5, titulo:'Recorta el dibujo'}); if(bl){ const kk='fi_'+f.id+'_'+p.id; await subirImagen(kk, bl); p.img=kk; ir('fichas'); } }})),
     {t:`${ic('camara')} Subir una imagen`, fn:async()=>{ const a=await elegirArchivo(); if(!a) return; const bl=await abrirRecorte(a,{aspecto:1.5}); if(bl){ const kk='fi_'+f.id+'_'+p.id; await subirImagen(kk, bl); p.img=kk; ir('fichas'); } }},
     {t:`${ic('libro')} Elegir de nuestras fotos`, fn:async()=>{ const k=await elegirDeGaleria(); if(k){ p.img=k; ir('fichas'); } }}]});

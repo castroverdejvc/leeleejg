@@ -20,7 +20,7 @@ definir('inicio', {nav:'inicio', pintar(){
   if(!temasDe(perfil()).length){ ir('temas'); return; }
   const h=historiaDeHoy(), c=leidas(); const hecha=!!c[h.id]; const hoyLeida=hecha && misSes().some(s=>s.historiaId===h.id && claveDia(s.fecha)===claveDia(new Date())); const P=planDe(), dHoy=diaDeHoy();
   let pend=0; for(let d=1; d<dHoy; d++) if(P.dias[d] && !c[P.dias[d].id]) pend++;
-  const ult = misSes().slice(-3).reverse().map(s=>historia(s.historiaId)).filter(Boolean);
+  const ult = misSes().filter(s=>!esComp(s.historiaId)).slice(-3).reverse().map(s=>historia(s.historiaId)).filter(Boolean);
   const fotosCromos = (ult.length?ult:CONT.historias.slice(0,3)).slice(0,3).map(x=>imgHTML(x.portada)).join('');
   const yo=perfil(), fo=fondoLector(yo), fy=fotoLector(yo);
   const pendRep = typeof pendientesHoy==='function' && FICHAS.length ? Math.min(10, pendientesHoy().length) : 0;

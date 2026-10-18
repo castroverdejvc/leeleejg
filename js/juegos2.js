@@ -6,7 +6,6 @@ function nivelJ(id){ const max=MAX_NIVEL[id]||3; let n=0;
   (cfgDe(perfil()).juegoLog||[]).filter(x=>x.j===id).slice(-12).forEach(x=>{ const a=x.a||0, e=x.e||0, r=a+e?a/(a+e):0;
     if(r>=.85 || (a>0 && e<=1)) n++; else if(r<.5 && e>=3) n--; n=Math.max(0, Math.min(max, n)); });
   return n; }
-const subirNivel = () => {};
 function sacudir(b){ if(!b) return; b.classList.remove('sacude'); void b.offsetWidth; b.classList.add('sacude'); }
 
 /* ============ 11 · Sudoku de dibujos (4×4) ============ */
@@ -35,7 +34,7 @@ function jSudoku(el){
     const c=ev.target.closest('[data-i]'); if(c){ const i=+c.dataset.i; if(!fijo[i] && tab[i]==null){ sel=i; sonido('toc'); pinta(); } return; }
     const p=ev.target.closest('[data-v]'); if(!p || sel==null || tab[sel]!=null) return; const v=+p.dataset.v;
     if(v===sol[sel]){ tab[sel]=v; a++; sonido('bien'); decir(palabraDe(sim[v]));
-      if(!tab.includes(null)){ pinta(); apuntarJuego('sudoku',{a, e, r:huecos+' huecos'}); subirNivel('sudoku',3); confeti(el); sonido('cromo'); setTimeout(()=>cartel(el, `<h2>¡Sudoku resuelto! 🎉</h2><p class="nota">${e?`Con ${e} ${e===1?'fallo':'fallos'}.`:'¡Sin ningún fallo!'}</p>`, [['Otro sudoku', nueva]]), 500); return; }
+      if(!tab.includes(null)){ pinta(); apuntarJuego('sudoku',{a, e, r:huecos+' huecos'}); confeti(el); sonido('cromo'); setTimeout(()=>cartel(el, `<h2>¡Sudoku resuelto! 🎉</h2><p class="nota">${e?`Con ${e} ${e===1?'fallo':'fallos'}.`:'¡Sin ningún fallo!'}</p>`, [['Otro sudoku', nueva]]), 500); return; }
       sel=tab.indexOf(null); pinta(); }
     else { e++; sonido('mal'); decir(choca(tab,sel,v)?'Ese ya está en la fila, la columna o el cuadrado.':'Ahí no va. Piénsalo otra vez.'); pinta(); sacudir(cont.querySelector(`[data-i="${sel}"]`)); }
   });
@@ -61,7 +60,7 @@ function jLaberinto(el){
     pon(`Lleva al ratón hasta el queso · Pasos: ${pasos} · ✗ Choques: ${golpes}`); };
   const mover=d=>{ if(fin || d==='s' || !muros) return; const [r,c]=yo; if(muros[r][c][d]){ golpes++; sonido('mal'); dibuja(); return; }
     const [dc,dr]=DIRS[d]; yo=[r+dr,c+dc]; pasos++; sonido('toc'); dibuja();
-    if(yo[0]===meta[0] && yo[1]===meta[1]){ fin=true; apuntarJuego('laberinto',{a:1, e:golpes, pts:pasos, r:`${N}×${M}`}); subirNivel('laberinto',4); sonido('cromo'); confeti(el); decir('¡Has encontrado el queso!'); cartel(el, `<h2>¡Has llegado! 🧀</h2><p class="nota">${pasos} pasos y ${golpes} ${golpes===1?'choque':'choques'}.</p>`, [['Otro laberinto', nueva]]); } };
+    if(yo[0]===meta[0] && yo[1]===meta[1]){ fin=true; apuntarJuego('laberinto',{a:1, e:golpes, pts:pasos, r:`${N}×${M}`}); sonido('cromo'); confeti(el); decir('¡Has encontrado el queso!'); cartel(el, `<h2>¡Has llegado! 🧀</h2><p class="nota">${pasos} pasos y ${golpes} ${golpes===1?'choque':'choques'}.</p>`, [['Otro laberinto', nueva]]); } };
   const nueva=()=>{ const nv=nivelJ('laberinto'); N=5+nv; M=5+nv; crear(); yo=[0,0]; meta=[M-1,N-1]; golpes=0; pasos=0; fin=false;
     el.innerHTML=''; pon=marcador(el); L=lienzo(el,N,M,420); deslizar(L.cv, mover); flechas(el, mover); dibuja(); };
   const quitarT=teclas(mover);
@@ -91,8 +90,8 @@ function jSeries(el){
     zona.innerHTML=`<p class="sub">¿Qué viene después?</p><div class="serie">${serie.map(v=>`<span class="sv">${esc(String(v))}</span>`).join('')}<span class="sv hueco">?</span></div>
       <div class="ops-serie">${ops.map(o=>`<button type="button" class="btn btn-g os" data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
     pon(`Serie ${ronda+1} de ${R} · ✓ ${a} · ✗ ${e}`);
-    $$('.os', zona).forEach(b=>b.onclick=()=>{ if(b.dataset.o===String(resp)){ if(!mal) a++; sonido('bien'); zona.querySelector('.hueco').textContent=resp; zona.querySelector('.hueco').classList.add('ok'); ronda++;
-        if(ronda>=R){ apuntarJuego('series',{a, e}); if(e<=1) subirNivel('series',3); setTimeout(()=>{ sonido('cromo'); if(e===0) confeti(el); cartel(el, `<h2>${e===0?'¡Todas bien! 🎉':'¡Terminado!'}</h2><p class="nota">${a} de ${R} a la primera.</p>`, [['Otra vez', ()=>{ ronda=0; a=0; e=0; pide(); }]]); }, 600); }
+    $$('.os', zona).forEach(b=>b.onclick=()=>{ if(b.dataset.o===String(resp)){ $$('.os', zona).forEach(x=>x.disabled=true); if(!mal) a++; sonido('bien'); zona.querySelector('.hueco').textContent=resp; zona.querySelector('.hueco').classList.add('ok'); ronda++;
+        if(ronda>=R){ apuntarJuego('series',{a, e}); setTimeout(()=>{ sonido('cromo'); if(e===0) confeti(el); cartel(el, `<h2>${e===0?'¡Todas bien! 🎉':'¡Terminado!'}</h2><p class="nota">${a} de ${R} a la primera.</p>`, [['Otra vez', ()=>{ ronda=0; a=0; e=0; pide(); }]]); }, 600); }
         else setTimeout(pide, 700); }
       else { e++; mal=true; sonido('mal'); sacudir(b); b.disabled=true; pon(`Serie ${ronda+1} de ${R} · ✓ ${a} · ✗ ${e}`); } });
   };
@@ -163,7 +162,7 @@ function jSopa(el){
     const [r0,c0]=ini; ini=null;
     const p=pals.find(p=>!encontradas.has(p.p) && ((p.celdas[0][0]===r0&&p.celdas[0][1]===c0&&p.celdas.at(-1)[0]===r&&p.celdas.at(-1)[1]===c) || (p.celdas[0][0]===r&&p.celdas[0][1]===c&&p.celdas.at(-1)[0]===r0&&p.celdas.at(-1)[1]===c0)));
     if(p){ encontradas.add(p.p); a++; sonido('bien'); decir(p.p); pinta();
-      if(encontradas.size===pals.length){ apuntarJuego('sopa',{a, e, r:pals.length+' palabras'}); subirNivel('sopa',2); sonido('cromo'); confeti(el); setTimeout(()=>cartel(el, `<h2>¡Todas encontradas! 🎉</h2><p class="nota">${e?`Con ${e} ${e===1?'fallo':'fallos'}.`:'¡Sin fallos!'}</p>`, [['Otra sopa', nueva]]), 600); } }
+      if(encontradas.size===pals.length){ apuntarJuego('sopa',{a, e, r:pals.length+' palabras'}); sonido('cromo'); confeti(el); setTimeout(()=>cartel(el, `<h2>¡Todas encontradas! 🎉</h2><p class="nota">${e?`Con ${e} ${e===1?'fallo':'fallos'}.`:'¡Sin fallos!'}</p>`, [['Otra sopa', nueva]]), 600); } }
     else if(r0===r && c0===c){ pinta(); }
     else { e++; sonido('mal'); pinta(); sacudir(zona.querySelector('.sopa')); }
   });
@@ -191,8 +190,8 @@ function jCuenta(el){
     pon(`Ronda ${ronda+1} de ${R} · ✓ ${a} · ✗ ${e}`);
   };
   const responde=(ok, b, frase)=>{
-    if(ok){ if(!mal) a++; ronda++; sonido('bien'); decir(frase);
-      if(ronda>=R){ apuntarJuego('cuenta',{a, e}); if(e<=1) subirNivel('cuenta',3); setTimeout(()=>{ sonido('cromo'); if(e===0) confeti(el); cartel(el, `<h2>${e===0?'¡Todas bien! 🎉':'¡Terminado!'}</h2><p class="nota">${a} de ${R} a la primera.</p>`, [['Otra vez', ()=>{ ronda=0; a=0; e=0; pide(); }]]); }, 700); }
+    if(ok){ $$('.os,.gc', zona).forEach(x=>x.disabled=true); if(!mal) a++; ronda++; sonido('bien'); decir(frase);
+      if(ronda>=R){ apuntarJuego('cuenta',{a, e}); setTimeout(()=>{ sonido('cromo'); if(e===0) confeti(el); cartel(el, `<h2>${e===0?'¡Todas bien! 🎉':'¡Terminado!'}</h2><p class="nota">${a} de ${R} a la primera.</p>`, [['Otra vez', ()=>{ ronda=0; a=0; e=0; pide(); }]]); }, 700); }
       else setTimeout(pide, 900); }
     else { e++; mal=true; sonido('mal'); sacudir(b); b.disabled=true; pon(`Ronda ${ronda+1} de ${R} · ✓ ${a} · ✗ ${e}`); }
   };

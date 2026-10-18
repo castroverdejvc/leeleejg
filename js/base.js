@@ -71,12 +71,10 @@ const ICON = {
   recargar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>',
   estrella:'<svg viewBox="0 0 24 24" fill="#F5B301"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/></svg>',
   borrar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 5H9l-6 7 6 7h12z"/><path d="M17 9l-5 6M12 9l5 6"/></svg>',
-  pata:'<svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16" rx="5" ry="4.2"/><circle cx="6" cy="10" r="2.2"/><circle cx="10" cy="6.5" r="2.2"/><circle cx="14" cy="6.5" r="2.2"/><circle cx="18" cy="10" r="2.2"/></svg>',
   informe:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h8M9 17h5"/></svg>',
   pausa2:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>',
   juego:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12a4 4 0 0 1 4 4v1a4 4 0 0 1-7 2.6L14 15h-4l-1 .6A4 4 0 0 1 2 13v-1a4 4 0 0 1 4-4z"/><path d="M7 11v3M5.5 12.5h3"/><circle cx="16" cy="11.5" r=".6" fill="currentColor"/><circle cx="18" cy="13.5" r=".6" fill="currentColor"/></svg>',
-  descarga:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
-  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+  descarga:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>'
 };
 function iconos(raiz=document){ $$('[data-icono]', raiz).forEach(e=>{ if(!e.dataset.hecho){ e.innerHTML=ICON[e.dataset.icono]||''; e.dataset.hecho='1'; e.style.display='inline-flex'; } }); }
 const ic = n => ICON[n]||'';
@@ -121,7 +119,7 @@ function claveDePalabra(p){ const l=String(p).toLowerCase(); return CONT.palabra
 const COLORES = ['#1E7BF2','#8B5CF6','#18B47B','#E5484D','#F5A300','#0EA5B7','#DB2777','#64748B'];
 const SUAVE = {'#1E7BF2':'#D7E8FF','#8B5CF6':'#EAE2FF','#18B47B':'#D6F3E6','#E5484D':'#FDE1E1','#F5A300':'#FFF0CC','#0EA5B7':'#D4F2F6','#DB2777':'#FCE1EE','#64748B':'#E5EAF1','#1463E6':'#D7E8FF','#1FA982':'#D6F3E6','#E8503B':'#FDE1E1','#F2A900':'#FFF0CC'};
 const PKEYS = ['tam','letra','img','nivel','inicio','adelantar','practica','repaso','repasoLog','dictado','dictadoLog','temas','plan','temasLog','pideMas','espacio','marcapaginas','gustosLog','adivLog','juegoDias','premiosVistos','recordatorio','letras','letrasLog','teleDesde','teleLog','teleAvisado','juntos','cambios','juegoLog','peliLog','sobresLog','resumenVisto'];
-const cfgBase = p => ({tam: window.innerWidth<700 ? 30 : 44, letra:'imprenta', img:'con', nivel:0, inicio:null, adelantar: !!(p && p.prueba), practica:{}, repaso:{}, repasoLog:[], dictado:{}, dictadoLog:[], temas:[], plan:{}, temasLog:[], pideMas:[], espacio:'normal', marcapaginas:null, gustosLog:[], adivLog:[], juegoDias:{}, premiosVistos:null, recordatorio:null, letras:{}, letrasLog:[], teleDesde:null, teleLog:[], teleAvisado:null, juntos:'no', cambios:[], juegoLog:[], peliLog:[], sobresLog:[]});
+const cfgBase = p => ({tam: window.innerWidth<700 ? 30 : 44, letra:'imprenta', img:'con', nivel:0, inicio:null, adelantar: !!(p && p.prueba), practica:{}, repaso:{}, repasoLog:[], dictado:{}, dictadoLog:[], temas:[], plan:{}, temasLog:[], pideMas:[], espacio:'normal', marcapaginas:null, gustosLog:[], adivLog:[], juegoDias:{}, premiosVistos:null, recordatorio:null, letras:{}, letrasLog:[], teleDesde:null, teleLog:[], teleAvisado:null, juntos:'no', cambios:[], juegoLog:[], peliLog:[], sobresLog:[], resumenVisto:null});
 /* perfil con el que empieza un aparato nuevo (se cambia el nombre en Usuarios, o se traen los del ordenador) */
 const PERFIL_INICIAL = () => ({id:'lector1', nombre:'Lector', color:COLORES[0]});
 const ajPorDefecto = () => ({perfiles:[{...PERFIL_INICIAL(), cfg:cfgBase()}], perfil:'lector1', pin:'', voz:'', volumen:.9, audioPreguntas:true, ...cfgBase()});
@@ -131,9 +129,13 @@ const perfil = () => aj.perfiles.find(p=>p.id===aj.perfil) || aj.perfiles[0];
 const nombre = () => perfil().nombre || 'Lector';
 const conNombre = s => String(s).split('{nombre}').join(nombre());
 const iniciales = n => (n||'?').trim().split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
-function guardarCfgPerfil(){ const p=aj.perfiles && aj.perfiles.find(x=>x.id===aj.perfil); if(p) p.cfg = JSON.parse(JSON.stringify(Object.fromEntries(PKEYS.map(k=>[k, aj[k]])))); }
-let uniendo=false;   // mientras se junta una copia de otro aparato no se guardan los ajustes de la pantalla (se recargan al terminar)
-function guardarAj(){ if(uniendo) return; guardarCfgPerfil(); if(typeof sellarCambios==='function') sellarCambios(); clearTimeout(tGuardarAj); tGuardarAj=setTimeout(()=>{ if(uniendo) return; postJSON('/api/ajustes', aj).catch(e=>registrar('No se guardaron los ajustes: '+e.message)); }, 350); }
+/* guarda en el perfil lo de la pantalla (y conserva lo que traiga de una versión más nueva) */
+function guardarCfgPerfil(){ const p=aj.perfiles && aj.perfiles.find(x=>x.id===aj.perfil); if(p) p.cfg = {...(p.cfg||{}), ...JSON.parse(JSON.stringify(Object.fromEntries(PKEYS.map(k=>[k, aj[k]]))))}; }
+/* al recargar después de restaurar o de juntar no se guarda nada más (se pisaría lo nuevo con lo de la pantalla) */
+let recargando=false;
+function recargarSinGuardar(){ recargando=true; clearTimeout(tGuardarAj); location.reload(); }
+let uniendo=false, ajPendiente=false;   // mientras se junta una copia no se escribe: los cambios se apuntan y se juntan al terminar
+function guardarAj(){ if(recargando) return; if(uniendo){ guardarCfgPerfil(); if(typeof sellarCambios==='function') sellarCambios(); ajPendiente=true; return; } guardarCfgPerfil(); if(typeof sellarCambios==='function') sellarCambios(); clearTimeout(tGuardarAj); tGuardarAj=setTimeout(()=>{ if(recargando) return; if(uniendo){ ajPendiente=true; return; } postJSON('/api/ajustes', aj).catch(e=>registrar('No se guardaron los ajustes: '+e.message)); }, 350); }
 function usarPerfil(id){ guardarCfgPerfil(); aj.perfil=id; const p=perfil(); Object.assign(aj, cfgBase(p), p.cfg||{}); guardarAj(); pintarCabecera(); aplicarLetra(); }
 const claveLector = (p=perfil()) => MIS['lector_'+p.id] ? 'lector_'+p.id : (p.id===aj.perfiles[0].id && MIS.lector ? 'lector' : 'lector_'+p.id);
 function fotoLector(p=perfil()){ const k=claveLector(p); return MIS[k] ? '/mis-imagenes/'+k+'.jpg?v='+MIS[k] : null; }

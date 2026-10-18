@@ -53,11 +53,11 @@ function jTresRaya(el){
   const juegaMaquina=()=>{ const libres=tab.map((v,i)=>v?null:i).filter(i=>i!=null);
     const prueba=(q)=>libres.find(i=>{ const t=tab.slice(); t[i]=q; return quien(t)===q; });
     let i=prueba('o'); if(i==null && Math.random()<.7) i=prueba('x'); if(i==null && !tab[4] && Math.random()<.5) i=4; if(i==null) i=libres[Math.floor(Math.random()*libres.length)];
-    tab[i]='o'; sonido('toc'); cierre(); };
+    tab[i]='o'; turno='x'; sonido('toc'); cierre(); };
   const cierre=()=>{ pinta(); const q=quien(tab); if(!q) return; fin=true; partidas++; apuntarJuego('tresraya', q==='x'?{a:1,r:'gana'}:q==='empate'?{r:'empate'}:{e:1,r:'pierde'}); if(q==='x'){ ganadas++; sonido('cromo'); confeti(el); decir('¡Has ganado!'); } else decir(q==='empate'?'¡Empate!':'¡Esta vez gano yo!');
     pinta(); setTimeout(()=>cartel(el, `<h2>${q==='x'?'¡Has ganado! 🎉':q==='empate'?'¡Empate!':'Gana la máquina'}</h2>`, [['Otra partida', nueva]]), 600); };
   const nueva=()=>{ tab=Array(9).fill(null); fin=false; turno=partidas%2===0?'x':'o'; pinta(); if(turno==='o') setTimeout(juegaMaquina, 500); };
-  g.addEventListener('click', e=>{ const b=e.target.closest('[data-i]'); if(!b || fin) return; const i=+b.dataset.i; if(tab[i]) return; tab[i]='x'; sonido('toc'); cierre(); if(!fin) setTimeout(()=>{ if(!fin) juegaMaquina(); }, 450); });
+  g.addEventListener('click', e=>{ const b=e.target.closest('[data-i]'); if(!b || fin || turno!=='x') return; const i=+b.dataset.i; if(tab[i]) return; tab[i]='x'; turno='o'; sonido('toc'); cierre(); if(!fin) setTimeout(()=>{ if(!fin) juegaMaquina(); }, 450); });
   nueva(); return {parar(){}};
 }
 
@@ -131,7 +131,7 @@ function jComecocos(el){
 function jTopos(el){
   el.innerHTML=''; const pon=marcador(el); const g=document.createElement('div'); g.className='topos'; el.appendChild(g);
   const pal=Object.entries(CONT.palabras||{}).filter(([p,k])=>/^[a-zñ]{2,6}$/.test(p) && CONT.fotos[k]).map(([p,k])=>({p,k}));
-  let objetivo, aciertos=0, fallos=0, tiempo=40, vivo=false, pararB=null, huecos=[];
+  let objetivo, aciertos=0, fallos=0, tiempo=40, vivo=false, pararB=null;
   g.innerHTML=Array.from({length:9},(_,i)=>`<div class="hueco"><button type="button" class="topo" data-i="${i}" hidden><span class="${claseTexto()}"></span></button></div>`).join('');
   const nuevoObj=()=>{ objetivo=pal[Math.floor(Math.random()*pal.length)]; decir('Toca: '+objetivo.p); pon(`Toca: <b class="${claseTexto()}">${esc(objetivo.p)}</b> ${imgHTML(objetivo.k,false,'mini-obj')} · Aciertos: ${aciertos} · ⏱ ${Math.ceil(tiempo)}`); };
   const sacar=()=>{ const libres=[...g.querySelectorAll('.topo')].filter(b=>b.hidden); if(!libres.length) return; const b=libres[Math.floor(Math.random()*libres.length)];

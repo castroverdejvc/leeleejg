@@ -5,11 +5,10 @@ const PREMIOS_DEF = {criatura:2, juego:5, minutos:15, trasLeer:true, tele:10, te
 const premiosCfg = () => ({...PREMIOS_DEF, ...(aj.premios||{})});
 
 /* actividades (ejercicios) = lecturas terminadas + dictados + repasos de fichas + rondas de «As letras» */
-function ejerciciosDe(p=perfil(), desde=null){
-  const c=cfgDe(p), d=desde?new Date(desde):null, vale=f=>!d || new Date(f)>=d;
-  return sesDe(p.id).filter(s=>!s.incompleta && !esComp(s.historiaId) && vale(s.fecha)).length + ['dictadoLog','repasoLog','letrasLog'].reduce((a,k)=>a+(c[k]||[]).filter(x=>vale(x.f)).length, 0);
+function actividadesDe(p=perfil()){
+  const c=cfgDe(p);
+  return sesDe(p.id).filter(s=>!s.incompleta && !esComp(s.historiaId)).length + ['dictadoLog','repasoLog','letrasLog'].reduce((a,k)=>a+(c[k]||[]).length, 0);
 }
-const actividadesDe = (p=perfil()) => ejerciciosDe(p);
 /* azar con semilla: el orden de las criaturas es distinto para cada niño pero siempre el mismo */
 function semilla(txt){ let h=2166136261; for(const ch of String(txt)){ h^=ch.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; }
 function azar(seed){ let a=seed||1; return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
@@ -70,7 +69,6 @@ function criaturaSVG(c, {silueta=false, cls=''}={}){
   const [col, clara]= silueta ? ['#C9D3E2','#C9D3E2'] : T.c; const osc = silueta ? '#B7C3D4' : 'rgba(0,0,0,.18)';
   const cuerpo = [`<ellipse cx="60" cy="74" rx="34" ry="31" fill="${col}"/>`, `<path d="M60 36c22 0 34 22 34 44 0 16-15 26-34 26S26 96 26 80c0-22 12-44 34-44z" fill="${col}"/>`,
     `<ellipse cx="60" cy="72" rx="29" ry="36" fill="${col}"/>`, `<rect x="24" y="44" width="72" height="62" rx="30" fill="${col}"/>`][v];
-  let deco='';
   const tipoDeco = {
     fuego:`<path d="M60 14c8 10 14 16 10 26 6-4 6-10 6-10 6 10 0 22-16 22s-20-12-14-22c2 6 6 8 6 8-4-10 0-16 8-24z" fill="${silueta?col:'#FFB020'}"/><path d="M60 30c4 6 6 10 3 14-1 3-6 3-7 0-2-4 1-8 4-14z" fill="${silueta?col:'#FFE38A'}"/>`,
     agua:`<path d="M48 44c6-14 18-20 26-22-4 8-4 16 0 24z" fill="${silueta?col:'#1C7CC0'}"/><path d="M98 92c8-2 12 6 6 12-3 3-9 1-9-4 0-3 1-6 3-8z" fill="${silueta?col:'#7CC8FF'}"/>`,
@@ -132,7 +130,7 @@ function activarAtrasadas(raiz){
 
 /* ---------------- barra de premios en Inicio ---------------- */
 function premiosHTML(){
-  const p=perfil(), cfg=premiosCfg(), act=actividadesDe(p); const fc=faltanParaCriatura(p), fj=faltanParaJuego(p);
+  const p=perfil(), cfg=premiosCfg(); const fc=faltanParaCriatura(p), fj=faltanParaJuego(p);
   const pc=Math.round(100*(cfg.criatura-fc)/cfg.criatura), pj = fj==null ? 100 : Math.round(100*(cfg.juego-fj)/cfg.juego);
   return `<div class="card premios"><div class="premio" data-ir="criaturas"><span class="emo-g">🐾</span><div class="tx"><b>Próxima criatura</b><span class="nota">${fc===1?'¡Te falta 1 actividad!':'Te faltan '+fc+' actividades'}</span><span class="barra-t"><i style="width:${pc}%;background:#8B5CF6"></i></span></div></div>
     <div class="premio" data-ir="juegos"><span class="emo-g">🎮</span><div class="tx"><b>${fj==null?'¡Tienes todos los juegos!':'Próximo juego'}</b><span class="nota">${fj==null?'Juega un ratito cuando acabes.':fj===1?'¡Te falta 1 actividad!':'Te faltan '+fj+' actividades'}</span><span class="barra-t"><i style="width:${pj}%;background:#F5A300"></i></span></div></div></div>`;
@@ -170,7 +168,7 @@ function comprobarPremios(){
 definir('criaturas', {nav:'cromos', pintar(){
   const p=perfil(), tengo=new Set(criaturasDe(p)); const base=CRIATURAS.filter(c=>tengo.has(c.id)).length; const fc=faltanParaCriatura(p);
   $('#s-criaturas').innerHTML = `${albumTabsHTML('criaturas')}
-  <div class="album-cab"><div><h1 class="tit">Álbum de criaturas</h1><p class="sub">Cada ${premiosCfg().criatura} actividades (lecturas, dictados o repasos) ganas una criatura.</p></div>
+  <div class="album-cab"><div><h1 class="tit">Álbum de criaturas</h1><p class="sub">Cada ${premiosCfg().criatura} actividades (lecturas, dictados, repasos o «As letras») ganas una criatura.</p></div>
     <div class="contador">🐾<div><b>${base} de ${CRIATURAS.length}</b><br><span>${base>=CRIATURAS.length?'¡Álbum completo!':'te faltan '+(CRIATURAS.length-base)}</span></div></div></div>
   <div class="card album-prog"><span class="emo-g">🎁</span><div class="tx"><b>${fc===1?'¡Te falta 1 actividad para la próxima!':'Te faltan '+fc+' actividades para la próxima'}</b><span class="barra-t"><i style="width:${Math.round(100*(premiosCfg().criatura-fc)/premiosCfg().criatura)}%;background:#8B5CF6"></i></span></div></div>
   <div class="cri-grid">${CRIATURAS.map(c=>tengo.has(c.id)
@@ -215,7 +213,7 @@ function semanaHTML(p){
 }
 function premiosAdultoHTML(p){
   const c=premiosCfg(), sel=(id,vals,v,suf)=>`<select id="${id}">${vals.map(x=>`<option value="${x}" ${x===v?'selected':''}>${x===0?'Sin límite':x+suf}</option>`).join('')}</select>`;
-  return teleAdultoHTML(p) + `<div class="card bloque" style="margin-bottom:18px"><h3 style="margin-bottom:6px">Premios y juegos</h3><p class="nota" style="margin-bottom:12px">Para toda la familia. Cuentan como actividad: cada lectura terminada, cada dictado, cada repaso de fichas y cada ronda de «As letras». ${esc(p.nombre)} lleva ${actividadesDe(p)}: ${criaturasDe(p).length} criaturas y ${juegosAbiertos(p)} juegos.</p>
+  return teleAdultoHTML(p) + `<div class="card bloque" style="margin-bottom:18px"><h3 style="margin-bottom:6px">Premios y juegos</h3><p class="nota" style="margin-bottom:12px">Para toda la familia. Cuentan como actividad: cada lectura terminada (no las lecturas extra), cada dictado, cada repaso de fichas y cada ronda de «As letras». ${esc(p.nombre)} lleva ${actividadesDe(p)}: ${criaturasDe(p).length} criaturas y ${juegosAbiertos(p)} juegos.</p>
     <div class="fam-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
       <div class="campo"><label for="prCri">Una criatura cada</label>${sel('prCri',[1,2,3,4,5],c.criatura,' actividades')}</div>
       <div class="campo"><label for="prJue">Un juego nuevo cada</label>${sel('prJue',[3,4,5,6,8,10],c.juego,' actividades')}</div>

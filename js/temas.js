@@ -48,6 +48,7 @@ function planDe(p=perfil()){
   const libre=h=>h && !tomados.has(h.id) && !leid[h.id];
   for(let d=1; d<=365; d++){
     let h=plan[d] ? historia(plan[d]) : null, t='fijo';
+    if(plan[d] && !h && d<hoy){ dias[d]=null; tipo[d]='quitada'; continue; }
     if(!h){ const f=fiestas[mdF(fechaDiaDe(p,d))]; if(f && !tomados.has(f.id)){ h=f; t='fiesta'; } }
     if(!h){ const prev=dias[d-1], tp=prev && temaDeMundo(prev.mundo); let i0=0; if(tp){ const j=temas.indexOf(tp.id); if(j>=0) i0=j+1; }
       for(let i=0; i<temas.length && !h; i++) h=colas[temas[(i0+i)%temas.length]].find(libre)||null; t='tema'; }
@@ -56,7 +57,8 @@ function planDe(p=perfil()){
     if(h){ tomados.add(h.id); dias[d]=h; tipo[d]=t; if(!diaDe[h.id]) diaDe[h.id]=d; }
   }
   // los días ya llegados se quedan fijos
-  let cambio=false; for(let d=1; d<=hoy; d++) if(!plan[d] && dias[d]){ plan[d]=dias[d].id; cambio=true; }
+  const fijo = Math.min(365, hoy + (new Date().getDay()===6 ? 1 : 0));   // el sábado también el domingo (se puede leer antes, para la película)
+  let cambio=false; for(let d=1; d<=fijo; d++) if(!plan[d] && dias[d]){ plan[d]=dias[d].id; cambio=true; }
   if(cambio){ cfg.plan=plan; guardarAj(); }
   const res={key:JSON.stringify([temas, cfg.inicio||'', plan, Object.keys(leid).sort(), CONT.historias.length, p.nac||'', hoy]), dias, tipo, diaDe};
   return (PLANES[p.id]=res);

@@ -3,7 +3,7 @@
    También guarda el programa y las fotos para que funcione sin internet.
    En el ordenador con «Iniciar LeeLEEJG» este fichero no se usa. */
 'use strict';
-const VERSION = '6.1';
+const VERSION = '6.3';   // la misma que app.py (preparar_tablet.py lo comprueba)
 const CACHE_PROG = 'leeleejg-programa';      // el programa (se renueva cuando cambia precache.json)
 const CACHE_FUENTES = 'leeleejg-fuentes';    // letras de Google Fonts, guardadas la primera vez
 const ID_OK = /^[A-Za-z0-9_-]{1,64}$/;
@@ -76,7 +76,7 @@ function revisarHistoria(h, mundos){
       if(q.q && ops.length>=2 && ops.length<=4 && ok>=0 && ok<ops.length) preg.push({q:String(q.q), ops, ok}); }catch(e){}
   }
   if(!preg.length) return [null, t+': sin preguntas válidas'];
-  const limpia = {id:String(h.id||''), dia:0, mundo:m, nivel:Math.max(1, Math.min(4, nivel)), titulo:t, resumen:String(h.resumen||''),
+  const limpia = {id:String(h.id||''), dia:0, mundo:m, nivel:Math.max(1, Math.min(5, nivel)), titulo:t, resumen:String(h.resumen||''),
     portada:String(h.portada||''), lineas:lineas.map(x=>x.trim()), preguntas:preg.slice(0,4), especial:'', fecha:''};
   if(calculoValido(h.calculo)) limpia.calculo = h.calculo;
   return [limpia, null];
@@ -96,7 +96,7 @@ async function contenidoConNuevas(){
   for(const p of paquetes){
     (p.historias||[]).forEach((h,i)=>{
       const [limpia] = revisarHistoria(h, mundos); if(!limpia) return;
-      if(!limpia.id || ids.has(limpia.id)) limpia.id = 'n_' + p.nombre.slice(0,-5).toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,20) + '_' + (i+1);
+      if(!limpia.id || ids.has(limpia.id)){ const b='n_' + p.nombre.slice(0,-5).toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,20) + '_' + (i+1); let id=b, k=2; while(ids.has(id)){ id=b+'_'+k; k++; } limpia.id=id; }
       ids.add(limpia.id);
       if(!(limpia.portada in fotos)){ const alt=[]; limpia.lineas.forEach(l=>{ for(const m of l.matchAll(PATRON_PAL)) if(m[2] in fotos) alt.push(m[2]); }); if(alt.length) limpia.portada = alt[0]; }
       limpia.nueva = p.nombre; nuevas.push(limpia);
@@ -135,12 +135,13 @@ async function servir(req, ruta){
     if(ruta==='/api/historias-nuevas'){
       const ps = (await todos('nuevas')).sort((a,b)=>a.nombre<b.nombre?-1:1);
       return json(ps.map(p=>{ const mundos={}; (p.historias||[]).forEach(h=>{ const m0=h&&(h.mundo||h.tema); const mm=MUNDO_DE_TEMA[m0]||m0; if(mm) mundos[mm]=(mundos[mm]||0)+1; });
-        return {archivo:p.nombre, n:(p.historias||[]).length, mundos}; }));
+        return {archivo:p.nombre, n:(p.historias||[]).length, mundos, f:p.f||0}; }));
     }
     m = ruta.match(/^\/api\/historias-nuevas\/(.+)$/);
     if(m){ const n=decodeURIComponent(m[1]); const p = NUEVA_OK.test(n) && await leer('nuevas', n); return p ? json(p.historias) : json({error:'no existe'}, 404); }
     if(ruta==='/contenido.json') return json(await contenidoConNuevas());
-    if(ruta==='/api/registro') return json((await leer('kv','registro')) || []);
+    if(ruta==='/api/registro') return json(   // para mirar el registro de la tablet si algo falla (abriendo …/api/registro)
+      (await leer('kv','registro')) || []);
     return null;
   }
   if(metodo==='POST'){
@@ -167,10 +168,9 @@ async function servir(req, ruta){
       return json({ok:true, n:buenas.length, descartadas:malas, archivo:nombre});
     }
     if(ruta==='/api/fichas'){ const d = await req.json().catch(()=>null); if(!Array.isArray(d)) return json({error:'datos no válidos'}, 400); await poner('kv', d, 'fichas'); return json({ok:true}); }
-    if(ruta==='/api/copia' || ruta==='/api/copia/restaurar') return json({error:'En la tablet las copias se hacen con «Enviar a OneDrive».'}, 400);
+    if(ruta==='/api/copia' || ruta==='/api/copia/restaurar') return json({error:'En la tablet las copias se hacen solas (copias automáticas) o con «Enviar a Google Drive».'}, 400);
     if(ruta==='/api/abrir-carpeta') return json({ok:false, carpeta:'Guardado en este aparato'});
     if(ruta==='/api/registro'){ const d = (await req.json().catch(()=>null)) || {}; await registrar('Navegador: '+String(d.mensaje||'')); return json({ok:true}); }
-    if(ruta==='/api/aparato'){ const d = (await req.json().catch(()=>null)) || {}; const a = await aparato(); if(d.nombre) a.nombre=String(d.nombre).slice(0,30); await poner('kv', a, 'aparato'); return json(a); }
     if(ruta==='/api/sincro/copia'){ await poner('kv', new Date().toISOString(), 'ultimaCopia'); return json({ok:true}); }
     return json({error:'ruta desconocida'}, 404);
   }
