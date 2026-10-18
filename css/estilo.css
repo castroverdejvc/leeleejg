@@ -907,3 +907,68 @@ th small{display:block;font-weight:600;color:var(--ink-3)}
 .nube-card .pasos-nube{margin:10px 0 8px 20px;display:grid;gap:8px;color:var(--ink-2)}
 .nube-card textarea{width:100%;margin-top:6px;font:12px/1.4 ui-monospace,Consolas,monospace;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--surface-2)}
 .nube-card .campo input,.dlg-ancho .campo input{width:100%}
+
+/* ---- tele de la semana y película ---- */
+.peli-dias{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.peli-d{display:inline-grid;place-items:center;width:38px;height:44px;border-radius:12px;background:var(--surface);border:2px solid var(--line);font-size:.8rem;line-height:1.1;padding:2px}
+.peli-d b{font-size:.85rem}.peli-d i{font-style:normal;font-weight:900}
+.peli-d.ok{background:var(--green-soft);border-color:var(--green-2);color:var(--green)}
+.peli-d.falta{background:var(--coral-soft);border-color:#F6B3B5;color:var(--coral)}
+button.peli-d.falta{cursor:pointer}
+.peli-d.fut{opacity:.6}.peli-d.nada{opacity:.35}
+.peli-d.es-hoy{box-shadow:0 0 0 3px var(--primary-soft-2)}
+.tele-cols{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-top:18px}
+.tele-tabla{width:100%;margin:8px 0}.tele-tabla td,.tele-tabla th{padding:6px 8px;text-align:left}
+.tele-tabla tr.tot td{border-top:2px solid var(--line);font-weight:800}
+.peli-caja .sub{margin-top:10px}
+@media (max-width:760px){.tele-cols{grid-template-columns:1fr}}
+/* ---- lecturas extra ---- */
+.acceso.extra-c{margin-top:14px;width:100%;background:#E8F4FF;border:1px solid #BFDcff}
+.sec-extra{font-size:1.15rem;margin:22px 0 10px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.extra-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px}
+.extra-carta{display:grid;gap:6px;text-align:left;border:0;background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow-s);padding:10px;border:2px solid transparent}
+.extra-carta .ft{display:block;aspect-ratio:4/3;overflow:hidden;border-radius:12px;background:var(--bg-2)}
+.extra-carta .ft img{width:100%;height:100%;object-fit:cover}
+.extra-carta.hecha{border-color:var(--green-2);background:#F4FCF7}
+.nb.extra{background:#E0EEFF;color:#1462CC}
+/* ---- sobre de cartas ---- */
+.sobre-cartas{margin-top:14px;width:100%;background:#FFF1F3;border:1px solid #FBC9D2;display:flex;gap:14px;align-items:center;padding:14px 18px}
+.sobre-cartas.gana{background:linear-gradient(90deg,#FFE4EA,#FFF5D8);border:2px solid #E11D48;animation:latido 1.6s ease-in-out infinite}
+.sobre-cartas .barra-t{display:block;margin-top:6px}
+@keyframes latido{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}
+.sobres-fam{margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+/* ---- juegos nuevos ---- */
+@keyframes sacude{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.sacude{animation:sacude .4s}
+.sudoku-zona{display:grid;gap:16px;justify-items:center}
+.sudoku{display:grid;grid-template-columns:repeat(4,78px);grid-template-rows:repeat(4,78px);gap:4px;padding:6px;background:#7C5CF0;border-radius:16px}
+.sd{border:0;border-radius:10px;background:#fff;padding:4px;display:grid;place-items:center}
+.sd.c2{background:#F3EEFF}.sd.fijo{cursor:default}.sd.fijo img{filter:saturate(.9)}
+.sd.sel{box-shadow:inset 0 0 0 4px var(--yellow)}
+.sd img,.sp img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+.sudoku-pal{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.sp{width:96px;border:2px solid var(--line);border-radius:14px;background:var(--surface);padding:6px;display:grid;gap:4px;justify-items:center}
+.sp img{height:64px}.sp b{font-size:1rem}
+.series,.ordena,.cuenta-j{display:grid;gap:16px;justify-items:center;text-align:center;width:100%;max-width:640px}
+.serie{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.sv{font-size:2.6rem;min-width:64px;height:72px;display:grid;place-items:center;background:var(--surface);border-radius:14px;box-shadow:var(--shadow-s);font-weight:900}
+.sv.hueco{border:3px dashed var(--primary);color:var(--primary)}.sv.hueco.ok{border-style:solid;border-color:var(--green);color:var(--green)}
+.ops-serie{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.os{font-size:2rem;min-width:84px}
+.ord-foto img{width:min(320px,80vw);aspect-ratio:3/2;object-fit:cover;border-radius:16px}
+.ord-frase{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;font-size:1.8rem}
+.ow{min-width:60px;border-bottom:3px solid var(--line-2);padding:0 6px}.ow.puesta{border-color:var(--green);color:var(--green)}
+.ord-pal{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}.op{font-size:1.5rem}
+.ord-frase.ligada,.op.ligada,.sopa.ligada,.sopa-p .ligada,.sp .ligada{font-family:var(--f-ligada);font-weight:600}
+.sopa-zona{display:grid;gap:14px;justify-items:center}
+.sopa-pals{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.sopa-p{display:flex;gap:6px;align-items:center;background:var(--surface);border-radius:12px;padding:4px 10px 4px 4px;box-shadow:var(--shadow-s)}
+.sopa-p img{width:46px;height:36px;object-fit:cover;border-radius:8px}.sopa-p.hecha{background:var(--green-soft);text-decoration:line-through}
+.sopa{display:grid;gap:4px;width:min(440px,92vw)}
+.sl{aspect-ratio:1;border:0;border-radius:10px;background:var(--surface);box-shadow:var(--shadow-s);font-size:1.6rem;font-weight:800}
+.sl.ini{background:var(--yellow-soft);box-shadow:inset 0 0 0 3px var(--yellow)}.sl.ok{background:var(--green-soft);color:var(--green)}
+.grupo-c{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;font-size:2rem;max-width:300px}
+.grupo-c.grande{font-size:2.8rem;max-width:520px}
+.dos-grupos{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%}
+.gc{border:3px solid var(--line);background:var(--surface);border-radius:18px;padding:16px;min-height:150px;display:grid;place-items:center}
+@media (max-width:520px){.sudoku{grid-template-columns:repeat(4,64px);grid-template-rows:repeat(4,64px)}.sp{width:74px}.sp img{height:50px}}

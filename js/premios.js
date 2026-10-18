@@ -1,13 +1,13 @@
 /* LeeLEEJG · premios: actividades hechas, álbum de criaturas, juegos que se abren y tareas atrasadas.
    Todo se calcula a partir de lo hecho (lecturas, dictados y repasos), así no se descuadra al juntar la tablet y el ordenador. */
 'use strict';
-const PREMIOS_DEF = {criatura:2, juego:5, minutos:15, trasLeer:true, tele:10, teleGuarda:true};
+const PREMIOS_DEF = {criatura:2, juego:5, minutos:15, trasLeer:true, tele:10, teleExtra:15, teleRelee:5, teleFicha:5, sobre:15};
 const premiosCfg = () => ({...PREMIOS_DEF, ...(aj.premios||{})});
 
 /* actividades (ejercicios) = lecturas terminadas + dictados + repasos de fichas + rondas de «As letras» */
 function ejerciciosDe(p=perfil(), desde=null){
   const c=cfgDe(p), d=desde?new Date(desde):null, vale=f=>!d || new Date(f)>=d;
-  return sesDe(p.id).filter(s=>!s.incompleta && vale(s.fecha)).length + ['dictadoLog','repasoLog','letrasLog'].reduce((a,k)=>a+(c[k]||[]).filter(x=>vale(x.f)).length, 0);
+  return sesDe(p.id).filter(s=>!s.incompleta && !esComp(s.historiaId) && vale(s.fecha)).length + ['dictadoLog','repasoLog','letrasLog'].reduce((a,k)=>a+(c[k]||[]).filter(x=>vale(x.f)).length, 0);
 }
 const actividadesDe = (p=perfil()) => ejerciciosDe(p);
 /* azar con semilla: el orden de las criaturas es distinto para cada niño pero siempre el mismo */
@@ -149,9 +149,15 @@ function comprobarPremios(){
   const nuevas=tengo.filter(id=>!v.criaturas.includes(id)).map(criatura).filter(Boolean);
   const juegoNuevo = juegos>v.juegos && typeof JUEGOS!=='undefined' ? JUEGOS[juegos-1] : null; const masJuegos=juegos-v.juegos;
   avisarTele(p);
+  const so=sobresDe(p), sobreNuevo = so.activo && v.sobres!=null && so.ganados>v.sobres;
+  if(so.activo && v.sobres==null && vistos){ cfg.premiosVistos={...v, sobres:so.ganados}; guardarAj(); }
+  if(sobreNuevo && !nuevas.length && !juegoNuevo){ cfg.premiosVistos={...v, sobres:so.ganados}; guardarAj();
+    const d=dialogo({titulo:'¡Un sobre de cartas!', html:`<div class="nuevo-juego"><span class="emo-g">🎴</span><div><b>¡Has ganado un sobre de cartas de verdad!</b><span class="nota">Pídeselo a papá o a mamá.</span></div></div>`, cls:'dlg-premio', botones:[{t:'¡Genial!', cls:'btn-p'}]});
+    sonido('cromo'); confeti(d.el.querySelector('.dialogo')||document.body); decir(`¡${nombre()}, has ganado un sobre de cartas! Pídeselo a papá o a mamá.`); return; }
   if(!nuevas.length && !juegoNuevo) return;
-  cfg.premiosVistos={criaturas:tengo, juegos}; guardarAj();
+  cfg.premiosVistos={criaturas:tengo, juegos, ...(so.activo?{sobres:so.ganados}:{})}; guardarAj();
   const html = (primera?`<p class="sub" style="margin-bottom:6px">¡Por todo lo que ya has leído${nuevas.length?`, tienes ${nuevas.length===1?'una criatura':nuevas.length+' criaturas'}`:''}${masJuegos>0?` y ${masJuegos===1?'un juego nuevo':masJuegos+' juegos nuevos'}`:''}!</p>`:'') + (nuevas.length?`<div class="nuevas-cri">${nuevas.slice(0,3).map(c=>`<div class="cri-carta ${c.rareza===3?'rara':''}">${criaturaSVG(c)}<b>${esc(c.nombre)}</b><span class="nota">${TIPOS_CRIATURA[c.tipo].emo} ${TIPOS_CRIATURA[c.tipo].n}${c.especial?' · ¡especial!':''}</span></div>`).join('')}</div>${nuevas.length>3?`<p class="nota">…y ${nuevas.length-3} más en tu álbum.</p>`:''}`:'')
+    + (sobreNuevo?`<div class="nuevo-juego"><span class="emo-g">🎴</span><div><b>¡Y un sobre de cartas de verdad!</b><span class="nota">Pídeselo a papá o a mamá.</span></div></div>`:'')
     + (juegoNuevo?`<div class="nuevo-juego"><span class="emo-g">${juegoNuevo.emo}</span><div><b>${masJuegos>1?`¡${masJuegos} juegos nuevos!`:`¡Nuevo juego: ${esc(juegoNuevo.nombre)}!`}</b><span class="nota">Lo tienes en Juegos.</span></div></div>`:'');
   const d=dialogo({titulo: primera ? `¡Sorpresa, ${esc(nombre())}!` : nuevas.length ? (nuevas.length===1?'¡Nueva criatura!':'¡Nuevas criaturas!') : '¡Nuevo juego!', html, cls:'dlg-premio',
     botones:[...(nuevas.length?[{t:'Ver mi álbum de criaturas', cls:'btn-p', fn:()=>ir('criaturas')}]:[]), ...(juegoNuevo?[{t:'Ir a los juegos', cls:nuevas.length?'btn':'btn-p', fn:()=>ir('juegos')}]:[]), {t:'¡Genial!', cls:'btn'}]});
@@ -198,7 +204,7 @@ function semanaHTML(p){
   const ult={}; gus.forEach(x=>{ ult[x.q]=x.r; });
   const cifra=(n,t,col='var(--primary)')=>`<div class="card cifra-s"><b style="color:${col}">${n}</b><span class="nota">${t}</span></div>`;
   return `<p class="nota" style="margin:4px 0 12px">Del ${esc(desde.toLocaleDateString('es-ES',{day:'numeric',month:'long'}))} a hoy.</p>
-  <div class="cifras-s">${cifra(hechas.length, hechas.length===1?'lectura terminada':'lecturas terminadas')}${cifra(dias.filter(d=>d.lee).length+' de 7','días con lectura','var(--green)')}${cifra(comp==null||isNaN(comp)?'–':Math.round(comp)+' %','comprensión','#8B5CF6')}${cifra(ppm?Math.round(ppm):'–','palabras por minuto','#F5A300')}${cifra(dic.length+rep.length,'dictados y repasos','#0EA5B7')}${cifra(dias.reduce((a,d)=>a+d.juego,0)+' min','de juegos','#DB2777')}${premiosCfg().tele>0?cifra(Math.floor(teleDe(p).saldo)+' min','de tele para el finde','#0F766E'):''}${cifra((cfg.letrasLog||[]).filter(x=>enSemana(x.f)).length,'rondas de «As letras»','#B45309')}</div>
+  <div class="cifras-s">${cifra(hechas.length, hechas.length===1?'lectura terminada':'lecturas terminadas')}${cifra(dias.filter(d=>d.lee).length+' de 7','días con lectura','var(--green)')}${cifra(comp==null||isNaN(comp)?'–':Math.round(comp)+' %','comprensión','#8B5CF6')}${cifra(ppm?Math.round(ppm):'–','palabras por minuto','#F5A300')}${cifra(dic.length+rep.length,'dictados y repasos','#0EA5B7')}${cifra(dias.reduce((a,d)=>a+d.juego,0)+' min','de juegos','#DB2777')}${teleActiva()?cifra(minTxt(teleDe(p).ganados).replace(' minutos',' min'),'de tele esta semana','#0F766E'):''}${cifra(peliculaDe(p).hechos+' de '+peliculaDe(p).total,'lecturas para la película','#7C3AED')}${cifra(ses.filter(s=>!s.incompleta && esComp(s.historiaId)).length,'lecturas extra','#0369A1')}${cifra((cfg.letrasLog||[]).filter(x=>enSemana(x.f)).length,'rondas de «As letras»','#B45309')}</div>
   <div class="graf-2" style="margin-top:18px"><div class="card bloque"><h3 style="margin-bottom:10px">Día a día</h3><table><thead><tr><th>Día</th><th>Lecturas</th><th>Juegos</th></tr></thead><tbody>${dias.map(d=>`<tr><td>${esc(d.d.toLocaleDateString('es-ES',{weekday:'long', day:'numeric'}))}</td><td>${d.lee?'<span class="nb bien">'+d.lee+'</span>':'<span class="nb medio">0</span>'}</td><td>${d.juego?d.juego+' min':'–'}</td></tr>`).join('')}</tbody></table></div>
     <div class="card bloque"><h3 style="margin-bottom:10px">Para tener en cuenta</h3><ul class="lista-log">
       <li>${at.length?`<b>${at.length} ${at.length===1?'historia atrasada':'historias atrasadas'}</b> (se le recuerdan al entrar).`:'Ninguna historia atrasada. ¡Al día!'}</li>
@@ -214,13 +220,35 @@ function premiosAdultoHTML(p){
       <div class="campo"><label for="prCri">Una criatura cada</label>${sel('prCri',[1,2,3,4,5],c.criatura,' actividades')}</div>
       <div class="campo"><label for="prJue">Un juego nuevo cada</label>${sel('prJue',[3,4,5,6,8,10],c.juego,' actividades')}</div>
       <div class="campo"><label for="prMin">Minutos de juego al día</label>${sel('prMin',[5,10,15,20,30,45,60,0],c.minutos,' minutos')}</div>
-      <div class="campo"><b>Antes de jugar</b><div class="interruptor"><span>Tiene que leer la historia del día</span><button type="button" class="switch" id="prLeer" role="switch" aria-checked="${!!c.trasLeer}"></button></div></div></div>
+      <div class="campo"><b>Antes de jugar</b><div class="interruptor"><span>Tiene que leer la historia del día</span><button type="button" class="switch" id="prLeer" role="switch" aria-checked="${!!c.trasLeer}"></button></div></div>
+      <div class="campo"><label for="prSobre">🎴 Un sobre de cartas cada</label><select id="prSobre">${[0,5,10,15,20,25,30,40].map(x=>`<option value="${x}" ${x===c.sobre?'selected':''}>${x?x+' actividades':'Sin sobres'}</option>`).join('')}</select></div></div>
+    ${sobresAdultoHTML(p)}
     <p class="nota" style="margin-top:8px">El usuario de pruebas no tiene límite de tiempo.</p></div>`;
 }
 function activarPremiosAdulto(){
   const sw=id=>$(id).getAttribute('aria-checked')==='true';
-  const guarda=()=>{ aj.premios={criatura:+$('#prCri').value, juego:+$('#prJue').value, minutos:+$('#prMin').value, trasLeer:sw('#prLeer'), tele:+$('#prTele').value, teleGuarda:sw('#prTeleGuarda')}; guardarAj(); aviso('Guardado'); };
-  ['#prCri','#prJue','#prMin','#prTele'].forEach(s=>$(s).onchange=guarda);
-  ['#prLeer','#prTeleGuarda'].forEach(id=>$(id).onclick=()=>{ const b=$(id); b.setAttribute('aria-checked', String(b.getAttribute('aria-checked')!=='true')); guarda(); });
-  activarTeleAdulto(lectorVisto());
+  const guarda=()=>{ aj.premios={...(aj.premios||{}), criatura:+$('#prCri').value, juego:+$('#prJue').value, minutos:+$('#prMin').value, trasLeer:sw('#prLeer'), sobre:+$('#prSobre').value}; delete aj.premios.teleGuarda; guardarAj(); aviso('Guardado'); };
+  ['#prCri','#prJue','#prMin','#prSobre'].forEach(s=>$(s).onchange=guarda);
+  ['#prLeer'].forEach(id=>$(id).onclick=()=>{ const b=$(id); b.setAttribute('aria-checked', String(b.getAttribute('aria-checked')!=='true')); guarda(); });
+  activarTeleAdulto(lectorVisto()); activarSobresAdulto(lectorVisto());
+}
+
+/* ---------------- sobres de cartas (premio de verdad: la familia da un sobre de cartas) ---------------- */
+function sobresDe(p=perfil()){
+  const k=+premiosCfg().sobre||0; if(!k || p.prueba) return {activo:false, ganados:0, dados:0, pend:0, faltan:null};
+  const act=actividadesDe(p), ganados=Math.floor(act/k), dados=(cfgDe(p).sobresLog||[]).length;
+  return {activo:true, ganados, dados, pend:Math.max(0, ganados-dados), faltan:k-(act%k), cada:k};
+}
+function sobreHTML(){
+  const p=perfil(), s=sobresDe(p); if(!s.activo) return '';
+  if(s.pend) return `<div class="card acceso sobre-cartas gana"><span class="emo-g">🎴</span><span><b>${s.pend===1?'¡Tienes un sobre de cartas!':`¡Tienes ${s.pend} sobres de cartas!`}</b><span class="nota">Pídeselo a papá o a mamá.</span></span></div>`;
+  return `<div class="card acceso sobre-cartas"><span class="emo-g">🎴</span><span><b>Próximo sobre de cartas</b><span class="nota">${s.faltan===1?'¡Te falta 1 actividad!':'Te faltan '+s.faltan+' actividades'}</span><span class="barra-t"><i style="width:${Math.round(100*(s.cada-s.faltan)/s.cada)}%;background:#E11D48"></i></span></span></div>`;
+}
+function sobresAdultoHTML(p){
+  const s=sobresDe(p); if(!s.activo) return '';
+  return `<div class="sobres-fam"><p class="nota">🎴 Sobres de cartas: ${esc(p.nombre)} ha ganado <b>${s.ganados}</b> y se le han dado <b>${s.dados}</b>.${s.pend?` <b>Tiene ${s.pend===1?'1 sobre':s.pend+' sobres'} por dar.</b>`:` El siguiente, dentro de ${s.faltan===1?'1 actividad':s.faltan+' actividades'}.`}</p>
+    ${s.pend?`<button class="btn btn-mini btn-p" type="button" id="sobreDado">Ya le he dado un sobre</button>`:''}</div>`;
+}
+function activarSobresAdulto(p){
+  const b=$('#sobreDado'); if(b) b.onclick=()=>{ const c=cfgDe(p); c.sobresLog=(c.sobresLog||[]).concat([{f:new Date().toISOString()}]).slice(-500); guardarAj(); aviso('Apuntado'); ir('evolucion','premios'); };
 }

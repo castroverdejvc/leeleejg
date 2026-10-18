@@ -363,7 +363,13 @@ definir('juntos', {nav:'historias', pintar(){
 
 /* ---------- 20 · Tu nuevo cromo ---------- */
 definir('cromonuevo', {nav:'cromos', pintar(){
-  const h=hist; const eraNueva=!leidas()[h.id]; const m=mundoDe(h.mundo);
+  const h=hist;
+  if(esComp(h.id)){   // lectura extra: sin cromo, solo minutos de tele
+    sesion.aciertos=sesion.preguntas.filter(p=>p.ok).length; delete sesion.incompleta;
+    $('#s-cromonuevo').innerHTML = `<div class="card" style="padding:20px 26px 6px">${cabPaso(pasos(), {t:'Lectura extra terminada', cls:'verde'})}</div>` + finExtraHTML(h, sesion);
+    const miAudio = audioBlob || (sesion.audio ? '/api/audio/'+sesion.id : null); const be=$('#btnEscucharme'); if(be && miAudio) be.onclick=()=>sonarAudio(miAudio);
+    guardarSesionActual().then(()=>{ const c=$('#s-cromonuevo .fin-extra h1'); const m=minutosDeSesion(perfil(), sesion); if(m>0){ confeti($('#cromoCaja')); sonido('cromo'); decir(`¡Muy bien, ${nombre()}! Has ganado ${minTxt(m)} de tele.`); avisarTele(perfil(), true); } else decir(`¡Muy bien, ${nombre()}!`); });
+    return; } const eraNueva=!leidas()[h.id]; const m=mundoDe(h.mundo);
   const TA=temaDeMundo(h.mundo)||{id:h.mundo, nombre:m.nombre, emo:'⭐'}; const hsA=historiasTema(TA.id); const lA=leidas(); const nA=hsA.filter(x=>lA[x.id]||x.id===h.id).length; const albumCompleto=eraNueva && hsA.length>0 && nA===hsA.length;
   sesion.aciertos=sesion.preguntas.filter(p=>p.ok).length;
   const T=pasos(); const miAudio = audioBlob || (sesion.audio ? '/api/audio/'+sesion.id : null);

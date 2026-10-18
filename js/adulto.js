@@ -48,7 +48,7 @@ function barras(vals, etq, {max=100, color='#7DD9A8', suf=''}={}){
 const pctComp = s => { const n=preguntasHechas(s); return n ? Math.round(100*(s.aciertos||0)/n) : null; };
 definir('evolucion', {zona:'adulto', pintar(tab){
   if(tab) tabEvo=tab; const p=lectorVisto(); const ms=sesDe(p.id);
-  const TABS=[['semana','Esta semana'],['lecturas','Lecturas'],['temas','Temas e intereses'],['grabaciones','Grabaciones'],['palabras','Palabras'],['calculo','Cálculo'],['premios','Premios y gustos']];
+  const TABS=[['semana','Esta semana'],['lecturas','Lecturas'],['temas','Temas e intereses'],['grabaciones','Grabaciones'],['palabras','Palabras'],['calculo','Cálculo'],['juegos','Juegos'],['premios','Premios y gustos']];
   let cuerpo='';
   if(tabEvo==='lecturas'){
     const sem=semanas(ms);
@@ -64,6 +64,8 @@ definir('evolucion', {zona:'adulto', pintar(tab){
     cuerpo = temasAdultoHTML(p);
   } else if(tabEvo==='semana'){
     cuerpo = semanaHTML(p);
+  } else if(tabEvo==='juegos'){
+    cuerpo = juegosAdultoHTML(p);
   } else if(tabEvo==='premios'){
     cuerpo = premiosAdultoHTML(p) + gustosAdultoHTML(p);
   } else if(tabEvo==='palabras'){
@@ -89,7 +91,7 @@ definir('evolucion', {zona:'adulto', pintar(tab){
 function tablaLecturas(ms){
   if(!ms.length) return '<p class="vacio">Todavía no hay lecturas.</p>';
   return `<div class="tabla-w"><table><thead><tr><th>Fecha</th><th>Historia</th><th>Comprensión</th><th>Cálculo</th><th>Palabras/min</th><th></th></tr></thead><tbody>${ms.slice().reverse().map(s=>{ const r=pctComp(s);
-    return `<tr><td style="white-space:nowrap">${esc(fechaCorta(s.fecha))}</td><td><b>${esc(s.titulo)}</b>${s.revisada?'':' <span class="nb medio">sin revisar</span>'}${s.incompleta?' <span class="nb medio">a medias</span>':''}</td><td>${r==null?'–':`<span class="nb ${r>=99?'bien':r>=60?'medio':'mal'}">${s.aciertos||0} de ${preguntasHechas(s)}</span>`}</td><td>${s.calculo?`<span class="nb ${s.calculo.ok?'bien':'medio'}">${s.calculo.ok?'✓':'con ayuda'}</span>`:'–'}</td><td>${s.ppm}</td>
+    return `<tr><td style="white-space:nowrap">${esc(fechaCorta(s.fecha))}</td><td><b>${esc(s.titulo)}</b>${esComp(s.historiaId)?' <span class="nb extra">extra</span>':''}${s.revisada?'':' <span class="nb medio">sin revisar</span>'}${s.incompleta?' <span class="nb medio">a medias</span>':''}</td><td>${r==null?'–':`<span class="nb ${r>=99?'bien':r>=60?'medio':'mal'}">${s.aciertos||0} de ${preguntasHechas(s)}</span>`}</td><td>${s.calculo?`<span class="nb ${s.calculo.ok?'bien':'medio'}">${s.calculo.ok?'✓':'con ayuda'}</span>`:'–'}</td><td>${s.ppm}</td>
       <td style="white-space:nowrap">${s.audio?`<button class="btn btn-mini" type="button" data-rev="${s.id}">Revisar</button> `:''}<button class="btn btn-mini btn-rojo" type="button" data-dels="${s.id}">Borrar</button></td></tr>`; }).join('')}</tbody></table></div>`;
 }
 function activarAccionesLecturas(raiz){

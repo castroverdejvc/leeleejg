@@ -37,6 +37,8 @@ definir('inicio', {nav:'inicio', pintar(){
       <button class="btn btn-p btn-xl" type="button" id="btnLeerHoy">${hecha?'Leer otra vez':'Leer'} ${ic('flecha')}</button></div></article>
   ${premiosHTML()}
   ${teleHTML()}
+  ${extraHTML()}
+  ${sobreHTML()}
   ${sorpresaHTML()}
   ${chipsTemasHTML()}
   <div class="fila2">

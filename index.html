@@ -79,6 +79,7 @@
     <section id="s-letrasitem" class="pantalla" hidden></section>
     <section id="s-letrasfin" class="pantalla" hidden></section>
     <section id="s-tele" class="pantalla" hidden></section>
+    <section id="s-extra" class="pantalla" hidden></section>
     <section id="s-cambiar" class="pantalla" hidden></section>
   </main>
 </div>
@@ -118,6 +119,13 @@
 
 <div id="capa"></div>
 
+<script>
+/* si alguna pieza del programa no llega a cargarse, se vuelve a cargar la página (hasta 3 veces) */
+window.leeReintentar=function(){ if(window.leeReintentando) return; window.leeReintentando=true; var n=0; try{ n=+(sessionStorage.getItem('leeReintentos')||0); }catch(e){}
+  if(n<3){ try{ sessionStorage.setItem('leeReintentos', String(n+1)); }catch(e){} setTimeout(function(){ location.reload(); }, 700*(n+1)); }
+  else { var p=document.getElementById('preparando'); if(p) p.remove(); document.body.insertAdjacentHTML('afterbegin','<div style="padding:24px;font:22px sans-serif;background:#fff">No se pudo abrir LeeLEEJG del todo. Cierra esta ventana y ábrelo otra vez.</div>'); } };
+addEventListener('load', function(){ setTimeout(function(){ if(!window.leeArrancado) window.leeReintentar(); }, 200); });
+</script>
 <script src="js/base.js"></script>
 <script src="js/local.js"></script>
 <script src="js/voz.js"></script>
@@ -135,6 +143,8 @@
 <script src="js/temporadas.js"></script>
 <script src="js/gustos.js"></script>
 <script src="js/juegos.js"></script>
+<script src="js/juegos2.js"></script>
+<script src="js/extra.js"></script>
 <script src="js/adulto.js"></script>
 <script src="js/sincro.js"></script>
 <script src="js/nube.js"></script>

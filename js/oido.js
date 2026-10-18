@@ -43,6 +43,7 @@ async function iniciarOidoLocal(){
     let resto=[], tot=0;
     proc.onaudioprocess = ev=>{
       if(!lect || !lect.activa || lect.pausadoDesde) return;
+      if(typeof programaHablando==='function' && programaHablando()) return;   // no se oye a sí mismo
       const d=ev.inputBuffer.getChannelData(0); let out;
       if(ratio===1){ out=new Int16Array(d.length); for(let i=0;i<d.length;i++){ const v=Math.max(-1,Math.min(1,d[i])); out[i]=v<0?v*0x8000:v*0x7fff; } }
       else { const n=Math.floor(d.length/ratio); out=new Int16Array(n); for(let i=0;i<n;i++){ const i0=Math.floor(i*ratio), i1=Math.min(d.length,Math.floor((i+1)*ratio)); let sum=0; for(let j=i0;j<i1;j++) sum+=d[j]; const v=Math.max(-1,Math.min(1,sum/Math.max(1,i1-i0))); out[i]=v<0?v*0x8000:v*0x7fff; } }
@@ -85,18 +86,27 @@ function iniciarReconocimientoNavegador(){
 const nuevoEstadoAl = () => ({ptr:0, sp:0, acc:'', ok:{}, tw:{}});
 function pasoAl(st, t){
   const N=palabras.length; if(st.ptr>=N || !t.w) return;
-  const cerrar=i=>{ st.ok[i]=true; st.tw[i]=t.s; st.ptr=i+1; st.sp=0; st.acc=''; };
-  for(let k=0;k<6 && st.ptr+k<N;k++){
-    if(k>0 && t.w.length<3 && !(k===1 && st.sp>0)) break;
-    if(coincide(t.w, palabras[st.ptr+k].norm)){ cerrar(st.ptr+k); return; }
-  }
+  const cerrar=i=>{ st.ok[i]=true; st.tw[i]=t.s; st.ptr=i+1; st.sp=0; st.acc=''; st.rep=0; };
   const w=palabras[st.ptr], sil=w.sil||[];
+  // 1) la palabra que toca (entera o parecida)
+  if(coincide(t.w, w.norm)){ cerrar(st.ptr); return; }
+  // 2) la siguiente, si ya se ha empezado la que toca o es corta
+  if(st.ptr+1<N && (t.w.length>=3 || st.sp>0) && coincide(t.w, palabras[st.ptr+1].norm)){ cerrar(st.ptr+1); return; }
+  // 3) sílaba a sílaba de la que toca: se admite saltarse una sílaba y repetir la última
   if(sil.length>1){
-    let j=-1; for(let x=st.sp; x<Math.min(sil.length, st.sp+2); x++){ if(t.w===sil[x] || (sil[x].length>=3 && coincide(t.w, sil[x]))){ j=x; break; } }
+    let j=-1; for(let x=Math.max(0,st.sp-1); x<Math.min(sil.length, st.sp+2); x++){ if(t.w===sil[x] || (sil[x].length>=3 && coincide(t.w, sil[x]))){ j=x; break; } }
     if(j<0 && st.sp>0 && coincide(st.acc+t.w, w.norm)) j=sil.length-1;
-    if(j>=0){ st.sp=j+1; st.acc+=t.w; if(st.sp>=sil.length || coincide(st.acc, w.norm)) cerrar(st.ptr); return; }
-    if(w.norm.startsWith(st.acc+t.w) && t.w.length>=2){ st.acc+=t.w; st.sp=Math.min(sil.length-1, st.sp+1); }
+    if(j<0 && st.sp>0 && w.norm.startsWith(t.w) && t.w.length>=3) j=Math.max(st.sp, Math.min(sil.length-1, j));
+    if(j>=0){ if(j+1>st.sp){ st.sp=j+1; st.acc+=t.w; } if(st.sp>=sil.length || coincide(st.acc, w.norm) || (sil.length>=3 && st.sp>=sil.length-1)) cerrar(st.ptr); return; }
   }
+  // 4) se ha ido más adelante: una palabra clara (4 letras o más) hasta 8 palabras después, o de 3 letras hasta 3 después
+  for(let k=2; k<9 && st.ptr+k<N; k++){
+    const v=palabras[st.ptr+k].norm;
+    if((t.w.length>=4 && v.length>=4 && coincide(t.w, v)) || (k<4 && t.w.length===3 && t.w===v)){ cerrar(st.ptr+k); return; }
+  }
+  // 5) empieza la siguiente palabra sílaba a sílaba cuando la que toca ya iba por la mitad
+  const sig=palabras[st.ptr+1];
+  if(sig && sil.length>1 && st.sp*2>=sil.length && (sig.sil||[]).length>1 && t.w===sig.sil[0] && t.w.length>=2){ st.ok[st.ptr]=true; st.tw[st.ptr]=t.s; st.ptr++; st.sp=1; st.acc=t.w; return; }
 }
 function tokensNavegador(){ return (lect.txtPrevio+' '+lect.txtSesion).split(/\s+/).map(normalizar).filter(Boolean).map(w=>({w, s:null})); }
 function alinear(forzarPintado){

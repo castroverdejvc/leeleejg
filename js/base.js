@@ -111,15 +111,17 @@ function imgHTML(k, grande, cls){
   return `<span class="emo${cls?' '+cls:''}" aria-hidden="true">${CONT.emoji[k]||'🖼️'}</span>`;
 }
 const mundoDe = id => CONT.mundos.find(m=>m.id===id) || {id, nombre:id, foto:''};
-const historia = id => CONT.historias.find(h=>h.id===id);
+const historia = id => CONT.historias.find(h=>h.id===id) || (CONT.complementarias||[]).find(h=>h.id===id);
+/* lecturas complementarias (ids c_…): solo dan minutos de tele; no cuentan para cromos, criaturas, juegos ni nivel */
+const esComp = id => /^c_/.test(String(id||''));
 /* Para buscar la foto de una palabra suelta (práctica, ayuda) */
 function claveDePalabra(p){ const l=String(p).toLowerCase(); return CONT.palabras[l] || CONT.palabras[l.replace(/s$/,'')] || CONT.palabras[l.replace(/es$/,'')] || null; }
 
 /* ================= AJUSTES Y LECTORES ================= */
 const COLORES = ['#1E7BF2','#8B5CF6','#18B47B','#E5484D','#F5A300','#0EA5B7','#DB2777','#64748B'];
 const SUAVE = {'#1E7BF2':'#D7E8FF','#8B5CF6':'#EAE2FF','#18B47B':'#D6F3E6','#E5484D':'#FDE1E1','#F5A300':'#FFF0CC','#0EA5B7':'#D4F2F6','#DB2777':'#FCE1EE','#64748B':'#E5EAF1','#1463E6':'#D7E8FF','#1FA982':'#D6F3E6','#E8503B':'#FDE1E1','#F2A900':'#FFF0CC'};
-const PKEYS = ['tam','letra','img','nivel','inicio','adelantar','practica','repaso','repasoLog','dictado','dictadoLog','temas','plan','temasLog','pideMas','espacio','marcapaginas','gustosLog','adivLog','juegoDias','premiosVistos','recordatorio','letras','letrasLog','teleDesde','teleLog','teleAvisado','juntos','cambios'];
-const cfgBase = p => ({tam: window.innerWidth<700 ? 30 : 44, letra:'imprenta', img:'con', nivel:0, inicio:null, adelantar: !!(p && p.prueba), practica:{}, repaso:{}, repasoLog:[], dictado:{}, dictadoLog:[], temas:[], plan:{}, temasLog:[], pideMas:[], espacio:'normal', marcapaginas:null, gustosLog:[], adivLog:[], juegoDias:{}, premiosVistos:null, recordatorio:null, letras:{}, letrasLog:[], teleDesde:null, teleLog:[], teleAvisado:null, juntos:'no', cambios:[]});
+const PKEYS = ['tam','letra','img','nivel','inicio','adelantar','practica','repaso','repasoLog','dictado','dictadoLog','temas','plan','temasLog','pideMas','espacio','marcapaginas','gustosLog','adivLog','juegoDias','premiosVistos','recordatorio','letras','letrasLog','teleDesde','teleLog','teleAvisado','juntos','cambios','juegoLog','peliLog','sobresLog'];
+const cfgBase = p => ({tam: window.innerWidth<700 ? 30 : 44, letra:'imprenta', img:'con', nivel:0, inicio:null, adelantar: !!(p && p.prueba), practica:{}, repaso:{}, repasoLog:[], dictado:{}, dictadoLog:[], temas:[], plan:{}, temasLog:[], pideMas:[], espacio:'normal', marcapaginas:null, gustosLog:[], adivLog:[], juegoDias:{}, premiosVistos:null, recordatorio:null, letras:{}, letrasLog:[], teleDesde:null, teleLog:[], teleAvisado:null, juntos:'no', cambios:[], juegoLog:[], peliLog:[], sobresLog:[]});
 /* perfil con el que empieza un aparato nuevo (se cambia el nombre en Usuarios, o se traen los del ordenador) */
 const PERFIL_INICIAL = () => ({id:'lector1', nombre:'Lector', color:COLORES[0]});
 const ajPorDefecto = () => ({perfiles:[{...PERFIL_INICIAL(), cfg:cfgBase()}], perfil:'lector1', pin:'', voz:'', volumen:.9, audioPreguntas:true, ...cfgBase()});
@@ -183,7 +185,7 @@ function normSesion(s){
 const sesDe = id => SES.filter(s=>s.lectorId===id);
 const misSes = () => sesDe(aj.perfil);
 /* historias terminadas (las que están a medias, con preguntas pendientes, no cuentan como cromo) */
-const leidasDe = id => { const c={}; sesDe(id).forEach(s=>{ if(!s.incompleta) c[s.historiaId]=(c[s.historiaId]||0)+1; }); return c; };
+const leidasDe = id => { const c={}; sesDe(id).forEach(s=>{ if(!s.incompleta && !esComp(s.historiaId)) c[s.historiaId]=(c[s.historiaId]||0)+1; }); return c; };
 /* preguntas contestadas de una lectura (en las que están a medias, solo las que ya hizo) */
 const preguntasHechas = s => s.incompleta ? (s.preguntas||[]).length : (s.totalPreguntas||0);
 const leidas = () => leidasDe(aj.perfil);

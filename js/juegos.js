@@ -21,6 +21,8 @@ function marcador(el){ const m=document.createElement('div'); m.className='marca
 /* cartel encima del juego (ganar, perder…) */
 function cartel(el, html, botones){ const c=document.createElement('div'); c.className='cartel-juego'; c.innerHTML=`<div>${html}<div class="botones"></div></div>`; botones.forEach(([t,fn,cls])=>{ const b=document.createElement('button'); b.type='button'; b.className='btn btn-g '+(cls||'btn-p'); b.textContent=t; b.onclick=()=>{ c.remove(); fn&&fn(); }; c.querySelector('.botones').appendChild(b); }); el.appendChild(c); return c; }
 function bucle(fn){ let vivo=true, t0=performance.now(); const paso=t=>{ if(!vivo) return; const dt=Math.min(.1,(t-t0)/1000); t0=t; fn(dt); requestAnimationFrame(paso); }; requestAnimationFrame(paso); return ()=>{ vivo=false; }; }
+/* cada partida se apunta con sus aciertos y fallos (la familia lo ve en Evolución › Juegos) */
+function apuntarJuego(id, d={}){ try{ const c=cfgDe(perfil()); c.juegoLog=(c.juegoLog||[]).concat([{f:new Date().toISOString(), j:id, a:Math.max(0,Math.round(d.a||0)), e:Math.max(0,Math.round(d.e||0)), ...(d.r?{r:d.r}:{}), ...(d.pts!=null?{pts:d.pts}:{})}]).slice(-1500); guardarAj(); }catch(e){} }
 const fotosJuego = n => barajarCon(Object.keys(CONT.fotos).filter(k=>!/^portada|lobitos|_/.test(k) && CONT.palabras && Object.values(CONT.palabras).includes(k)), Date.now()).slice(0,n);
 const palabraDe = k => { const e=Object.entries(CONT.palabras||{}).find(([p,v])=>v===k && !p.includes(' ')); return e?e[0]:k; };
 
@@ -34,7 +36,7 @@ function jParejas(el){
     cartas.forEach((k,i)=>{ const b=document.createElement('button'); b.type='button'; b.className='carta-j'; b.innerHTML=`<span class="dorso">?</span><span class="cara">${imgHTML(k)}<b class="${claseTexto()}">${esc(palabraDe(k))}</b></span>`; b.dataset.k=k;
       b.onclick=()=>{ if(bloq || b.classList.contains('abierta')) return; b.classList.add('abierta'); sonido('toc'); abiertas.push(b);
         if(abiertas.length===2){ intentos++; const [a,c]=abiertas; abiertas=[];
-          if(a.dataset.k===c.dataset.k){ hechas++; a.classList.add('hecha'); c.classList.add('hecha'); decir(palabraDe(a.dataset.k)); if(hechas===n){ sonido('cromo'); confeti(el); setTimeout(()=>{ if(!parar) cartel(el, `<h2>¡Todas las parejas!</h2><p class="nota">Lo has hecho en ${intentos} intentos.</p>`, [['Otra vez',()=>{ n=Math.min(8,n+1); empezar(); }]]); }, 700); } }
+          if(a.dataset.k===c.dataset.k){ hechas++; a.classList.add('hecha'); c.classList.add('hecha'); decir(palabraDe(a.dataset.k)); if(hechas===n){ apuntarJuego('parejas',{a:n, e:intentos-n, r:n+' parejas'}); sonido('cromo'); confeti(el); setTimeout(()=>{ if(!parar) cartel(el, `<h2>¡Todas las parejas!</h2><p class="nota">Lo has hecho en ${intentos} intentos.</p>`, [['Otra vez',()=>{ n=Math.min(8,n+1); empezar(); }]]); }, 700); } }
           else { bloq=true; setTimeout(()=>{ a.classList.remove('abierta'); c.classList.remove('abierta'); bloq=false; }, 900); } }
         pon(`Parejas: ${hechas} de ${n} · Intentos: ${intentos}`); };
       g.appendChild(b); });
@@ -52,7 +54,7 @@ function jTresRaya(el){
     const prueba=(q)=>libres.find(i=>{ const t=tab.slice(); t[i]=q; return quien(t)===q; });
     let i=prueba('o'); if(i==null && Math.random()<.7) i=prueba('x'); if(i==null && !tab[4] && Math.random()<.5) i=4; if(i==null) i=libres[Math.floor(Math.random()*libres.length)];
     tab[i]='o'; sonido('toc'); cierre(); };
-  const cierre=()=>{ pinta(); const q=quien(tab); if(!q) return; fin=true; partidas++; if(q==='x'){ ganadas++; sonido('cromo'); confeti(el); decir('¡Has ganado!'); } else decir(q==='empate'?'¡Empate!':'¡Esta vez gano yo!');
+  const cierre=()=>{ pinta(); const q=quien(tab); if(!q) return; fin=true; partidas++; apuntarJuego('tresraya', q==='x'?{a:1,r:'gana'}:q==='empate'?{r:'empate'}:{e:1,r:'pierde'}); if(q==='x'){ ganadas++; sonido('cromo'); confeti(el); decir('¡Has ganado!'); } else decir(q==='empate'?'¡Empate!':'¡Esta vez gano yo!');
     pinta(); setTimeout(()=>cartel(el, `<h2>${q==='x'?'¡Has ganado! 🎉':q==='empate'?'¡Empate!':'Gana la máquina'}</h2>`, [['Otra partida', nueva]]), 600); };
   const nueva=()=>{ tab=Array(9).fill(null); fin=false; turno=partidas%2===0?'x':'o'; pinta(); if(turno==='o') setTimeout(juegaMaquina, 500); };
   g.addEventListener('click', e=>{ const b=e.target.closest('[data-i]'); if(!b || fin) return; const i=+b.dataset.i; if(tab[i]) return; tab[i]='x'; sonido('toc'); cierre(); if(!fin) setTimeout(()=>{ if(!fin) juegaMaquina(); }, 450); });
@@ -74,7 +76,7 @@ function jSerpiente(el){
     pon(`Manzanas: ${puntos} · Récord: ${mejor}`); };
   reinicia(); dibuja();
   const pararB=bucle(dt=>{ if(!vivo) return; t+=dt; if(t<1/vel) return; t=0; dir=sig; const [dx,dy]=DIRS[dir]; const h=[(s[0][0]+dx+N)%N, (s[0][1]+dy+N)%N];
-    if(s.slice(0,-1).some(p=>p[0]===h[0]&&p[1]===h[1])){ vivo=false; mejor=Math.max(mejor,puntos); sonido('mal'); dibuja(); cartel(el, `<h2>¡Uy, te has mordido!</h2><p class="nota">Has comido ${puntos} manzanas.</p>`, [['Otra vez',()=>{ reinicia(); dibuja(); }]]); return; }
+    if(s.slice(0,-1).some(p=>p[0]===h[0]&&p[1]===h[1])){ vivo=false; mejor=Math.max(mejor,puntos); apuntarJuego('serpiente',{a:puntos, e:1, r:'se muerde'}); sonido('mal'); dibuja(); cartel(el, `<h2>¡Uy, te has mordido!</h2><p class="nota">Has comido ${puntos} manzanas.</p>`, [['Otra vez',()=>{ reinicia(); dibuja(); }]]); return; }
     s.unshift(h); if(h[0]===comida[0]&&h[1]===comida[1]){ puntos++; vel=Math.min(9, vel+.25); sonido('toc'); nuevaComida(); } else s.pop(); dibuja(); });
   return {parar(){ pararB(); quitarT(); }};
 }
@@ -119,8 +121,8 @@ function jComecocos(el){
     const k=jug.fc+','+jug.fr; if(cocos.has(k) && (jug.t<.5)){ const t=cocos.get(k); cocos.delete(k); puntos+= t==='o'?50:10; if(t==='o'){ susto=7; sonido('bien'); } }
     bichos.forEach(b=>{ if(b.sale>0){ b.sale-=dt; return; } mover(b, elegirBicho)(dt); const [bx,by]=pos(b), [px,py]=pos(jug);
       if(Math.hypot(bx-px,by-py)<.6){ if(susto>0){ puntos+=200; sonido('cromo'); Object.assign(b, ent(b.casa[0],b.casa[1],b.v), {sale:3}); }
-        else { vidas--; sonido('mal'); if(vidas<=0){ vivo=false; dibuja(); cartel(el, `<h2>¡Te han pillado!</h2><p class="nota">Has hecho ${puntos} puntos.</p>`, [['Jugar otra vez',()=>{ nueva(); dibuja(); }]]); } else colocar(); } } });
-    if(vivo && !cocos.size){ vivo=false; sonido('cromo'); confeti(el); dibuja(); cartel(el, `<h2>¡Te los has comido todos! 🎉</h2>`, [['Siguiente nivel',()=>{ nivel++; nueva(true); dibuja(); }]]); return; }
+        else { vidas--; sonido('mal'); if(vidas<=0){ vivo=false; apuntarJuego('comecocos',{e:3, pts:puntos, r:'nivel '+nivel}); dibuja(); cartel(el, `<h2>¡Te han pillado!</h2><p class="nota">Has hecho ${puntos} puntos.</p>`, [['Jugar otra vez',()=>{ nueva(); dibuja(); }]]); } else colocar(); } } });
+    if(vivo && !cocos.size){ vivo=false; apuntarJuego('comecocos',{a:1, pts:puntos, r:'nivel '+nivel+' superado'}); sonido('cromo'); confeti(el); dibuja(); cartel(el, `<h2>¡Te los has comido todos! 🎉</h2>`, [['Siguiente nivel',()=>{ nivel++; nueva(true); dibuja(); }]]); return; }
     dibuja(); });
   return {parar(){ pararB(); quitarT(); }};
 }
@@ -129,17 +131,17 @@ function jComecocos(el){
 function jTopos(el){
   el.innerHTML=''; const pon=marcador(el); const g=document.createElement('div'); g.className='topos'; el.appendChild(g);
   const pal=Object.entries(CONT.palabras||{}).filter(([p,k])=>/^[a-zñ]{2,6}$/.test(p) && CONT.fotos[k]).map(([p,k])=>({p,k}));
-  let objetivo, aciertos=0, tiempo=40, vivo=false, pararB=null, huecos=[];
+  let objetivo, aciertos=0, fallos=0, tiempo=40, vivo=false, pararB=null, huecos=[];
   g.innerHTML=Array.from({length:9},(_,i)=>`<div class="hueco"><button type="button" class="topo" data-i="${i}" hidden><span class="${claseTexto()}"></span></button></div>`).join('');
   const nuevoObj=()=>{ objetivo=pal[Math.floor(Math.random()*pal.length)]; decir('Toca: '+objetivo.p); pon(`Toca: <b class="${claseTexto()}">${esc(objetivo.p)}</b> ${imgHTML(objetivo.k,false,'mini-obj')} · Aciertos: ${aciertos} · ⏱ ${Math.ceil(tiempo)}`); };
   const sacar=()=>{ const libres=[...g.querySelectorAll('.topo')].filter(b=>b.hidden); if(!libres.length) return; const b=libres[Math.floor(Math.random()*libres.length)];
     const w = Math.random()<.4 ? objetivo : pal[Math.floor(Math.random()*pal.length)]; b.dataset.p=w.p; b.querySelector('span').textContent=w.p; b.hidden=false; b.classList.remove('mal');
     b._t=setTimeout(()=>{ b.hidden=true; }, 1700+Math.random()*900); };
   g.addEventListener('pointerdown', e=>{ const b=e.target.closest('.topo'); if(!b || !vivo || b.hidden) return; clearTimeout(b._t);
-    if(b.dataset.p===objetivo.p){ aciertos++; sonido('bien'); b.hidden=true; nuevoObj(); } else { b.classList.add('mal'); sonido('mal'); setTimeout(()=>{ b.hidden=true; }, 300); } });
-  const empezar=()=>{ aciertos=0; tiempo=40; vivo=true; nuevoObj(); let ac=0; pararB && pararB();
-    pararB=bucle(dt=>{ if(!vivo) return; tiempo-=dt; ac+=dt; if(ac>.75){ ac=0; sacar(); } pon(`Toca: <b class="${claseTexto()}">${esc(objetivo.p)}</b> ${imgHTML(objetivo.k,false,'mini-obj')} · Aciertos: ${aciertos} · ⏱ ${Math.max(0,Math.ceil(tiempo))}`);
-      if(tiempo<=0){ vivo=false; g.querySelectorAll('.topo').forEach(b=>b.hidden=true); sonido('cromo'); cartel(el, `<h2>¡Tiempo!</h2><p class="nota">Has acertado ${aciertos} palabras.</p>`, [['Otra vez', empezar]]); } }); };
+    if(b.dataset.p===objetivo.p){ aciertos++; sonido('bien'); b.hidden=true; nuevoObj(); } else { fallos++; b.classList.add('mal'); sonido('mal'); setTimeout(()=>{ b.hidden=true; }, 300); } });
+  const empezar=()=>{ aciertos=0; fallos=0; tiempo=40; vivo=true; nuevoObj(); let ac=0; pararB && pararB();
+    pararB=bucle(dt=>{ if(!vivo) return; tiempo-=dt; ac+=dt; if(ac>.75){ ac=0; sacar(); } pon(`Toca: <b class="${claseTexto()}">${esc(objetivo.p)}</b> ${imgHTML(objetivo.k,false,'mini-obj')} · ✓ ${aciertos} · ✗ ${fallos} · ⏱ ${Math.max(0,Math.ceil(tiempo))}`);
+      if(tiempo<=0){ vivo=false; apuntarJuego('topos',{a:aciertos, e:fallos}); g.querySelectorAll('.topo').forEach(b=>b.hidden=true); sonido('cromo'); cartel(el, `<h2>¡Tiempo!</h2><p class="nota">Has acertado ${aciertos} palabras${fallos?` y has fallado ${fallos}`:' sin fallar ninguna'}.</p>`, [['Otra vez', empezar]]); } }); };
   cartel(el, `<h2>Topos lectores</h2><p class="nota">Salen topos con palabras. Toca solo los que tengan la palabra que te digo.</p>`, [['¡Empezar!', empezar]]);
   return {parar(){ vivo=false; pararB && pararB(); }};
 }
@@ -152,7 +154,7 @@ function jBloques(el){
   let tab, p, lineas, vivo, t=0, mejor=0;
   const girar=m=>m[0].map((_,i)=>m.map(f=>f[i]).reverse());
   const choca=(m,px,py)=>m.some((f,j)=>f.some((v,i)=>v && (px+i<0 || px+i>=C || py+j>=R || (py+j>=0 && tab[py+j][px+i]))));
-  const nuevaP=()=>{ const k=Math.floor(Math.random()*PIEZAS.length); p={m:PIEZAS[k], c:COL_PIEZAS[k], x:Math.floor((C-PIEZAS[k][0].length)/2), y:-1}; if(choca(p.m,p.x,p.y+1)){ vivo=false; mejor=Math.max(mejor,lineas); sonido('mal'); dibuja(); cartel(el, `<h2>¡Se ha llenado!</h2><p class="nota">Has hecho ${lineas} líneas.</p>`, [['Otra vez',()=>{ reinicia(); }]]); } };
+  const nuevaP=()=>{ const k=Math.floor(Math.random()*PIEZAS.length); p={m:PIEZAS[k], c:COL_PIEZAS[k], x:Math.floor((C-PIEZAS[k][0].length)/2), y:-1}; if(choca(p.m,p.x,p.y+1)){ vivo=false; mejor=Math.max(mejor,lineas); apuntarJuego('bloques',{a:lineas, r:'se llena'}); sonido('mal'); dibuja(); cartel(el, `<h2>¡Se ha llenado!</h2><p class="nota">Has hecho ${lineas} líneas.</p>`, [['Otra vez',()=>{ reinicia(); }]]); } };
   const fijar=()=>{ p.m.forEach((f,j)=>f.forEach((v,i)=>{ if(v && p.y+j>=0) tab[p.y+j][p.x+i]=p.c; })); let n=0; tab=tab.filter(f=>{ if(f.every(Boolean)){ n++; return false; } return true; }); while(tab.length<R) tab.unshift(Array(C).fill(null)); if(n){ lineas+=n; sonido('bien'); } else sonido('toc'); nuevaP(); };
   const accion=d=>{ if(!vivo) return; if(d==='l'&&!choca(p.m,p.x-1,p.y)) p.x--; else if(d==='r'&&!choca(p.m,p.x+1,p.y)) p.x++; else if(d==='u'||d==='s'){ const m=girar(p.m); for(const dx of [0,-1,1,-2,2]) if(!choca(m,p.x+dx,p.y)){ p.m=m; p.x+=dx; break; } } else if(d==='d'){ if(!choca(p.m,p.x,p.y+1)) p.y++; else fijar(); } dibuja(); };
   const quitarT=teclas(accion); deslizar(L.cv, accion);
@@ -177,7 +179,7 @@ function jColores(el){
   const luz=k=>{ const b=g.children[k]; b.classList.add('on'); nota(C[k][1]); setTimeout(()=>b.classList.remove('on'), 380); };
   const mostrar=async()=>{ turno=false; pon(`Mira y escucha… · Serie: ${serie.length} · Récord: ${mejor}`); await pausa(700); for(const k of serie){ if(actual!=='juego') return; luz(k); await pausa(650); } turno=true; i=0; pon(`¡Tu turno! · Serie: ${serie.length} · Récord: ${mejor}`); };
   g.addEventListener('pointerdown', e=>{ const b=e.target.closest('[data-k]'); if(!b||!turno) return; const k=+b.dataset.k; luz(k);
-    if(k!==serie[i]){ turno=false; mejor=Math.max(mejor, serie.length-1); sonido('mal'); cartel(el, `<h2>¡Casi!</h2><p class="nota">Has llegado a ${serie.length-1} colores.</p>`, [['Otra vez',()=>{ serie=[Math.floor(Math.random()*4)]; mostrar(); }]]); return; }
+    if(k!==serie[i]){ turno=false; mejor=Math.max(mejor, serie.length-1); apuntarJuego('colores',{a:serie.length-1, e:1, r:'serie de '+(serie.length-1)}); sonido('mal'); cartel(el, `<h2>¡Casi!</h2><p class="nota">Has llegado a ${serie.length-1} colores.</p>`, [['Otra vez',()=>{ serie=[Math.floor(Math.random()*4)]; mostrar(); }]]); return; }
     i++; if(i===serie.length){ turno=false; serie.push(Math.floor(Math.random()*4)); setTimeout(mostrar, 500); } });
   cartel(el, `<h2>Colores en orden</h2><p class="nota">Mira qué colores se encienden y tócalos en el mismo orden.</p>`, [['¡Empezar!',()=>{ serie=[Math.floor(Math.random()*4)]; mostrar(); }]]);
   return {parar(){ turno=false; }};
@@ -187,13 +189,13 @@ function jColores(el){
 function jBurbujas(el){
   el.innerHTML=''; const COLS=8, FILAS=12; const pon=marcador(el); const L=lienzo(el,COLS,FILAS+2.5,400); const {x,cel}=L; const R=cel/2, DY=R*Math.sqrt(3);
   const COLB=['#E5484D','#1E7BF2','#F5B301','#2FB36B','#8B5CF6'];
-  let g, bola, sig, ang=-Math.PI/2, puntos, vivo, ncol=4, tiros=0, par=0;   // par: qué filas van desplazadas (cambia al bajar una fila)
+  let g, bola, sig, ang=-Math.PI/2, puntos, vivo, ncol=4, tiros=0, par=0, buenos=0;   // par: qué filas van desplazadas (cambia al bajar una fila)
   const imp=r=>(r+par)%2, cols=r=> imp(r) ? COLS-1 : COLS;
   const cx=(r,c)=> R + c*cel + (imp(r)?R:0), cy=r=> R + r*DY;
   const vec=(r,c)=>{ const o = imp(r) ? [[-1,0],[-1,1],[0,-1],[0,1],[1,0],[1,1]] : [[-1,-1],[-1,0],[0,-1],[0,1],[1,-1],[1,0]]; return o.map(([dr,dc])=>[r+dr,c+dc]).filter(([a,b])=>a>=0&&a<FILAS&&b>=0&&b<cols(a)); };
   const quedan=()=>{ const s=new Set(); g.forEach(f=>f.forEach(v=>{ if(v) s.add(v); })); return [...s]; };
   const nuevaBola=()=>{ const q=quedan(); return q.length ? q[Math.floor(Math.random()*q.length)] : COLB[0]; };
-  const nueva=()=>{ par=0; g=Array.from({length:FILAS},(_,r)=>Array(cols(r)).fill(null)); for(let r=0;r<5;r++) for(let c=0;c<cols(r);c++) g[r][c]=COLB[Math.floor(Math.random()*ncol)]; puntos=0; tiros=0; vivo=true; bola=null; sig=nuevaBola(); dibuja(); };
+  const nueva=()=>{ par=0; g=Array.from({length:FILAS},(_,r)=>Array(cols(r)).fill(null)); for(let r=0;r<5;r++) for(let c=0;c<cols(r);c++) g[r][c]=COLB[Math.floor(Math.random()*ncol)]; puntos=0; tiros=0; buenos=0; vivo=true; bola=null; sig=nuevaBola(); dibuja(); };
   const bajar=()=>{ par^=1; g=[Array(cols(0)).fill(null).map(()=>COLB[Math.floor(Math.random()*ncol)]), ...g.slice(0,FILAS-1)]; };
   const pegar=(px,py)=>{ let best=null, bd=1e9; for(let r=0;r<FILAS;r++) for(let c=0;c<cols(r);c++) if(!g[r][c]){ const d=Math.hypot(cx(r,c)-px, cy(r)-py); if(d<bd && (r===0 || vec(r,c).some(([a,b])=>g[a][b]))){ bd=d; best=[r,c]; } } return best; };
   const resolver=(r,c)=>{ const col=g[r][c], grupo=[[r,c]], vis=new Set([r+','+c]);
@@ -218,40 +220,40 @@ function jBurbujas(el){
   const pararB=bucle(dt=>{ if(!vivo || !bola) return; const pasos=4; for(let k=0;k<pasos && bola;k++){ bola.x+=bola.vx*dt/pasos; bola.y+=bola.vy*dt/pasos;
       if(bola.x<R){ bola.x=R; bola.vx*=-1; } if(bola.x>L.W-R){ bola.x=L.W-R; bola.vx*=-1; }
       let choca = bola.y<=R; if(!choca) for(let r=0;r<FILAS && !choca;r++) for(let c=0;c<cols(r);c++) if(g[r][c] && Math.hypot(cx(r,c)-bola.x, cy(r)-bola.y)<cel*.88){ choca=true; break; }
-      if(choca){ const s=pegar(bola.x,bola.y); if(s){ g[s[0]][s[1]]=bola.c; const pts=resolver(s[0],s[1]); puntos+=pts*10; tiros++; if(!pts && tiros%7===0) bajar(); }
-        bola=null; if(!quedan().length){ vivo=false; sonido('cromo'); confeti(el); dibuja(); cartel(el, `<h2>¡Todas explotadas! 🎉</h2><p class="nota">${puntos} puntos.</p>`, [['Otra vez',()=>{ ncol=Math.min(5,ncol+1); nueva(); }]]); return; }
-        if(g[FILAS-1].some(Boolean)){ vivo=false; sonido('mal'); dibuja(); cartel(el, `<h2>¡Han llegado abajo!</h2><p class="nota">${puntos} puntos.</p>`, [['Otra vez', nueva]]); return; } } }
+      if(choca){ const s=pegar(bola.x,bola.y); if(s){ g[s[0]][s[1]]=bola.c; const pts=resolver(s[0],s[1]); puntos+=pts*10; tiros++; if(pts) buenos++; if(!pts && tiros%7===0) bajar(); }
+        bola=null; if(!quedan().length){ vivo=false; apuntarJuego('burbujas',{a:buenos, e:tiros-buenos, pts:puntos, r:'todas'}); sonido('cromo'); confeti(el); dibuja(); cartel(el, `<h2>¡Todas explotadas! 🎉</h2><p class="nota">${puntos} puntos.</p>`, [['Otra vez',()=>{ ncol=Math.min(5,ncol+1); nueva(); }]]); return; }
+        if(g[FILAS-1].some(Boolean)){ vivo=false; apuntarJuego('burbujas',{a:buenos, e:tiros-buenos, pts:puntos, r:'llegan abajo'}); sonido('mal'); dibuja(); cartel(el, `<h2>¡Han llegado abajo!</h2><p class="nota">${puntos} puntos.</p>`, [['Otra vez', nueva]]); return; } } }
     dibuja(); });
   return {parar(){ pararB(); quitarT(); }};
 }
 
 /* ============ 9 · Puzle deslizante ============ */
 function jPuzle(el){
-  el.innerHTML=''; const pon=marcador(el); const N=3; let pos, mov, k;
+  el.innerHTML=''; const pon=marcador(el); const N=3; let pos, mov, k, malos=0;
   const cont=document.createElement('div'); cont.className='puzle'; el.appendChild(cont);
   const pinta=()=>{ const src=fotoURL(k,true); cont.innerHTML=pos.map((v,i)=>v===N*N-1?`<div class="pz vacio"></div>`:`<button type="button" class="pz" data-i="${i}" style="background-image:url('${src}');background-position:${(v%N)*50}% ${Math.floor(v/N)*50}%"><span>${v+1}</span></button>`).join('');
     pon(`Movimientos: ${mov} · <span class="pz-mini" style="background-image:url('${src}')"></span> Así tiene que quedar`); };
   const vecinos=i=>[i-N,i+N,(i%N)?i-1:-1,(i%N<N-1)?i+1:-1].filter(j=>j>=0&&j<N*N);
-  const nueva=()=>{ const ks=Object.keys(CONT.fotos).filter(q=>CONT.fotos[q]==='b' && !/^portada|lobitos/.test(q)); k=ks[Math.floor(Math.random()*ks.length)]; pos=[...Array(N*N).keys()]; mov=0;
+  const nueva=()=>{ const ks=Object.keys(CONT.fotos).filter(q=>CONT.fotos[q]==='b' && !/^portada|lobitos/.test(q)); k=ks[Math.floor(Math.random()*ks.length)]; pos=[...Array(N*N).keys()]; mov=0; malos=0;
     let hueco=N*N-1, prev=-1; for(let s=0;s<80;s++){ const op=vecinos(hueco).filter(j=>j!==prev); const j=op[Math.floor(Math.random()*op.length)]; [pos[hueco],pos[j]]=[pos[j],pos[hueco]]; prev=hueco; hueco=j; }
     if(pos.every((v,i)=>v===i)) return nueva(); pinta(); };
-  cont.addEventListener('click', e=>{ const b=e.target.closest('[data-i]'); if(!b) return; const i=+b.dataset.i, h=pos.indexOf(N*N-1); if(!vecinos(i).includes(h)) return;
-    [pos[i],pos[h]]=[pos[h],pos[i]]; mov++; sonido('toc'); pinta(); if(pos.every((v,j)=>v===j)){ sonido('cromo'); confeti(el); decir(palabraDe(k)); cartel(el, `<h2>¡Puzle hecho! 🎉</h2><p class="nota">En ${mov} movimientos. Era: <b>${esc(palabraDe(k))}</b>.</p>`, [['Otro puzle', nueva]]); } });
+  cont.addEventListener('click', e=>{ const b=e.target.closest('[data-i]'); if(!b) return; const i=+b.dataset.i, h=pos.indexOf(N*N-1); if(!vecinos(i).includes(h)){ malos++; sonido('mal'); return; }
+    [pos[i],pos[h]]=[pos[h],pos[i]]; mov++; sonido('toc'); pinta(); if(pos.every((v,j)=>v===j)){ apuntarJuego('puzle',{a:1, e:malos, pts:mov, r:mov+' movimientos'}); sonido('cromo'); confeti(el); decir(palabraDe(k)); cartel(el, `<h2>¡Puzle hecho! 🎉</h2><p class="nota">En ${mov} movimientos. Era: <b>${esc(palabraDe(k))}</b>.</p>`, [['Otro puzle', nueva]]); } });
   nueva(); return {parar(){}};
 }
 
 /* ============ 10 · Torres ============ */
 function jTorres(el){
-  el.innerHTML=''; const pon=marcador(el); let n=3, t, mov, sel=null;
+  el.innerHTML=''; const pon=marcador(el); let n=3, t, mov, sel=null, malos=0;
   const cont=document.createElement('div'); cont.className='torres'; el.appendChild(cont);
   const COL=['#E5484D','#F5A300','#2FB36B','#1E7BF2','#8B5CF6'];
   const pinta=()=>{ cont.innerHTML=t.map((pila,i)=>`<button type="button" class="poste${sel===i?' sel':''}" data-p="${i}"><span class="palo"></span>${pila.map(d=>`<span class="disco" style="width:${30+d*14}%;background:${COL[d-1]}"></span>`).join('')}</button>`).join('');
-    pon(`Pasa todos los discos al último palo. Nunca un disco grande encima de uno pequeño. · Movimientos: ${mov} (lo mínimo son ${2**n-1})`); };
-  const nueva=()=>{ t=[[...Array(n).keys()].map(i=>n-i),[],[]]; mov=0; sel=null; pinta(); };
+    pon(`Pasa todos los discos al último palo. Nunca un disco grande encima de uno pequeño. · Movimientos: ${mov} (lo mínimo son ${2**n-1}) · ✗ ${malos}`); };
+  const nueva=()=>{ t=[[...Array(n).keys()].map(i=>n-i),[],[]]; mov=0; malos=0; sel=null; pinta(); };
   cont.addEventListener('click', e=>{ const b=e.target.closest('[data-p]'); if(!b) return; const i=+b.dataset.p;
     if(sel==null){ if(t[i].length){ sel=i; sonido('toc'); } }
-    else { const d=t[sel][t[sel].length-1], arriba=t[i][t[i].length-1]; if(i!==sel && (!arriba || arriba>d)){ t[i].push(t[sel].pop()); mov++; sonido('toc'); } else if(i!==sel){ sonido('mal'); } sel=null; }
-    pinta(); if(t[2].length===n){ sonido('cromo'); confeti(el); cartel(el, `<h2>¡Torre terminada! 🎉</h2><p class="nota">${mov} movimientos.${mov===2**n-1?' ¡Perfecto!':''}</p>`, [[n<5?`Probar con ${n+1} discos`:'Otra vez',()=>{ n=Math.min(5,n+1); nueva(); }],['Repetir',nueva,'btn']]); } });
+    else { const d=t[sel][t[sel].length-1], arriba=t[i][t[i].length-1]; if(i!==sel && (!arriba || arriba>d)){ t[i].push(t[sel].pop()); mov++; sonido('toc'); } else if(i!==sel){ malos++; sonido('mal'); } sel=null; }
+    pinta(); if(t[2].length===n){ apuntarJuego('torres',{a:1, e:malos, pts:mov, r:`${n} discos en ${mov} movimientos`+(mov===2**n-1?' (perfecto)':'')}); sonido('cromo'); confeti(el); cartel(el, `<h2>¡Torre terminada! 🎉</h2><p class="nota">${mov} movimientos.${mov===2**n-1?' ¡Perfecto!':''}</p>`, [[n<5?`Probar con ${n+1} discos`:'Otra vez',()=>{ n=Math.min(5,n+1); nueva(); }],['Repetir',nueva,'btn']]); } });
   nueva(); return {parar(){}};
 }
 
@@ -270,7 +272,7 @@ const JUEGOS = [
 
 /* ---------- tiempo de juego y permiso ---------- */
 function segJuegoHoy(p=perfil()){ return (cfgDe(p).juegoDias||{})[claveDia(new Date())] || 0; }
-const leidoHoy = (p=perfil()) => sesDe(p.id).some(s=>!s.incompleta && claveDia(s.fecha)===claveDia(new Date()));
+const leidoHoy = (p=perfil()) => sesDe(p.id).some(s=>!s.incompleta && !esComp(s.historiaId) && claveDia(s.fecha)===claveDia(new Date()));
 function puedeJugar(p=perfil()){
   if(p.prueba) return {ok:true};
   const c=premiosCfg();

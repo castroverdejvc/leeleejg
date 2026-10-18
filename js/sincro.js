@@ -8,7 +8,7 @@
 const SINCRO_DIAS_AUDIO = 30;
 const NUBE = 'Google Drive';   // donde la familia deja las copias (carpeta «LeeLEEJG» de Mi unidad)
 const CAMPOS_LOCALES = new Set(['voz','vozPrograma','perfil','volumen','mod', ...PKEYS]);   // propios de cada aparato
-const LISTAS_PERFIL = ['repasoLog','dictadoLog','temasLog','gustosLog','adivLog','letrasLog','teleLog','cambios'];
+const LISTAS_PERFIL = ['repasoLog','dictadoLog','temasLog','gustosLog','adivLog','letrasLog','teleLog','cambios','juegoLog','peliLog','sobresLog'];
 const clon = x => x==null ? x : JSON.parse(JSON.stringify(x));
 
 /* --- marcas de cambio: así se sabe qué es más nuevo al juntar --- */

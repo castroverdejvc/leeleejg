@@ -33,7 +33,15 @@ function decirNavegador(t, idioma='es'){
     }catch(e){ res(false); }
   });
 }
+/* mientras habla el programa, el oído no escucha (si no, oye su propia voz al pedir ayuda con una palabra) */
+let vozSonando=0, vozHastaMs=0, vozDesdeMs=0;
+const programaHablando = () => (vozSonando>0 && performance.now()-vozDesdeMs<15000) || performance.now()<vozHastaMs;
 function decir(t, idioma='es'){
+  const pr=decir0(t, idioma); if(!vozSonando) vozDesdeMs=performance.now(); vozSonando++;
+  const fin=()=>{ vozSonando=Math.max(0, vozSonando-1); vozHastaMs=performance.now()+700; };
+  pr.then(fin, fin); return pr;
+}
+function decir0(t, idioma='es'){
   callar(); if(!t) return Promise.resolve();
   if(idioma!=='es'){ if(!(EST.voces||[]).includes(idioma)) return decirNavegador(t, idioma); }
   else if(!usaPiper()){ if(EST.cargando) refrescarEstado();

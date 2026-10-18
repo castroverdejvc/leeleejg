@@ -62,12 +62,12 @@ function planDe(p=perfil()){
   return (PLANES[p.id]=res);
 }
 const diaPersonal = (h, p=perfil()) => h ? (planDe(p).diaDe[h.id] || null) : null;
-function nivelActualDe(p=perfil()){ const h=planDe(p).dias[diaHoyDe(p)]; return Math.max(h?h.nivel:1, ...sesDe(p.id).map(s=>s.nivel||1)); }
+function nivelActualDe(p=perfil()){ const h=planDe(p).dias[diaHoyDe(p)]; return Math.max(h?h.nivel:1, ...sesDe(p.id).filter(s=>!esComp(s.historiaId)).map(s=>s.nivel||1)); }
 /* ¿puede leerla ya? las de su calendario cuando llega su día; las de otros temas si son de su nivel */
 function estaDisponible(h, p=perfil()){
   if(!h) return false; if(cfgDe(p).adelantar || leidasDe(p.id)[h.id]) return true;
   if(h.temporada) return typeof temporadaActiva==='function' && temporadaActiva(h.temporada);   // historias de fiesta: solo en su temporada
-  const d=diaPersonal(h,p); if(d) return d<=diaHoyDe(p);
+  const d=diaPersonal(h,p); if(d) return d<=diaHoyDe(p) + (new Date().getDay()===6 ? 1 : 0);   // el sábado ya se puede leer la del domingo (para la película)
   return h.nivel<=nivelActualDe(p);
 }
 function estadoTema(t, p=perfil()){

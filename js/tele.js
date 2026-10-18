@@ -1,47 +1,111 @@
-/* LeeLEEJG · minutos de tele: cada ejercicio terminado (lectura, dictado, repaso, «As letras») suma minutos
-   que se gastan el sábado y el domingo. La familia decide cuántos minutos y si lo que sobra se guarda. */
+/* LeeLEEJG · minutos de tele del fin de semana y película.
+   Reglas (decididas por la familia, 18/10/2026):
+   - lectura propuesta (la del día del calendario, la primera vez): 10 min
+   - lectura complementaria (las «extra», más largas), la primera vez: 15 min
+   - volver a leer una historia (o cualquier otra que no sea la propuesta): 5 min
+   - fichas (repaso, dictado, «As letras»): 5 min sin fallos; con fallos, el tanto por ciento de aciertos
+   - no se acumula: cuenta de lunes a domingo; el lunes empieza de cero
+   - película el fin de semana: hay que haber hecho las lecturas propuestas de los 7 días de la semana
+   Los minutos se gastan el sábado y el domingo con el reloj de la tele. */
 'use strict';
+const TELE_DEF = {tele:10, teleExtra:15, teleRelee:5, teleFicha:5};
+const teleCfg = () => { const c=premiosCfg(); return {propuesta:+(c.tele ?? TELE_DEF.tele), extra:+(c.teleExtra ?? TELE_DEF.teleExtra), relee:+(c.teleRelee ?? TELE_DEF.teleRelee), ficha:+(c.teleFicha ?? TELE_DEF.teleFicha)}; };
+const teleActiva = () => { const t=teleCfg(); return t.propuesta>0 || t.extra>0 || t.relee>0 || t.ficha>0; };
 const esFinde = (d=new Date()) => d.getDay()===0 || d.getDay()===6;
 function lunesDe(d=new Date()){ const x=new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; }
-function teleDe(p=perfil()){
-  const c=cfgDe(p), cfg=premiosCfg();
-  if(!c.teleDesde){ c.teleDesde=new Date().toISOString(); guardarAj(); }   // se empieza a contar desde hoy
-  let desde=new Date(c.teleDesde); if(!cfg.teleGuarda){ const l=lunesDe(); if(l>desde) desde=l; }
-  const ej=ejerciciosDe(p, desde), ganados=ej*(cfg.tele||0);
-  const gastados=(c.teleLog||[]).filter(x=>new Date(x.f)>=desde).reduce((a,x)=>a+(+x.min||0),0);
-  return {ej, ganados, gastados, saldo:Math.max(0, Math.round((ganados-gastados)*10)/10), desde};
+const medio = m => Math.round(m*2)/2;
+/* ¿es la historia propuesta de algún día que ya ha llegado? (el sábado vale también la del domingo) */
+function esPropuesta(p, hid){
+  if(esComp(hid)) return false;
+  const d=planDe(p).diaDe[hid]; if(!d) return false;
+  const hoy=diaHoyDe(p) + (new Date().getDay()===6 ? 1 : 0);
+  return d<=hoy;
 }
-const minTxt = m => { const n=Math.floor(m); return n===1?'1 minuto':n+' minutos'; };
-function avisarTele(p=perfil()){
-  if(!(premiosCfg().tele>0) || p.prueba) return; const c=cfgDe(p), t=teleDe(p);
-  if(c.teleAvisado==null){ c.teleAvisado=t.ganados; guardarAj(); return; }
-  if(t.ganados>c.teleAvisado){ const mas=t.ganados-c.teleAvisado; c.teleAvisado=t.ganados; guardarAj(); aviso(`📺 +${mas} minutos de tele para el fin de semana`); }
-  else if(t.ganados<c.teleAvisado){ c.teleAvisado=t.ganados; guardarAj(); }
+/* lo ganado por cada cosa hecha desde el lunes */
+function teleDetalle(p=perfil(), desde=lunesDe()){
+  const T=teleCfg(), c=cfgDe(p); const vistas=new Set(); const det={propuesta:{n:0,min:0}, extra:{n:0,min:0}, relee:{n:0,min:0}, ficha:{n:0,min:0}};
+  sesDe(p.id).filter(s=>!s.incompleta).sort((a,b)=>a.fecha<b.fecha?-1:1).forEach(s=>{
+    const primera=!vistas.has(s.historiaId); vistas.add(s.historiaId);
+    if(new Date(s.fecha)<desde) return;
+    const tipo = esComp(s.historiaId) ? (primera?'extra':'relee') : (primera && esPropuesta(p, s.historiaId) ? 'propuesta' : 'relee');
+    det[tipo].n++; det[tipo].min+=T[tipo];
+  });
+  ['dictadoLog','repasoLog','letrasLog'].forEach(k=>(c[k]||[]).forEach(x=>{ if(new Date(x.f)<desde) return; const n=+x.n||0, b=+x.bien||0; det.ficha.n++; det.ficha.min+= n ? medio(T.ficha*Math.min(1,b/n)) : 0; }));
+  return det;
+}
+function teleDe(p=perfil()){
+  const desde=lunesDe(), det=teleDetalle(p, desde);
+  const ganados=medio(det.propuesta.min+det.extra.min+det.relee.min+det.ficha.min);
+  const gastados=(cfgDe(p).teleLog||[]).filter(x=>new Date(x.f)>=desde).reduce((a,x)=>a+(+x.min||0),0);
+  return {det, ganados, gastados, saldo:Math.max(0, Math.round((ganados-gastados)*10)/10), desde, ej:det.propuesta.n+det.extra.n+det.relee.n+det.ficha.n};
+}
+const minTxt = m => { const n=Math.floor(m*2)/2; const e=Math.floor(n), h=n-e>=.5; return (e||!h?e:'')+(h?'½':'')+(n===1?' minuto':' minutos'); };
+function avisarTele(p=perfil(), callado=false){
+  if(!teleActiva() || p.prueba) return; const c=cfgDe(p), t=teleDe(p); const marca=claveDia(lunesDe());
+  if(!c.teleAvisado || typeof c.teleAvisado!=='object' || c.teleAvisado.semana!==marca){ c.teleAvisado={semana:marca, min:0}; }
+  if(t.ganados>c.teleAvisado.min){ const mas=medio(t.ganados-c.teleAvisado.min); c.teleAvisado.min=t.ganados; guardarAj(); if(!callado) aviso(`📺 +${minTxt(mas)} de tele para el fin de semana`); }
+  else if(t.ganados<c.teleAvisado.min){ c.teleAvisado.min=t.ganados; guardarAj(); }
 }
 function apuntarTele(p, min, tipo){ const c=cfgDe(p); c.teleLog=(c.teleLog||[]).concat([{f:new Date().toISOString(), min:Math.round(min*10)/10, tipo}]).slice(-1000); guardarAj(); }
+/* minutos que da una lectura concreta (para el final de la lectura) */
+function minutosDeSesion(p, s){
+  const T=teleCfg(); const antes=sesDe(p.id).some(x=>x.id!==s.id && !x.incompleta && x.historiaId===s.historiaId && x.fecha<s.fecha);
+  if(esComp(s.historiaId)) return antes?T.relee:T.extra;
+  return !antes && esPropuesta(p, s.historiaId) ? T.propuesta : T.relee;
+}
+
+/* ---------- película del fin de semana: las lecturas propuestas de los 7 días ---------- */
+function peliculaDe(p=perfil()){
+  const lun=lunesDe(), P=planDe(p), leid=leidasDe(p.id); const dias=[];
+  for(let i=0;i<7;i++){ const f=new Date(lun); f.setDate(f.getDate()+i); const d=Math.round((f-inicioDe(p))/DIA_MS)+1;
+    const h = d>=1 && d<=365 ? P.dias[d] : null; dias.push({f, d, h, hecho: !h || !!leid[h.id], antes: d<1}); }
+  const cuenta=dias.filter(x=>x.h); const hechos=cuenta.filter(x=>x.hecho).length;
+  const vista=(cfgDe(p).peliLog||[]).some(x=>x.semana===claveDia(lun));
+  return {dias, hechos, total:cuenta.length, completa: cuenta.length>0 && hechos===cuenta.length, vista};
+}
+const LETRA_DIA = ['L','M','X','J','V','S','D'];
+function peliPuntosHTML(pe, clic=false){
+  const hoyK=claveDia(new Date());
+  return `<div class="peli-dias">${pe.dias.map((x,i)=>{ const fut=x.f>hoySinHora() && !(new Date().getDay()===6 && i===6); const cls=x.antes?'nada':x.hecho?'ok':fut?'fut':'falta';
+    return `<${clic&&cls==='falta'&&x.h?'button type="button" data-peli="'+esc(x.h.id)+'"':'span'} class="peli-d ${cls}${claveDia(x.f)===hoyK?' es-hoy':''}" title="${esc(fechaLarga(x.f))}${x.h?' · '+esc(conNombre(x.h.titulo)):''}"><b>${LETRA_DIA[i]}</b><i>${cls==='ok'?'✓':cls==='falta'?'!':cls==='nada'?'–':''}</i></${clic&&cls==='falta'&&x.h?'button':'span'}>`; }).join('')}</div>`;
+}
 
 /* tarjeta de Inicio */
 function teleHTML(){
-  const cfg=premiosCfg(), p=perfil(); if(!(cfg.tele>0) || p.prueba) return '';
-  const t=teleDe(p), finde=esFinde();
-  return `<button class="acceso tele${finde?' finde':''}" type="button" data-ir="tele"><span class="emo-g">📺</span><span><b>${finde?`¡Es fin de semana! Tienes ${minTxt(t.saldo)} de tele`:`Tele del fin de semana: ${minTxt(t.saldo)}`}</b><span class="nota">${finde?(t.saldo>0?'Toca aquí para ponerlos en marcha.':`Cada ejercicio suma ${cfg.tele} minutos.`):`Cada ejercicio suma ${cfg.tele} minutos. Se gastan el sábado y el domingo.`}</span></span><span class="ir">${ic('dcha')}</span></button>`;
+  const p=perfil(); if(!teleActiva() || p.prueba) return '';
+  const t=teleDe(p), finde=esFinde(), pe=peliculaDe(p);
+  const peliTxt = pe.completa ? (pe.vista?'🎬 Película de esta semana: ¡ya vista!':finde?'🎬 ¡Película desbloqueada!':'🎬 Película: ¡ya la tienes!') : `🎬 Película: ${pe.hechos} de ${pe.total} lecturas de la semana`;
+  return `<button class="acceso tele${finde?' finde':''}" type="button" data-ir="tele"><span class="emo-g">📺</span><span><b>${finde?`¡Es fin de semana! Tienes ${minTxt(t.saldo)} de tele`:`Tele del fin de semana: ${minTxt(t.saldo)}`}</b><span class="nota">${esc(peliTxt)}</span>${peliPuntosHTML(pe)}</span><span class="ir">${ic('dcha')}</span></button>`;
 }
 
 /* pantalla del reloj de la tele */
 let teleReloj=null;
 definir('tele', {nav:'inicio', pintar(){
-  const p=perfil(), t=teleDe(p), finde=esFinde(), cfg=premiosCfg();
+  const p=perfil(), t=teleDe(p), finde=esFinde(), T=teleCfg(), pe=peliculaDe(p), d=t.det;
+  const fila=(emo,txt,x,cada)=>`<tr><td>${emo} ${txt}</td><td>${x.n}</td><td>${cada}</td><td><b>${minTxt(x.min)}</b></td></tr>`;
   const s=$('#s-tele');
   s.innerHTML=`<button class="volver" type="button" data-ir="inicio">${ic('atras')} Inicio</button>
   <div class="card tele-caja"><span class="tele-ico">📺</span><h1 class="tit">Mis minutos de tele</h1>
     <div class="tele-reloj" id="teleReloj">${mmss(t.saldo*60)}</div>
-    <p class="sub" id="teleTxt">${finde?(t.saldo>0?'Cuando empiece la tele, pulsa «Empezar». Si paras, se guarda lo que queda.':'¡Ya no quedan minutos! Haz ejercicios esta semana para ganar más.'):`Tienes ${minTxt(t.saldo)} para el fin de semana. Los minutos se gastan el sábado y el domingo.`}</p>
-    ${finde && t.saldo>0?`<div class="botones"><button class="btn btn-p btn-xl" type="button" id="teleBtn">▶ Empezar</button></div>`:''}
-    <p class="nota">Cada ejercicio (leer una historia, un dictado, un repaso o «As letras») suma ${cfg.tele} minutos.${cfg.teleGuarda?' Lo que sobra se guarda para el próximo fin de semana.':' Lo que sobra el domingo se pierde.'}</p></div>`;
+    <p class="sub" id="teleTxt">${finde?(t.saldo>0?'Cuando empiece la tele, pulsa «Empezar». Si paras, se guarda lo que queda.':'¡Ya no quedan minutos! El lunes empiezas a ganar más.'):`Tienes ${minTxt(t.saldo)} para el sábado y el domingo. El lunes se empieza de cero.`}</p>
+    ${finde && t.saldo>0?`<div class="botones"><button class="btn btn-p btn-xl" type="button" id="teleBtn">▶ Empezar</button></div>`:''}</div>
+  <div class="tele-cols">
+    <div class="card bloque"><h3>Esta semana has ganado</h3><table class="tele-tabla"><thead><tr><th></th><th>Hechas</th><th>Cada una</th><th>Total</th></tr></thead><tbody>
+      ${fila('📖','Lecturas del día',d.propuesta,minTxt(T.propuesta))}${fila('📚','Lecturas extra',d.extra,minTxt(T.extra))}${fila('🔁','Volver a leer',d.relee,minTxt(T.relee))}${fila('✏️','Fichas',d.ficha,`hasta ${minTxt(T.ficha)}`)}
+      <tr class="tot"><td>Total</td><td></td><td></td><td><b>${minTxt(t.ganados)}</b></td></tr>${t.gastados>0?`<tr><td>Ya visto</td><td></td><td></td><td>−${minTxt(t.gastados)}</td></tr>`:''}</tbody></table>
+      <p class="nota">Las fichas dan ${minTxt(T.ficha)} si no hay ningún fallo; con fallos, la parte de los aciertos.</p>
+      <div class="botones"><button class="btn btn-p" type="button" data-ir="extra">📚 Lecturas extra (+${minTxt(T.extra)})</button></div></div>
+    <div class="card bloque peli-caja"><h3>🎬 Película del fin de semana</h3>
+      <p class="nota">Para ver una película, lee la historia de cada día de la semana (de lunes a domingo).</p>
+      ${peliPuntosHTML(pe, true)}
+      ${pe.completa ? (pe.vista ? `<p class="sub">¡Ya habéis visto la película de esta semana! 🍿</p>` : `<p class="sub"><b>¡Película desbloqueada!</b> ${finde?'Elegid una película y ¡a disfrutar! 🍿':'Ya puedes verla el fin de semana. 🍿'}</p>${finde?`<button class="btn btn-verde" type="button" id="peliVista">Ya la hemos visto</button>`:''}`)
+        : `<p class="sub">Te ${pe.total-pe.hechos===1?'falta 1 lectura':'faltan '+(pe.total-pe.hechos)+' lecturas'}. ${pe.dias.some((x,i)=>!x.hecho && x.h && (x.f<=hoySinHora() || (new Date().getDay()===6 && i===6)))?'Toca un día en rojo para leerla.':''}</p>`}</div></div>`;
+  $$('#s-tele [data-peli]').forEach(b=>b.onclick=()=>{ const h=historia(b.dataset.peli); if(h && estaDisponible(h)) empezarHistoria(h); else if(h) aviso('Esa historia todavía no ha llegado'); });
+  const pv=$('#peliVista'); if(pv) pv.onclick=()=>{ const c=cfgDe(p); c.peliLog=(c.peliLog||[]).concat([{f:new Date().toISOString(), semana:claveDia(lunesDe())}]).slice(-200); guardarAj(); sonido('cromo'); ir('tele'); };
   const b=$('#teleBtn'); if(!b) return;
   let corriendo=false, ini=0; const total=t.saldo*60;
   const pinta=()=>{ const usado=corriendo?(Date.now()-ini)/1000:0; const r=Math.max(0,total-usado); const e=$('#teleReloj'); if(e) e.textContent=mmss(r);
-    if(corriendo && r<=0){ parar(); sonido('cromo'); decir(`¡Se acabó la tele, ${nombre()}!`); dialogo({titulo:'¡Se acabó la tele!', html:'<p class="nota">Ya has gastado todos tus minutos. ¡Esta semana puedes ganar más!</p>', botones:[{t:'Vale', cls:'btn-p', fn:()=>ir('inicio')}], cerrar:false}); } };
+    if(corriendo && r<=0){ parar(); sonido('cromo'); decir(`¡Se acabó la tele, ${nombre()}!`); dialogo({titulo:'¡Se acabó la tele!', html:'<p class="nota">Ya has gastado todos tus minutos. ¡La semana que viene puedes ganar más!</p>', botones:[{t:'Vale', cls:'btn-p', fn:()=>ir('inicio')}], cerrar:false}); } };
   const parar=()=>{ if(!corriendo) return; corriendo=false; clearInterval(teleReloj); teleReloj=null; const usado=Math.min(total,(Date.now()-ini)/1000)/60; if(usado>=.1) apuntarTele(p, usado, 'visto'); };
   b.onclick=()=>{ if(!corriendo){ corriendo=true; ini=Date.now(); b.textContent='⏸ Parar'; teleReloj=setInterval(pinta, 1000); decir('¡A disfrutar de la tele!'); } else { parar(); ir('tele'); } };
   PANT.tele._parar=parar;
@@ -49,12 +113,17 @@ definir('tele', {nav:'inicio', pintar(){
 
 /* familia */
 function teleAdultoHTML(p){
-  const c=premiosCfg(), t=teleDe(p); const log=(cfgDe(p).teleLog||[]).slice(-6).reverse();
-  return `<div class="card bloque" style="margin-bottom:18px"><h3 style="margin-bottom:6px">📺 Minutos de tele</h3>
-    <p class="nota" style="margin-bottom:12px">Cada ejercicio terminado suma minutos que ${esc(p.nombre)} gasta el sábado y el domingo con el reloj de la tele (en Inicio). Ahora tiene <b>${minTxt(t.saldo)}</b> (${t.ej} ejercicios${c.teleGuarda?'':' esta semana'}; ${Math.round(t.gastados)} min ya vistos).</p>
-    <div class="fam-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
-      <div class="campo"><label for="prTele">Minutos por ejercicio</label><select id="prTele">${[0,5,10,15,20,30].map(x=>`<option value="${x}" ${x===c.tele?'selected':''}>${x?x+' minutos':'Sin tele'}</option>`).join('')}</select></div>
-      <div class="campo"><b>Lo que sobra</b><div class="interruptor"><span>Se guarda para el siguiente fin de semana</span><button type="button" class="switch" id="prTeleGuarda" role="switch" aria-checked="${!!c.teleGuarda}"></button></div></div>
+  const T=teleCfg(), t=teleDe(p), pe=peliculaDe(p); const log=(cfgDe(p).teleLog||[]).slice(-6).reverse(); const d=t.det;
+  const sel=(id,vals,v)=>`<select id="${id}">${vals.map(x=>`<option value="${x}" ${x===v?'selected':''}>${x?x+' minutos':'Nada'}</option>`).join('')}</select>`;
+  return `<div class="card bloque" style="margin-bottom:18px"><h3 style="margin-bottom:6px">📺 Tele y película del fin de semana</h3>
+    <p class="nota" style="margin-bottom:12px">Se cuenta de lunes a domingo y no se acumula. Esta semana ${esc(p.nombre)} lleva <b>${minTxt(t.ganados)}</b> (${d.propuesta.n} lecturas del día, ${d.extra.n} extra, ${d.relee.n} releídas, ${d.ficha.n} fichas)${t.gastados>0?`, ha visto ${minTxt(t.gastados)}`:''} y le quedan <b>${minTxt(t.saldo)}</b>.
+      Película: ${pe.completa?(pe.vista?'ya vista esta semana.':'<b>desbloqueada</b>.'):`${pe.hechos} de ${pe.total} lecturas de la semana.`}</p>
+    ${peliPuntosHTML(pe)}
+    <div class="fam-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-top:12px">
+      <div class="campo"><label for="prTele">Lectura del día</label>${sel('prTele',[0,5,10,15,20],T.propuesta)}</div>
+      <div class="campo"><label for="prTeleExtra">Lectura extra</label>${sel('prTeleExtra',[0,5,10,15,20,30],T.extra)}</div>
+      <div class="campo"><label for="prTeleRelee">Volver a leer</label>${sel('prTeleRelee',[0,2,5,10],T.relee)}</div>
+      <div class="campo"><label for="prTeleFicha">Ficha sin fallos</label>${sel('prTeleFicha',[0,2,5,10],T.ficha)}</div>
       <div class="campo"><label for="teleMin">Apuntar a mano</label><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="teleMin" type="number" min="1" max="600" value="10" style="width:90px"><button class="btn btn-mini" type="button" id="teleVisto">Ya los ha visto</button><button class="btn btn-mini" type="button" id="teleRegalo">Regalar</button></div></div></div>
     ${log.length?`<p class="nota" style="margin-top:10px">Últimos: ${log.map(x=>`${esc(fechaCorta(x.f))} ${x.min>0?'−':'+'}${Math.abs(Math.round(x.min))} min`).join(' · ')}</p>`:''}</div>`;
 }
@@ -62,4 +131,5 @@ function activarTeleAdulto(p){
   const n=()=>Math.max(1, Math.min(600, +$('#teleMin').value||0));
   $('#teleVisto').onclick=()=>{ apuntarTele(p, n(), 'visto'); aviso('Apuntado'); ir('evolucion','premios'); };
   $('#teleRegalo').onclick=()=>{ apuntarTele(p, -n(), 'regalo'); aviso('Regalados'); ir('evolucion','premios'); };
+  [['prTele','tele'],['prTeleExtra','teleExtra'],['prTeleRelee','teleRelee'],['prTeleFicha','teleFicha']].forEach(([id,k])=>{ const e=$('#'+id); if(e) e.onchange=()=>{ aj.premios={...(aj.premios||{}), [k]:+e.value}; guardarAj(); aviso('Guardado'); ir('evolucion','premios'); }; });
 }
