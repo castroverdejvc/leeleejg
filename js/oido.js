@@ -76,7 +76,9 @@ function iniciarReconocimientoNavegador(){
   try{
     const r = new SR(); r.lang='es-ES'; r.continuous=true; r.interimResults=true; r.maxAlternatives=1;
     r.onresult=e=>{ if(!lect) return; let t=[]; for(let i=0;i<e.results.length;i++) t.push(e.results[i][0].transcript); lect.txtSesion=t.join(' '); alinear(); };
-    r.onerror=e=>{ if(!lect) return; if(['not-allowed','service-not-allowed','audio-capture','network','language-not-supported'].includes(e.error)){ lect.srFallo=true; lect.oyendo=false; alinear(true); } };
+    r.onerror=e=>{ if(!lect) return;
+      if(e.error==='network' && typeof EST!=='undefined' && EST.oido==='vosk' && !lect.oidoId){ const l=lect; try{ r.onend=null; r.abort(); }catch(x){} l.sr=null; iniciarOidoLocal().then(ok=>{ if(ok && lect===l){ l.oyendo=true; l.srFallo=false; } else if(lect===l){ l.srFallo=true; l.oyendo=false; alinear(true); } }); return; }   // sin internet: pasa al oído del programa
+      if(['not-allowed','service-not-allowed','audio-capture','network','language-not-supported'].includes(e.error)){ lect.srFallo=true; lect.oyendo=false; alinear(true); } };
     r.onend=()=>{ if(!lect) return; lect.txtPrevio += ' '+lect.txtSesion; lect.txtSesion=''; if(lect.activa && !lect.srFallo && !lect.pausadoDesde) setTimeout(()=>{ if(lect && lect.activa && !lect.pausadoDesde){ try{ r.start(); }catch(e){} } },120); };
     r.start(); lect.sr=r; return true;
   }catch(e){ return false; }

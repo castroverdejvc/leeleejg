@@ -28,7 +28,7 @@ const palabraDe = k => { const e=Object.entries(CONT.palabras||{}).find(([p,v])=
 
 /* ============ 1 · Parejas (memoria) ============ */
 function jParejas(el){
-  let n=6, parar=false;
+  let n=4+(typeof nivelJ==='function'?nivelJ('parejas'):2), parar=false;
   const empezar=()=>{
     el.innerHTML=''; const pon=marcador(el); const ks=fotosJuego(n); const cartas=barajarCon([...ks,...ks], Date.now());
     const g=document.createElement('div'); g.className='parejas p'+n; el.appendChild(g);
@@ -244,7 +244,7 @@ function jPuzle(el){
 
 /* ============ 10 · Torres ============ */
 function jTorres(el){
-  el.innerHTML=''; const pon=marcador(el); let n=3, t, mov, sel=null, malos=0;
+  el.innerHTML=''; const pon=marcador(el); let n=3+(typeof nivelJ==='function'?nivelJ('torres'):0), t, mov, sel=null, malos=0;
   const cont=document.createElement('div'); cont.className='torres'; el.appendChild(cont);
   const COL=['#E5484D','#F5A300','#2FB36B','#1E7BF2','#8B5CF6'];
   const pinta=()=>{ cont.innerHTML=t.map((pila,i)=>`<button type="button" class="poste${sel===i?' sel':''}" data-p="${i}"><span class="palo"></span>${pila.map(d=>`<span class="disco" style="width:${30+d*14}%;background:${COL[d-1]}"></span>`).join('')}</button>`).join('');

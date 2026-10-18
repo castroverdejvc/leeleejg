@@ -175,7 +175,7 @@ async function empezarLectura(){
     lect.grabando = await iniciarGrabacion(); if(lect!==yo) return;
   }
   lect.activa=true; lect.t0=performance.now();
-  if(lect.grabando){ lect.oyendo = (EST.oido==='vosk' && await iniciarOidoLocal()) || iniciarReconocimientoNavegador(); }
+  if(lect.grabando){ lect.oyendo = (EST.oido==='vosk' && aj.oidoModo!=='internet' && await iniciarOidoLocal()) || iniciarReconocimientoNavegador() || (EST.oido==='vosk' && aj.oidoModo==='internet' && await iniciarOidoLocal()); }
   if(lect!==yo) return;
   const desde=marcaLectura(hist); if(desde){ lect.inicio=desde; lect.forzado=desde; alinear(true); aviso('Seguimos donde lo dejaste'); } else pintarSeguimiento(0,0);
   pintarMic();

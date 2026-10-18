@@ -1,7 +1,12 @@
 /* LeeLEEJG · más juegos (lógica, lectura y números). Cada partida apunta aciertos y fallos. */
 'use strict';
-const nivelJuego = {};   // sube cuando gana, solo mientras dura la sesión
-const subirNivel = (id, max) => { nivelJuego[id]=Math.min(max, (nivelJuego[id]||0)+1); };
+/* dificultad que se adapta: sube cuando acierta casi todo y baja cuando falla mucho (mira sus últimas partidas) */
+const MAX_NIVEL = {sudoku:3, laberinto:4, series:3, sopa:2, cuenta:3, parejas:4, torres:2};
+function nivelJ(id){ const max=MAX_NIVEL[id]||3; let n=0;
+  (cfgDe(perfil()).juegoLog||[]).filter(x=>x.j===id).slice(-12).forEach(x=>{ const a=x.a||0, e=x.e||0, r=a+e?a/(a+e):0;
+    if(r>=.85 || (a>0 && e<=1)) n++; else if(r<.5 && e>=3) n--; n=Math.max(0, Math.min(max, n)); });
+  return n; }
+const subirNivel = () => {};
 function sacudir(b){ if(!b) return; b.classList.remove('sacude'); void b.offsetWidth; b.classList.add('sacude'); }
 
 /* ============ 11 · Sudoku de dibujos (4×4) ============ */
@@ -11,7 +16,7 @@ function jSudoku(el){
   const choca=(t,i,v)=>t.some((w,j)=>j!==i && w===v && (Math.floor(j/4)===Math.floor(i/4) || j%4===i%4 || caja(j)===caja(i)));
   const soluciones=(t,lim=2)=>{ const i=t.indexOf(null); if(i<0) return 1; let n=0; for(let v=0;v<4 && n<lim;v++) if(!choca(t,i,v)){ t[i]=v; n+=soluciones(t,lim-n); t[i]=null; } return n; };
   const nueva=()=>{
-    const nv=nivelJuego.sudoku||0; huecos=Math.min(11, 5+nv*2); sim=fotosJuego(4);
+    const nv=nivelJ('sudoku'); huecos=Math.min(11, 5+nv*2); sim=fotosJuego(4);
     let g=[[0,1,2,3],[2,3,0,1],[1,0,3,2],[3,2,1,0]]; const perm=barajar([0,1,2,3]); g=g.map(r=>r.map(v=>perm[v]));
     const mezcla=()=>{ if(Math.random()<.5) g=[g[1],g[0],g[2],g[3]]; if(Math.random()<.5) g=[g[0],g[1],g[3],g[2]]; if(Math.random()<.5) g=[g[2],g[3],g[0],g[1]]; };
     const tr=()=>{ g=g[0].map((_,i)=>g.map(r=>r[i])); };
@@ -57,7 +62,7 @@ function jLaberinto(el){
   const mover=d=>{ if(fin || d==='s' || !muros) return; const [r,c]=yo; if(muros[r][c][d]){ golpes++; sonido('mal'); dibuja(); return; }
     const [dc,dr]=DIRS[d]; yo=[r+dr,c+dc]; pasos++; sonido('toc'); dibuja();
     if(yo[0]===meta[0] && yo[1]===meta[1]){ fin=true; apuntarJuego('laberinto',{a:1, e:golpes, pts:pasos, r:`${N}×${M}`}); subirNivel('laberinto',4); sonido('cromo'); confeti(el); decir('¡Has encontrado el queso!'); cartel(el, `<h2>¡Has llegado! 🧀</h2><p class="nota">${pasos} pasos y ${golpes} ${golpes===1?'choque':'choques'}.</p>`, [['Otro laberinto', nueva]]); } };
-  const nueva=()=>{ const nv=nivelJuego.laberinto||0; N=5+nv; M=5+nv; crear(); yo=[0,0]; meta=[M-1,N-1]; golpes=0; pasos=0; fin=false;
+  const nueva=()=>{ const nv=nivelJ('laberinto'); N=5+nv; M=5+nv; crear(); yo=[0,0]; meta=[M-1,N-1]; golpes=0; pasos=0; fin=false;
     el.innerHTML=''; pon=marcador(el); L=lienzo(el,N,M,420); deslizar(L.cv, mover); flechas(el, mover); dibuja(); };
   const quitarT=teclas(mover);
   nueva(); return {parar(){ quitarT(); }};
@@ -69,7 +74,7 @@ function jSeries(el){
   el.innerHTML=''; const pon=marcador(el); const zona=document.createElement('div'); zona.className='series'; el.appendChild(zona);
   let ronda=0, a=0, e=0, mal=false, R=8;
   const pide=()=>{
-    const nv=nivelJuego.series||0; const em=barajar(EMO_SERIES); const [x,y,z]=em; let serie, resp, ops, txt=false;
+    const nv=nivelJ('series'); const em=barajar(EMO_SERIES); const [x,y,z]=em; let serie, resp, ops, txt=false;
     const tipos=['ab','ab','aab','abb','abc','mas1','mas2','crece'].slice(0, 5+Math.min(3, nv+Math.floor(ronda/3)));
     const t=tipos[Math.floor(Math.random()*tipos.length)];
     if(t==='ab'){ serie=[x,y,x,y,x]; resp=y; }
@@ -136,7 +141,7 @@ function jSopa(el){
   let N, g, pals, encontradas, ini=null, a=0, e=0;
   const LETRAS='aeioumpslntdcrbg';
   const nueva=()=>{
-    const nv=nivelJuego.sopa||0; N=6+Math.min(2,nv); const cuantas=3+Math.min(2,nv);
+    const nv=nivelJ('sopa'); N=6+Math.min(2,nv); const cuantas=3+Math.min(2,nv);
     const cand=barajar(Object.entries(CONT.palabras||{}).filter(([p,k])=>/^[a-z]{3,5}$/.test(p) && CONT.fotos[k]).map(([p,k])=>({p,k})));
     for(let intento=0; intento<40; intento++){
       g=Array.from({length:N},()=>Array(N).fill(null)); pals=[];
@@ -170,7 +175,7 @@ function jCuenta(el){
   el.innerHTML=''; const pon=marcador(el); const zona=document.createElement('div'); zona.className='cuenta-j'; el.appendChild(zona);
   let ronda=0, a=0, e=0, R=8, mal;
   const pide=()=>{
-    const nv=nivelJuego.cuenta||0; const max=Math.min(12, 5+nv*2+Math.floor(ronda/3)); mal=false;
+    const nv=nivelJ('cuenta'); const max=Math.min(12, 5+nv*2+Math.floor(ronda/3)); mal=false;
     const mas = ronda%3===2;   // una de cada tres: ¿dónde hay más?
     const em=barajar(EMO_SERIES)[0];
     if(mas){ let n1=1+Math.floor(Math.random()*max), n2; do{ n2=1+Math.floor(Math.random()*max); }while(n2===n1);

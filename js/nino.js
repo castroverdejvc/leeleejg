@@ -26,6 +26,7 @@ definir('inicio', {nav:'inicio', pintar(){
   const pendRep = typeof pendientesHoy==='function' && FICHAS.length ? Math.min(10, pendientesHoy().length) : 0;
   $('#s-inicio').innerHTML = `
   <div class="banda" style="--c:${esc(yo.color)};--cs:${SUAVE[yo.color]||'#E2EEFF'}">${fo?`<img class="fondo" src="${fo}" alt="">`:''}<span class="circulo">${fy?`<img src="${fy}" alt="">`:esc(iniciales(yo.nombre))}</span><b>¡Hola, ${esc(yo.nombre)}!</b><button class="btn btn-mini banda-btn" type="button" data-ir="mipantalla">${ic('imagen')} Mi pantalla</button></div>
+  ${semanaPasadaNinoHTML()}
   ${avisoTemasHTML()}
   ${atrasadasHTML()}
   ${temporadaHTML()}
@@ -48,6 +49,7 @@ definir('inicio', {nav:'inicio', pintar(){
   </div>
   <button class="acceso blanco" type="button" data-ir="calendario"><span class="icono-g">${ic('calendario')}</span><span><b>Ver mi calendario</b>${pend?`<span class="nota">Tienes ${pend} ${pend===1?'historia':'historias'} sin leer de otros días.</span>`:''}</span><span class="ir">${ic('dcha')}</span></button>`;
   $('#btnLeerHoy').onclick=()=>empezarHistoria(h);
+  activarSemanaPasadaNino();
   if($('#btnSeguirHist')) $('#btnSeguirHist').onclick=seguirDondeLoDejo;
   activarAvisoTemas($('#s-inicio')); activarAtrasadas($('#s-inicio')); activarTemporada($('#s-inicio'));
   setTimeout(()=>{ if(actual==='inicio') comprobarPremios(); }, 400);
