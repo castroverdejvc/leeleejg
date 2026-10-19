@@ -130,7 +130,7 @@ definir('revisar', {zona:'adulto', pintar(id){
   const pos=m.indexOf(revI); const v = p.e==='ayuda'?'practica':p.e;
   $('#s-revisar').innerHTML = `<div class="pag-cab"><h1>Revisar una lectura</h1><button class="btn" type="button" id="revLista">${ic('atras')} Todas las grabaciones</button></div>
     <div class="card bloque revisar"><div class="rev-foto">${h?imgHTML(w.clave||h.portada,true):''}</div>
-      <div class="nota">${esc(s.titulo)} · ${esc(new Date(s.fecha).toLocaleDateString('es-ES',{day:'numeric',month:'long'}))} · ${s.ppm} palabras por minuto</div>
+      <div class="nota">${esc(s.titulo)} · ${esc(new Date(s.fecha).toLocaleDateString('es-ES',{day:'numeric',month:'long'}))} · ${s.ppm} palabras por minuto${s.escuchada?' · 🎧 la escuchó antes de leerla':''}</div>
       <div class="rev-frase">${linea}</div><div id="revAudio"></div>
       <div><b>Marca la lectura de esta palabra: <span style="font-family:var(--f-lect);font-size:1.5rem">${esc(w.texto)}</span></b>${p.e==='ayuda'?' <span class="nb medio">pidió ayuda</span>':''}${p.e==='pendiente'?' <span class="nb medio">el programa no la oyó bien</span>':''}</div>
       <div class="marcar"><button type="button" class="m-ok" data-v="ok" aria-pressed="${v==='ok'&&!!p.r}"><i></i>Lectura correcta</button><button type="button" class="m-pr" data-v="practica" aria-pressed="${v==='practica'}"><i></i>Necesita práctica</button><button type="button" class="m-nc" data-v="noclaro" aria-pressed="${v==='noclaro'}"><i></i>Audio no claro</button></div>

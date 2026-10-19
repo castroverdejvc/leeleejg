@@ -39,6 +39,8 @@ function pintarTexto(cont, lineas){
 
 /* ---------- leer juntos: una frase el niño y la siguiente papá, mamá o la voz del programa ---------- */
 const JUNTOS_TXT = {no:'👦 Leo yo solo', adulto:'👨‍👧 Con papá o mamá', voz:'🔊 Con la voz'};
+/* escucha previa: el programa lee la historia antes y luego la lee el niño */
+const ESCUCHAR_TXT = {no:['📖','Leo yo directamente'], boton:['🔊','Puedo pedirla'], nuevas:['🎧','La oigo antes si es nueva']};
 function marcarJuntos(){
   const modo=aj.juntos||'no';
   palabras.forEach(w=>{ w.adulto = modo!=='no' && w.linea%2===1; });
@@ -149,7 +151,7 @@ definir('nooye', {pintar(){
 definir('lectura', {nav:'historias', pintar(modo){
   if(modo==='seguir' && lect){ reanudarLectura(); return; }
   const h=hist;
-  $('#s-lectura').innerHTML = `<div class="card lect-card leyendo"><div class="lect-cab"><span class="t">${diaPersonal(h)?'Día '+diaPersonal(h):esc((temaDeMundo(h.mundo)||{nombre:''}).nombre)} · ${esc(conNombre(h.titulo))}</span><span class="der">${marcaLectura(h)?'<button class="btn btn-mini" type="button" id="btnDesdeInicio">Empezar desde el principio</button>':''}<button class="btn btn-mini btn-juntos" type="button" id="btnJuntos" title="Leer solo, con papá o mamá, o con la voz del programa">${JUNTOS_TXT[aj.juntos||'no']}</button><button class="btn btn-mini btn-sig-pal" type="button" id="btnSigPal" title="Si ya la has leído y no se pone verde">Siguiente ${ic('dcha')}</button><span class="mic-ind" id="micInd"><i></i><span id="micTxt">Preparando…</span></span></span></div>
+  $('#s-lectura').innerHTML = `<div class="card lect-card leyendo"><div class="lect-cab"><span class="t">${diaPersonal(h)?'Día '+diaPersonal(h):esc((temaDeMundo(h.mundo)||{nombre:''}).nombre)} · ${esc(conNombre(h.titulo))}</span><span class="der">${marcaLectura(h)?'<button class="btn btn-mini" type="button" id="btnDesdeInicio">Empezar desde el principio</button>':''}${(aj.escuchar||'boton')!=='no'?`<button class="btn btn-mini btn-escuchar" type="button" id="btnEscuchar" title="El programa la lee primero y luego la lees tú">🔊 Escúchala primero</button>`:''}<button class="btn btn-mini btn-juntos" type="button" id="btnJuntos" title="Leer solo, con papá o mamá, o con la voz del programa">${JUNTOS_TXT[aj.juntos||'no']}</button><button class="btn btn-mini btn-sig-pal" type="button" id="btnSigPal" title="Si ya la has leído y no se pone verde">Siguiente ${ic('dcha')}</button><span class="mic-ind" id="micInd"><i></i><span id="micTxt">Preparando…</span></span></span></div>
     <div class="texto ${claseTexto()} ${aj.img==='sin'?'sin-fotos':''}" id="texto"></div>
     <div class="lect-barra"><button class="ico-btn" type="button" id="btnFrase" aria-label="Escuchar la frase">${ic('altavoz')}</button><div class="prog"><i id="progLect"></i></div>
       <button class="ico-btn" type="button" id="btnPausa" aria-label="Pausa">${ic('pausa2')}</button><button class="btn btn-p" type="button" id="btnTermine">Terminé ${ic('check')}</button></div></div>
@@ -162,6 +164,7 @@ definir('lectura', {nav:'historias', pintar(modo){
   $('#btnPausa').onclick=pausar;
   $('#btnSigPal').onclick=()=>{ if(!lect || !lect.activa || lect.pausadoDesde) return; const w=palabras[lect.puntero||0]; if(w && w.adulto){ saltarLineaAdulto(); return; } lect.forzado=(lect.puntero||0)+1; alinear(); };
   $('#btnTermine').onclick=()=>terminarDeLeer();
+  if($('#btnEscuchar')) $('#btnEscuchar').onclick=()=>escucharPrimero();
   if($('#btnDesdeInicio')) $('#btnDesdeInicio').onclick=()=>{ aj.marcapaginas=null; guardarAj(); cancelarLectura(); empezarHistoria(h); };
   $('#btnFrase').onclick=()=>{ const i=Math.min(lect?lect.puntero||0:0, palabras.length-1); const p=palabras[i].el.closest('p'); if(lect) lect.frases=(lect.frases||0)+1; decir(p.textContent.replace(/\s+/g,' ').trim()); };
   empezarLectura();
@@ -185,6 +188,26 @@ async function empezarLectura(){
   pintarMic();
   if(document.activeElement) document.activeElement.blur();
   vigilarSilencio(yo);
+  if(desde && $('#btnEscuchar')) $('#btnEscuchar').hidden=true;
+  else if(aj.escuchar==='nuevas' && !leidas()[hist.id]) escucharPrimero();
+}
+/* escucha previa: el programa lee la historia frase a frase (marcada en el texto); mientras, no se escucha ni cuenta el tiempo.
+   Luego empieza el niño. Queda apuntado en la lectura (la familia lo ve al revisarla). */
+async function escucharPrimero(){
+  const l=lect; const b=$('#btnEscuchar');
+  if(!l || !l.activa || l.modelo || (l.puntero||0)>0 || l.pausadoDesde){ if(b && l && (l.puntero||0)>0) b.hidden=true; return; }
+  l.modelo=true; l.escuchando=true; if(b) b.hidden=true;
+  l.pausadoDesde=performance.now(); try{ l.rec && l.rec.pause(); }catch(e){} if(l.sr){ try{ l.sr.stop(); }catch(e){} }
+  pintarMic(); const t=$('#micTxt'); if(t) t.textContent='Escucha…';
+  await decir('Escucha primero cómo suena. Luego la lees tú.');
+  for(const p of $$('#texto p')){
+    if(lect!==l || !l.escuchando || actual!=='lectura') break;
+    p.classList.add('modelo-lee'); await decir(p.textContent.replace(/\s+/g,' ').trim()); p.classList.remove('modelo-lee');
+  }
+  if(lect!==l || actual!=='lectura') return;
+  l.escuchando=false; $$('#texto p.modelo-lee').forEach(p=>p.classList.remove('modelo-lee'));
+  await decir('¡Ahora tú!');
+  if(lect===l && actual==='lectura' && !l.cerrando) reanudarLectura();
 }
 function pintarMic(){ const m=$('#micInd'); if(!m||!lect) return; m.classList.toggle('on', !!(lect.grabando && !lect.pausadoDesde));
   $('#micTxt').textContent = !lect.grabando ? 'Sin micrófono' : lect.pausadoDesde ? 'En pausa' : (lect.oyendo ? 'Te escucho' : 'Grabando'); }
@@ -194,7 +217,7 @@ function vigilarSilencio(l){ if(!l.an) return; let max=0; const t0=Date.now();
     if(Date.now()-t0>8000){ if(max<0.04){ const t=$('#micTxt'); if(t) t.textContent='No te oigo bien: acércate al micrófono'; } return; }
     requestAnimationFrame(b); })(); }
 function pausar(){
-  if(!lect || !lect.activa) return;
+  if(!lect || !lect.activa || lect.escuchando) return;
   lect.pausadoDesde=performance.now(); try{ lect.rec && lect.rec.pause(); }catch(e){} if(lect.sr){ try{ lect.sr.stop(); }catch(e){} } pintarMic();
   dialogo({titulo:'¿Seguimos?', botones:[{t:'Continuar', cls:'btn-p', fn:reanudarLectura},{t:'Volver al inicio', fn:()=>ir('inicio')}], alCerrar:reanudarLectura});
 }
@@ -280,7 +303,7 @@ async function cerrarLectura(){
     segundos:Math.round(seg), totalPalabras:palabras.length, ppm:Math.round(palabras.slice(ini).filter(w=>!w.adulto).length/(seg/60)), palabras:estados, ...(ini?{desdePalabra:ini}:{}), auto:oyo, oido:l.oidoId?'vosk':(l.sr?'navegador':'ninguno'),
     oidoStats: l.rt ? {peticiones:l.rt.n, msMedio:Math.round(l.rt.suma/l.rt.n), msMax:Math.round(l.rt.max), retrasoMedio: l.retrasos&&l.retrasos.length ? +media(l.retrasos).toFixed(2) : null, reconocidas:l.ok?l.ok.filter(Boolean).length:0} : null,
     oidoTexto: (l.oidoId ? l.finales.map(f=>f.w).join(' ') : (l.txtPrevio+' '+l.txtSesion)).trim().slice(0,2000) || undefined, oidoLimite: oyo ? +limite.toFixed(1) : undefined,
-    ...(palabras.some(w=>w.adulto)?{juntos:aj.juntos}:{}), frasesEscuchadas:l.frases||0, letra:aj.letra, tam:aj.tam, imagenes:aj.img, preguntas:[], aciertos:0, totalPreguntas:hist.preguntas.length, calculo:null, revisada: pendientes===0, incompleta:true };
+    ...(palabras.some(w=>w.adulto)?{juntos:aj.juntos}:{}), ...(l.modelo?{escuchada:true}:{}), frasesEscuchadas:l.frases||0, letra:aj.letra, tam:aj.tam, imagenes:aj.img, preguntas:[], aciertos:0, totalPreguntas:hist.preguntas.length, calculo:null, revisada: pendientes===0, incompleta:true };
   if(sesion.oidoStats) registrar(`Oído ${sesion.oido}: ${sesion.oidoStats.reconocidas}/${palabras.length} palabras reconocidas, retraso medio ${sesion.oidoStats.retrasoMedio} s, petición media ${sesion.oidoStats.msMedio} ms (máx ${sesion.oidoStats.msMax})`);
   audioBlob=blob;
   if(aj.marcapaginas && aj.marcapaginas.historiaId===hist.id){ aj.marcapaginas=null; guardarAj(); }
@@ -376,10 +399,12 @@ definir('cromonuevo', {nav:'cromos', pintar(){
     return; } const eraNueva=!cromosDe(perfil())[h.id]; const m=mundoDe(h.mundo);
   const TA=temaDeMundo(h.mundo)||{id:h.mundo, nombre:m.nombre, emo:'⭐'}; const hsA=historiasTema(TA.id); const lA=leidas(); const nA=hsA.filter(x=>lA[x.id]||x.id===h.id).length; const albumCompleto=eraNueva && hsA.length>0 && nA===hsA.length;
   sesion.aciertos=sesion.preguntas.filter(p=>p.ok).length;
+  const mejora = eraNueva ? null : mejoraRelectura(h, sesion);
   const T=pasos(); const miAudio = audioBlob || (sesion.audio ? '/api/audio/'+sesion.id : null);
   $('#s-cromonuevo').innerHTML = `<div class="card" style="padding:20px 26px 6px">${cabPaso(T, {t: eraNueva?'Tu nuevo cromo':'Historia terminada', cls:'verde'})}</div>
   <div class="card cromo-g" id="cromoCaja" style="margin-top:-10px;border-top-left-radius:0;border-top-right-radius:0"><div class="carta"><div class="ft">${imgHTML(h.portada,true)}</div><div class="pie"><b>${esc(conNombre(h.titulo))}</b><span>${TA.emo} ${esc(TA.nombre)} · ${nA} de ${hsA.length}</span></div></div>
     <div class="tx"><h1>${eraNueva?'¡Nuevo cromo!':'¡Muy bien!'}</h1><p class="sub">${albumCompleto?`🏆 ¡Has completado el álbum de ${esc(TA.nombre)}!`:eraNueva?`Has aprendido sobre ${esc(m.nombre.toLowerCase())}.`:'¡Cromo repetido! Ya tenías este, así que te llevas un repe para cambiar con otro niño.'}</p>
+      ${mejora?`<p class="mejora-rel">🚀 ¡Hoy la has leído más rápido! La otra vez, ${mejora.antes} palabras por minuto; hoy, ${mejora.hoy}.</p>`:''}
       <div class="res-mini"><span class="chip">Preguntas ${sesion.aciertos} de ${sesion.totalPreguntas}</span>${sesion.calculo?`<span class="chip">Números ${sesion.calculo.ok?'✓':'con ayuda'}</span>`:''}<span class="chip">${sesion.segundos<60?sesion.segundos+' segundos':mmss(sesion.segundos)+' min'}</span></div>
       ${miAudio?`<button class="btn btn-verde btn-g btn-bloque" type="button" id="btnEscucharme">${ic('altavoz')} Escucharme</button>`:''}
       <button class="btn btn-borde btn-g btn-bloque" type="button" data-ir="cromos">${ic('album')} Ver mi álbum</button>
@@ -389,9 +414,16 @@ definir('cromonuevo', {nav:'cromos', pintar(){
   if(eraNueva){ confeti($('#cromoCaja')); sonido('cromo'); }
   coleccion=TA.id;
   if(albumCompleto){ setTimeout(()=>{ confeti($('#cromoCaja')); sonido('bien'); }, 1600); }
-  decir(albumCompleto ? `¡Nuevo cromo, ${nombre()}! ¡Y has completado el álbum de ${TA.nombre}!` : eraNueva ? `¡Nuevo cromo, ${nombre()}! ${conNombre(h.titulo)}.` : `¡Muy bien, ${nombre()}! Has terminado la historia.`);
+  decir(albumCompleto ? `¡Nuevo cromo, ${nombre()}! ¡Y has completado el álbum de ${TA.nombre}!` : eraNueva ? `¡Nuevo cromo, ${nombre()}! ${conNombre(h.titulo)}.` : mejora ? `¡Muy bien, ${nombre()}! Hoy la has leído más rápido que la otra vez. ¡Practicar funciona!` : `¡Muy bien, ${nombre()}! Has terminado la historia.`);
   delete sesion.incompleta; guardarSesionActual().then(()=>setTimeout(()=>{ if(actual==='cromonuevo') comprobarPremios(); }, albumCompleto?3600:2600));
 }});
+/* al volver a leer una historia: si hoy ha ido más rápido que la última vez, se le dice (solo lo bueno; con lecturas oídas por el programa) */
+function mejoraRelectura(h, s){
+  if(!s || !s.ppm || !s.auto || s.desdePalabra) return null;
+  const prev=sesDe(s.lectorId).filter(x=>x.historiaId===h.id && x.id!==s.id && !x.incompleta && x.ppm>0 && x.auto && !x.desdePalabra).sort((a,b)=>a.fecha<b.fecha?-1:1).at(-1);
+  if(!prev || s.ppm < prev.ppm*1.1 || s.ppm-prev.ppm < 2) return null;
+  return {antes:prev.ppm, hoy:s.ppm};
+}
 /* guarda la lectura en curso (cada vez que avanza); las peticiones van en fila para no pisarse */
 let colaGuardar=Promise.resolve();
 function guardarSesionActual(){

@@ -986,3 +986,7 @@ button.peli-d.falta{cursor:pointer}
 .resumen-semana>div{flex:1}.resumen-semana b{display:block;font-size:1.1rem}
 @media (max-width:600px){.resumen-semana{flex-wrap:wrap}}
 @media (max-width:560px){.lateral{position:static}}   /* en el móvil el menú de la familia ocupa varias filas: que no tape la pantalla al bajar */
+/* escucha previa y mejora al releer */
+#texto p.modelo-lee{background:#FFF4C2;border-radius:12px;box-shadow:0 0 0 8px #FFF4C2;transition:background .2s}
+.btn-escuchar{background:#FFF4C2;border-color:#F2C230}
+.mejora-rel{margin:4px 0 8px;font-weight:800;color:var(--green)}
