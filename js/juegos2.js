@@ -1,7 +1,7 @@
 /* LeeLEEJG · más juegos (lógica, lectura y números). Cada partida apunta aciertos y fallos. */
 'use strict';
 /* dificultad que se adapta: sube cuando acierta casi todo y baja cuando falla mucho (mira sus últimas partidas) */
-const MAX_NIVEL = {sudoku:3, laberinto:4, series:3, sopa:2, cuenta:3, parejas:4, torres:2};
+const MAX_NIVEL = {sudoku:3, laberinto:4, series:3, sopa:2, cuenta:3, parejas:4, torres:2, fiesta:3};
 function nivelJ(id){ const max=MAX_NIVEL[id]||3; let n=0;
   (cfgDe(perfil()).juegoLog||[]).filter(x=>x.j===id).slice(-12).forEach(x=>{ const a=x.a||0, e=x.e||0, r=a+e?a/(a+e):0;
     if(r>=.85 || (a>0 && e<=1)) n++; else if(r<.5 && e>=3) n--; n=Math.max(0, Math.min(max, n)); });
@@ -27,13 +27,13 @@ function jSudoku(el){
   const cont=document.createElement('div'); cont.className='sudoku-zona'; el.appendChild(cont);
   const pinta=()=>{
     cont.innerHTML=`<div class="sudoku">${tab.map((v,i)=>`<button type="button" class="sd${fijo[i]?' fijo':''}${i===sel?' sel':''}${caja(i)%3===0?' c1':' c2'}" data-i="${i}">${v!=null?imgHTML(sim[v]):''}</button>`).join('')}</div>
-      <div class="sudoku-pal">${sim.map((k,v)=>`<button type="button" class="sp" data-v="${v}">${imgHTML(k)}<b class="${claseTexto()}">${esc(palabraDe(k))}</b></button>`).join('')}</div>`;
+      <div class="sudoku-pal">${sim.map((k,v)=>`<button type="button" class="sp" data-v="${v}">${imgHTML(k)}<b class="${claseTexto()}">${esc(nombreFoto(k))}</b></button>`).join('')}</div>`;
     pon(`Cada dibujo, una vez en cada fila, en cada columna y en cada cuadrado. · ✓ ${a} · ✗ ${e}`);
   };
   cont.addEventListener('click', ev=>{
     const c=ev.target.closest('[data-i]'); if(c){ const i=+c.dataset.i; if(!fijo[i] && tab[i]==null){ sel=i; sonido('toc'); pinta(); } return; }
     const p=ev.target.closest('[data-v]'); if(!p || sel==null || tab[sel]!=null) return; const v=+p.dataset.v;
-    if(v===sol[sel]){ tab[sel]=v; a++; sonido('bien'); decir(palabraDe(sim[v]));
+    if(v===sol[sel]){ tab[sel]=v; a++; sonido('bien'); decir(nombreFoto(sim[v]));
       if(!tab.includes(null)){ pinta(); apuntarJuego('sudoku',{a, e, r:huecos+' huecos'}); confeti(el); sonido('cromo'); setTimeout(()=>cartel(el, `<h2>¡Sudoku resuelto! 🎉</h2><p class="nota">${e?`Con ${e} ${e===1?'fallo':'fallos'}.`:'¡Sin ningún fallo!'}</p>`, [['Otro sudoku', nueva]]), 500); return; }
       sel=tab.indexOf(null); pinta(); }
     else { e++; sonido('mal'); decir(choca(tab,sel,v)?'Ese ya está en la fila, la columna o el cuadrado.':'Ahí no va. Piénsalo otra vez.'); pinta(); sacudir(cont.querySelector(`[data-i="${sel}"]`)); }
@@ -43,7 +43,7 @@ function jSudoku(el){
 
 /* ============ 12 · Laberinto ============ */
 function jLaberinto(el){
-  let pon, N, M, muros, yo, meta, golpes, pasos, L=null, fin=false;
+  let pon, N, M, muros, yo, meta, golpes, pasos, L=null, fin=false; const F=fiestaJ(); const LAB=(F && F.juego.lab) || ['🐭','al ratón','🧀','el queso'];
   const crear=()=>{ // muros[r][c] = {u,r,d,l}: 1 si hay pared
     muros=Array.from({length:M},()=>Array.from({length:N},()=>({u:1,r:1,d:1,l:1}))); const vis=Array.from({length:M},()=>Array(N).fill(false));
     const pila=[[0,0]]; vis[0][0]=true;
@@ -56,11 +56,11 @@ function jLaberinto(el){
     for(let r=0;r<M;r++) for(let c=0;c<N;c++){ const m=muros[r][c], X=c*cel, Y=r*cel; x.beginPath();
       if(m.u){ x.moveTo(X,Y); x.lineTo(X+cel,Y); } if(m.l){ x.moveTo(X,Y); x.lineTo(X,Y+cel); } if(r===M-1&&m.d){ x.moveTo(X,Y+cel); x.lineTo(X+cel,Y+cel); } if(c===N-1&&m.r){ x.moveTo(X+cel,Y); x.lineTo(X+cel,Y+cel); } x.stroke(); }
     x.font=`${Math.floor(cel*.7)}px serif`; x.textAlign='center'; x.textBaseline='middle';
-    x.fillText('🧀', (meta[1]+.5)*cel, (meta[0]+.55)*cel); x.fillText('🐭', (yo[1]+.5)*cel, (yo[0]+.55)*cel);
-    pon(`Lleva al ratón hasta el queso · Pasos: ${pasos} · ✗ Choques: ${golpes}`); };
+    x.fillText(LAB[2], (meta[1]+.5)*cel, (meta[0]+.55)*cel); x.fillText(LAB[0], (yo[1]+.5)*cel, (yo[0]+.55)*cel);
+    pon(`Lleva ${LAB[1]} hasta ${LAB[3]} · Pasos: ${pasos} · ✗ Choques: ${golpes}`); };
   const mover=d=>{ if(fin || d==='s' || !muros) return; const [r,c]=yo; if(muros[r][c][d]){ golpes++; sonido('mal'); dibuja(); return; }
     const [dc,dr]=DIRS[d]; yo=[r+dr,c+dc]; pasos++; sonido('toc'); dibuja();
-    if(yo[0]===meta[0] && yo[1]===meta[1]){ fin=true; apuntarJuego('laberinto',{a:1, e:golpes, pts:pasos, r:`${N}×${M}`}); sonido('cromo'); confeti(el); decir('¡Has encontrado el queso!'); cartel(el, `<h2>¡Has llegado! 🧀</h2><p class="nota">${pasos} pasos y ${golpes} ${golpes===1?'choque':'choques'}.</p>`, [['Otro laberinto', nueva]]); } };
+    if(yo[0]===meta[0] && yo[1]===meta[1]){ fin=true; apuntarJuego('laberinto',{a:1, e:golpes, pts:pasos, r:`${N}×${M}`}); sonido('cromo'); confeti(el); decir(`¡Has llegado a ${LAB[3]}!`); cartel(el, `<h2>¡Has llegado! ${LAB[2]}</h2><p class="nota">${pasos} pasos y ${golpes} ${golpes===1?'choque':'choques'}.</p>`, [['Otro laberinto', nueva]]); } };
   const nueva=()=>{ const nv=nivelJ('laberinto'); N=5+nv; M=5+nv; crear(); yo=[0,0]; meta=[M-1,N-1]; golpes=0; pasos=0; fin=false;
     el.innerHTML=''; pon=marcador(el); L=lienzo(el,N,M,420); deslizar(L.cv, mover); flechas(el, mover); dibuja(); };
   const quitarT=teclas(mover);
@@ -69,11 +69,12 @@ function jLaberinto(el){
 
 /* ============ 13 · ¿Qué viene después? (series) ============ */
 const EMO_SERIES = ['🍎','🍌','🍇','⭐','🐶','🐱','🔵','🔺','🟩','🌙','🚗','⚽'];
+const emosJuego = () => { const f=emosFiesta(); return f.length>=6 ? f : EMO_SERIES; };
 function jSeries(el){
   el.innerHTML=''; const pon=marcador(el); const zona=document.createElement('div'); zona.className='series'; el.appendChild(zona);
   let ronda=0, a=0, e=0, mal=false, R=8;
   const pide=()=>{
-    const nv=nivelJ('series'); const em=barajar(EMO_SERIES); const [x,y,z]=em; let serie, resp, ops, txt=false;
+    const nv=nivelJ('series'); const em=barajar(emosJuego()); const [x,y,z]=em; let serie, resp, ops, txt=false;
     const tipos=['ab','ab','aab','abb','abc','mas1','mas2','crece'].slice(0, 5+Math.min(3, nv+Math.floor(ronda/3)));
     const t=tipos[Math.floor(Math.random()*tipos.length)];
     if(t==='ab'){ serie=[x,y,x,y,x]; resp=y; }
@@ -102,8 +103,13 @@ function jSeries(el){
 /* ============ 14 · Ordena la frase ============ */
 function frasesParaOrdenar(){
   const n=Math.max(1, Math.min(5, nivelActualDe(perfil())));
+  const F=fiestaJ();
+  if(F){ const out=frasesDe(historiasTemporada(F.id).filter(h=>h.nivel<=n+1)); if(out.length>=4) return out; }
+  return frasesDe(CONT.historias.filter(h=>h.nivel<=n && h.mundo!=='fiestas'));
+}
+function frasesDe(hs){
   const out=[];
-  CONT.historias.filter(h=>h.nivel<=n && h.mundo!=='fiestas').forEach(h=>h.lineas.forEach(l=>{
+  hs.forEach(h=>h.lineas.forEach(l=>{
     const fotos=[...l.matchAll(/\[[^|\]]+\|([^\]]+)\]/g)].map(m=>m[1]);
     const t=conNombre(l).replace(/\[([^|\]]+)\|[^\]]+\]/g,'$1').replace(/[«»"]/g,'').trim();
     const ws=t.split(/\s+/).filter(Boolean); if(ws.length>=3 && ws.length<=6 && !/[;:]/.test(t)) out.push({t, ws, foto:fotos[0]});
@@ -141,7 +147,9 @@ function jSopa(el){
   const LETRAS='aeioumpslntdcrbg';
   const nueva=()=>{
     const nv=nivelJ('sopa'); N=6+Math.min(2,nv); const cuantas=3+Math.min(2,nv);
-    const cand=barajar(Object.entries(CONT.palabras||{}).filter(([p,k])=>/^[a-z]{3,5}$/.test(p) && CONT.fotos[k]).map(([p,k])=>({p,k})));
+    const sinTilde=w=>w.normalize('NFD').replace(/[\u0301\u0308]/g,'').normalize('NFC');
+    const fiesta=barajar(palabrasFiesta().map(c=>({p:sinTilde(c.p), w:c.p, k:c.k})).filter(c=>/^[a-zñ]{3,8}$/.test(c.p) && c.p.length<=N));
+    const cand=[...fiesta.slice(0,cuantas-1), ...barajar(Object.entries(CONT.palabras||{}).filter(([p,k])=>/^[a-z]{3,5}$/.test(p) && CONT.fotos[k]).map(([p,k])=>({p,k})))];
     for(let intento=0; intento<40; intento++){
       g=Array.from({length:N},()=>Array(N).fill(null)); pals=[];
       for(const c of cand){ if(pals.length>=cuantas) break; if(pals.some(x=>x.p===c.p) || c.p.length>N) continue;
@@ -153,7 +161,7 @@ function jSopa(el){
   };
   const enc=(r,c)=>pals.some(p=>encontradas.has(p.p) && p.celdas.some(([y,x])=>y===r&&x===c));
   const pinta=()=>{
-    zona.innerHTML=`<div class="sopa-pals">${pals.map(p=>`<span class="sopa-p${encontradas.has(p.p)?' hecha':''}">${imgHTML(p.k)}<b class="${claseTexto()}">${esc(p.p)}</b></span>`).join('')}</div>
+    zona.innerHTML=`<div class="sopa-pals">${pals.map(p=>`<span class="sopa-p${encontradas.has(p.p)?' hecha':''}">${imgHTML(p.k)}<b class="${claseTexto()}">${esc(p.w||p.p)}</b></span>`).join('')}</div>
       <div class="sopa ${claseTexto()}" style="grid-template-columns:repeat(${N},1fr)">${g.map((f,r)=>f.map((ch,c)=>`<button type="button" class="sl${enc(r,c)?' ok':''}${ini&&ini[0]===r&&ini[1]===c?' ini':''}" data-r="${r}" data-c="${c}">${esc(ch)}</button>`).join('')).join('')}</div>`;
     pon(`Toca la primera letra y la última de cada palabra · ✓ ${a} · ✗ ${e}`);
   };
@@ -161,7 +169,7 @@ function jSopa(el){
     if(!ini){ ini=[r,c]; sonido('toc'); pinta(); return; }
     const [r0,c0]=ini; ini=null;
     const p=pals.find(p=>!encontradas.has(p.p) && ((p.celdas[0][0]===r0&&p.celdas[0][1]===c0&&p.celdas.at(-1)[0]===r&&p.celdas.at(-1)[1]===c) || (p.celdas[0][0]===r&&p.celdas[0][1]===c&&p.celdas.at(-1)[0]===r0&&p.celdas.at(-1)[1]===c0)));
-    if(p){ encontradas.add(p.p); a++; sonido('bien'); decir(p.p); pinta();
+    if(p){ encontradas.add(p.p); a++; sonido('bien'); decir(p.w||p.p); pinta();
       if(encontradas.size===pals.length){ apuntarJuego('sopa',{a, e, r:pals.length+' palabras'}); sonido('cromo'); confeti(el); setTimeout(()=>cartel(el, `<h2>¡Todas encontradas! 🎉</h2><p class="nota">${e?`Con ${e} ${e===1?'fallo':'fallos'}.`:'¡Sin fallos!'}</p>`, [['Otra sopa', nueva]]), 600); } }
     else if(r0===r && c0===c){ pinta(); }
     else { e++; sonido('mal'); pinta(); sacudir(zona.querySelector('.sopa')); }
@@ -176,7 +184,7 @@ function jCuenta(el){
   const pide=()=>{
     const nv=nivelJ('cuenta'); const max=Math.min(12, 5+nv*2+Math.floor(ronda/3)); mal=false;
     const mas = ronda%3===2;   // una de cada tres: ¿dónde hay más?
-    const em=barajar(EMO_SERIES)[0];
+    const em=barajar(emosJuego())[0];
     if(mas){ let n1=1+Math.floor(Math.random()*max), n2; do{ n2=1+Math.floor(Math.random()*max); }while(n2===n1);
       const grupo=n=>`<div class="grupo-c">${Array.from({length:n},()=>`<span>${em}</span>`).join('')}</div>`;
       zona.innerHTML=`<p class="sub">¿Dónde hay más?</p><div class="dos-grupos"><button type="button" class="gc" data-g="0">${grupo(n1)}</button><button type="button" class="gc" data-g="1">${grupo(n2)}</button></div>`;
@@ -207,15 +215,66 @@ JUEGOS.push(
   {id:'sopa', nombre:'Sopa de letras', emo:'🔤', desc:'Encuentra las palabras escondidas.', fn:jSopa},
   {id:'cuenta', nombre:'¿Cuántos hay?', emo:'🔢', desc:'Cuenta los dibujos y di dónde hay más.', fn:jCuenta}
 );
+/* ============ 17 · Atrapa la fiesta (solo la semana de cada fiesta) ============
+   Arriba sale una palabra de la fiesta (sin dibujo: hay que leerla) y caen dibujos; se atrapa con la cesta el que dice la palabra. */
+function jFiesta(el){
+  const F=fiestaJ(); if(!F){ el.innerHTML='<p class="vacio">Ahora no hay ninguna fiesta.</p>'; return {parar(){}}; }
+  const cosas=F.juego.cosas.map(c=>({w:c[0], e:c[1]})).filter((c,i,a)=>a.findIndex(x=>x.e===c.e)===i);
+  el.innerHTML=''; const pon=marcador(el); const COLS=8, ROWS=11; const L=lienzo(el,COLS,ROWS,420); const {x,cel}=L; L.cv.style.touchAction='none';
+  let cesta, caen, obj, a, e, tiempo, vivo=false, ac, sinObj, tObj, aviso='', tAviso=0, pararB=null, ultMarca='';
+  const nuevoObj=()=>{ const ops=cosas.filter(c=>!obj || c.e!==obj.e); obj=ops[Math.floor(Math.random()*ops.length)]; tObj=0; sinObj=0; };
+  const soltar=()=>{ const tocaObj = sinObj>=2 || Math.random()<.35; const c = tocaObj ? obj : cosas[Math.floor(Math.random()*cosas.length)]; sinObj = c.e===obj.e ? 0 : sinObj+1;
+    caen.push({x:cel*(.6+Math.random()*(COLS-1.2)), y:-cel*.5, c, v:cel*(2.1+nivelJ('fiesta')*.55+Math.random()*.6)}); };
+  const dibuja=()=>{ x.fillStyle=F.suave||'#FFF8E7'; x.fillRect(0,0,L.W,L.H);
+    x.font=`${Math.floor(cel*.85)}px serif`; x.textAlign='center'; x.textBaseline='middle';
+    caen.forEach(it=>x.fillText(it.c.e, it.x, it.y));
+    x.font=`${Math.floor(cel*1.2)}px serif`; x.fillText('🧺', cesta, L.H-cel*.75);
+    if(aviso){ x.font=`bold ${Math.floor(cel*.5)}px Nunito,system-ui`; x.fillStyle='#1F2937'; x.fillText(aviso, L.W/2, cel*.6); }
+    const m=`Atrapa: <b class="${claseTexto()} pal-fiesta">${esc(obj.w)}</b> <button type="button" class="btn btn-g oir-f" aria-label="Escuchar la palabra">🔊</button> · ✓ ${a} · ✗ ${e} · ⏱ ${Math.max(0,Math.ceil(tiempo))}`;
+    if(m!==ultMarca){ ultMarca=m; pon(m); } };   // solo cuando cambia (si no, el botón 🔊 se rehace a cada momento y no se puede tocar)
+  const mover=px=>{ cesta=Math.max(cel*.6, Math.min(L.W-cel*.6, px)); };
+  const enCanvas=ev=>{ const r=L.cv.getBoundingClientRect(); mover((ev.clientX-r.left)*(L.W/r.width)); };
+  L.cv.addEventListener('pointerdown', enCanvas); L.cv.addEventListener('pointermove', enCanvas);
+  const quitarT=teclas(d=>{ if(d==='l') mover(cesta-cel*.8); if(d==='r') mover(cesta+cel*.8); });
+  el.addEventListener('click', ev=>{ if(ev.target.closest('.oir-f') && obj) decir(obj.w); });
+  const terminar=()=>{ vivo=false; pararB && pararB(); apuntarJuego('fiesta',{a, e, r:F.nombre}); sonido('cromo'); if(a>=5 && e<=2) confeti(el);
+    cartel(el, `<h2>¡Tiempo! ${F.emo}</h2><p class="nota">Has atrapado ${a} ${a===1?'dibujo':'dibujos'} bien${e?` y ${e} sin querer`:' sin equivocarte ninguna vez'}.</p>`, [['Otra vez', empezar]]); };
+  const empezar=()=>{ cesta=L.W/2; caen=[]; obj=null; a=0; e=0; tiempo=45; ac=1; aviso=''; nuevoObj(); vivo=true; pararB && pararB();
+    pararB=bucle(dt=>{ if(!vivo) return; tiempo-=dt; ac+=dt; tObj+=dt; if(tAviso>0){ tAviso-=dt; if(tAviso<=0) aviso=''; }
+      if(tObj>5 && tObj-dt<=5) decir(obj.w);   // si tarda, se la digo
+      if(ac>Math.max(.55, 1.1-nivelJ('fiesta')*.15)){ ac=0; soltar(); }
+      const yC=L.H-cel*.9;
+      caen.forEach(it=>{ it.y+=it.v*dt;
+        if(!it.fuera && it.y>=yC-cel*.4 && it.y<=yC+cel*.3 && Math.abs(it.x-cesta)<cel*.85){ it.fuera=true;
+          if(it.c.e===obj.e){ a++; sonido('bien'); decir(obj.w); nuevoObj(); }
+          else { e++; sonido('mal'); aviso=`Eso era: ${it.c.w}`; tAviso=1.6; } }
+        if(it.y>L.H+cel) it.fuera=true; });
+      caen=caen.filter(it=>!it.fuera);
+      dibuja(); if(tiempo<=0) terminar(); }); };
+  cesta=L.W/2; caen=[]; a=0; e=0; tiempo=45; nuevoObj(); dibuja();
+  cartel(el, `<h2>Atrapa la fiesta ${F.emo}</h2><p class="nota">Lee la palabra de arriba y atrapa su dibujo con la cesta. Mueve la cesta con el dedo o con las flechas.</p>`, [['¡Empezar!', empezar]]);
+  return {parar(){ vivo=false; pararB && pararB(); quitarT(); }};
+}
+const juegoFiestaDef = () => { const t=fiestaJ(); return t ? {id:'fiesta', nombre:'Atrapa la fiesta', emo:t.emo, desc:`El juego ${deTemporada(t)}: lee la palabra y atrapa su dibujo.`, fn:jFiesta, t} : null; };
+/* tarjeta del juego de la fiesta (en la pantalla de la fiesta y en Juegos) */
+function juegoFiestaHTML(t){
+  const f=fiestaJ(); if(!f || f.id!==t.id) return '';
+  const pj=puedeJugar();
+  return `<div class="card juego-fiesta" style="--tc:${t.color};--ts:${t.suave}"><span class="emo-g">${t.emo}🧺</span><div class="tx"><b>Juego ${esc(deTemporada(t))}: Atrapa la fiesta</b>
+    <span class="nota">${pj.ok?`Esta semana los juegos vienen ${esc(deTemporada(t))}. ¡Y hay uno especial!`:pj.por==='leer'?'Primero, la lectura de hoy. Luego podrás jugar.':'Hoy ya has jugado tus minutos. ¡Mañana más!'}</span></div>
+    <button class="btn btn-p" type="button" data-jfiesta ${pj.ok?'':'disabled'}>¡A jugar! ${ic('flecha')}</button></div>`;
+}
+function activarJuegoFiesta(raiz){ $$('[data-jfiesta]', raiz).forEach(b=>b.onclick=()=>ir('juego','fiesta')); }
+
 /* tipo de cada juego (para el resumen de la familia) */
 const TIPO_JUEGO = {parejas:'memoria', tresraya:'lógica', serpiente:'habilidad', comecocos:'habilidad', topos:'lectura', bloques:'habilidad', colores:'memoria', burbujas:'habilidad', puzle:'lógica', torres:'lógica',
-  sudoku:'lógica', series:'lógica', ordena:'lectura', laberinto:'lógica', sopa:'lectura', cuenta:'números'};
+  sudoku:'lógica', series:'lógica', ordena:'lectura', laberinto:'lógica', sopa:'lectura', cuenta:'números', fiesta:'lectura'};
 
 /* ---------- familia: aciertos y fallos en los juegos ---------- */
 function juegosAdultoHTML(p){
   const log=cfgDe(p).juegoLog||[]; const desde=new Date(hoySinHora()); desde.setDate(desde.getDate()-6);
   if(!log.length) return `<div class="card bloque"><h3>Juegos</h3><p class="vacio">Todavía no ha terminado ninguna partida.</p></div>`;
-  const filas=JUEGOS.map(j=>{ const ps=log.filter(x=>x.j===j.id); if(!ps.length) return null; const sem=ps.filter(x=>new Date(x.f)>=desde);
+  const filas=[...JUEGOS, {id:'fiesta', nombre:'Atrapa la fiesta', emo:'🧺'}].map(j=>{ const ps=log.filter(x=>x.j===j.id); if(!ps.length) return null; const sem=ps.filter(x=>new Date(x.f)>=desde);
     const A=ps.reduce((s,x)=>s+(x.a||0),0), E=ps.reduce((s,x)=>s+(x.e||0),0); const pct=A+E?Math.round(100*A/(A+E)):null;
     const ult=ps.slice(-5).map(x=>x.e===0?'✓':'✗'+x.e).join(' ');
     return {j, n:ps.length, sem:sem.length, A, E, pct, ult, r:ps.at(-1).r||''}; }).filter(Boolean);

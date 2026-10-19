@@ -738,6 +738,16 @@ th small{display:block;font-weight:600;color:var(--ink-3)}
 .temporada.cab .tit{margin:0}
 .guirnalda{position:absolute;top:4px;left:0;right:0;white-space:nowrap;overflow:hidden;font-size:1.05rem;letter-spacing:.35em;opacity:.85;text-align:center}
 .cri-temp svg{width:96px;height:96px;display:block}
+.temp-minis{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:-6px 0 18px}
+.temp-mini{display:inline-flex;gap:8px;align-items:center;border:2px solid var(--tc);background:var(--ts);border-radius:999px;padding:6px 14px 6px 10px;font-weight:800}
+.temp-mini span:first-child{font-size:1.3rem}
+.juego-fiesta{display:flex;gap:16px;align-items:center;padding:16px 20px;margin:16px 0;background:var(--ts);border:2px solid var(--tc)}
+.juego-fiesta .tx{display:grid;gap:4px;flex:1;min-width:0}
+.juego-fiesta b{font-size:1.15rem;font-weight:900}
+.juego-fiesta .btn-p{background:var(--tc);border-color:var(--tc)}
+.pal-fiesta{font-size:1.5rem;padding:0 4px}
+.oir-f{padding:4px 10px;min-height:0;vertical-align:middle}
+@media (max-width:560px){ .juego-fiesta{flex-wrap:wrap} .juego-fiesta .btn-p{width:100%} }
 /* álbum: pestañas y huecos numerados */
 .album-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .album-tabs button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:9px 16px;font-weight:800}

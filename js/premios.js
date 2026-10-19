@@ -48,7 +48,18 @@ const CRIATURAS_ESPECIALES = [
   {id:'florinda', nombre:'Florinda', tipo:'planta', temporada:'primavera', extra:'flores'},
   {id:'huevin', nombre:'Huevín', tipo:'dulce', temporada:'pascua', extra:'huevo'},
   {id:'solete', nombre:'Solete', tipo:'rayo', temporada:'verano', extra:'gafas'},
-  {id:'hojarasco', nombre:'Hojarasco', tipo:'planta', temporada:'otono', extra:'hojas'}
+  {id:'hojarasco', nombre:'Hojarasco', tipo:'planta', temporada:'otono', extra:'hojas'},
+  {id:'abracin', nombre:'Abracín', tipo:'dulce', temporada:'dereitos', extra:'corazon'},
+  {id:'equipin', nombre:'Equipín', tipo:'metal', temporada:'constitucion', extra:'librito'},
+  {id:'coronin', nombre:'Coronín', tipo:'rayo', temporada:'reyes', extra:'corona'},
+  {id:'tartin', nombre:'Tartín', tipo:'dulce', temporada:'cumple', extra:'gorrofiesta'},
+  {id:'palomin', nombre:'Palomín', tipo:'aire', temporada:'paz', extra:'ramita'},
+  {id:'cuentin', nombre:'Cuentín', tipo:'noche', temporada:'libroinfantil', extra:'gafitas'},
+  {id:'paginin', nombre:'Paginín', tipo:'planta', temporada:'libro', extra:'rosa'},
+  {id:'letrino', nombre:'Letriño', tipo:'roca', temporada:'letras', extra:'pluma'},
+  {id:'mochilin', nombre:'Mochilín', tipo:'rayo', temporada:'fincurso', extra:'birrete'},
+  {id:'chispin', nombre:'Chispín', tipo:'fuego', temporada:'sanxoan', extra:'chispas'},
+  {id:'vieirino', nombre:'Vieiriño', tipo:'agua', temporada:'galicia', extra:'vieira'}
 ].map((c,i)=>({...c, rareza:3, especial:true, n:CRIATURAS.length+i+1}));
 const todasCriaturas = () => CRIATURAS.concat(CRIATURAS_ESPECIALES);
 const criatura = id => todasCriaturas().find(c=>c.id===id);
@@ -89,7 +100,18 @@ function criaturaSVG(c, {silueta=false, cls=''}={}){
     flores:'<circle cx="42" cy="42" r="6" fill="#FF7FB5"/><circle cx="60" cy="36" r="6" fill="#FFD166"/><circle cx="78" cy="42" r="6" fill="#9B8CF5"/>',
     huevo:'<path d="M30 92c4 14 56 14 60 0l-8 6-8-6-8 6-8-6-8 6-8-6-8 6z" fill="#FFF3D6" stroke="#E9C46A" stroke-width="1.5"/>',
     gafas:'<rect x="38" y="58" width="18" height="12" rx="5" fill="#1F2937"/><rect x="64" y="58" width="18" height="12" rx="5" fill="#1F2937"/><path d="M56 63h8" stroke="#1F2937" stroke-width="3"/>',
-    hojas:'<path d="M40 44c-8-8-6-18 4-18 0 8 2 12-4 18z" fill="#E67E22"/><path d="M80 44c8-8 6-18-4-18 0 8-2 12 4 18z" fill="#C0392B"/><path d="M60 38c-6-10 0-18 8-16-2 8-2 12-8 16z" fill="#F1C40F"/>'
+    hojas:'<path d="M40 44c-8-8-6-18 4-18 0 8 2 12-4 18z" fill="#E67E22"/><path d="M80 44c8-8 6-18-4-18 0 8-2 12 4 18z" fill="#C0392B"/><path d="M60 38c-6-10 0-18 8-16-2 8-2 12-8 16z" fill="#F1C40F"/>',
+    corazon:'<path d="M60 98c-10-7-14-11-14-16a6 6 0 0 1 14-3 6 6 0 0 1 14 3c0 5-4 9-14 16z" fill="#E5484D"/>',
+    librito:'<rect x="46" y="84" width="28" height="18" rx="2" fill="#2563EB"/><path d="M60 84v18" stroke="#fff" stroke-width="2"/><path d="M49 89h8M49 94h8M63 89h8M63 94h8" stroke="#BFDBFE" stroke-width="1.5"/>',
+    corona:'<path d="M40 44l4-16 8 9 8-12 8 12 8-9 4 16z" fill="#F5B301" stroke="#B7791F" stroke-width="1.5"/><circle cx="60" cy="27" r="2.5" fill="#E5484D"/><circle cx="46" cy="38" r="2" fill="#1E7BF2"/><circle cx="74" cy="38" r="2" fill="#2FB36B"/>',
+    gorrofiesta:'<path d="M48 44l12-28 12 28z" fill="#EC4899"/><path d="M52 36h16M55 28h10" stroke="#FFD166" stroke-width="3"/><circle cx="60" cy="16" r="4" fill="#FFD166"/>',
+    ramita:'<path d="M78 72c10-6 18-6 24-2" stroke="#4D7C0F" stroke-width="2.5" fill="none"/><ellipse cx="86" cy="65" rx="4.5" ry="2.2" fill="#65A30D" transform="rotate(-30 86 65)"/><ellipse cx="94" cy="65" rx="4.5" ry="2.2" fill="#65A30D" transform="rotate(20 94 65)"/><ellipse cx="100" cy="68" rx="4.5" ry="2.2" fill="#65A30D"/>',
+    gafitas:'<circle cx="46" cy="64" r="8.5" fill="none" stroke="#1F2937" stroke-width="2.5"/><circle cx="74" cy="64" r="8.5" fill="none" stroke="#1F2937" stroke-width="2.5"/><path d="M54.5 64h11" stroke="#1F2937" stroke-width="2.5"/>',
+    rosa:'<path d="M84 51l3 12" stroke="#15803D" stroke-width="2"/><circle cx="84" cy="44" r="7" fill="#DC2626"/><path d="M80 44a4 4 0 0 1 8 0M82 41a2 2 0 0 1 4 0" stroke="#7F1D1D" stroke-width="1.5" fill="none"/>',
+    pluma:'<path d="M82 54C88 36 97 25 104 20c-2 11-8 23-19 34z" fill="#F8FAFC" stroke="#0284C7" stroke-width="1.5"/><path d="M84 52l14-26" stroke="#0284C7" stroke-width="1"/>',
+    birrete:'<path d="M34 36l26-10 26 10-26 10z" fill="#1F2937"/><rect x="47" y="38" width="26" height="8" fill="#1F2937"/><path d="M84 36v12" stroke="#F5B301" stroke-width="2"/><circle cx="84" cy="49" r="2.2" fill="#F5B301"/>',
+    chispas:'<path d="M22 40l3 6 6 1-5 4 1 6-5-3-5 3 1-6-5-4 6-1z" fill="#FFD166"/><path d="M96 28l2 4 4 1-3 3 1 4-4-2-4 2 1-4-3-3 4-1z" fill="#FF9F43"/><circle cx="100" cy="56" r="2.5" fill="#FFD166"/>',
+    vieira:'<path d="M48 98a12 12 0 0 1 24 0z" fill="#FDE68A" stroke="#B45309" stroke-width="1.5"/><path d="M60 86v12M54 88l2.5 10M66 88l-2.5 10" stroke="#B45309" stroke-width="1"/>'
   })[c.extra]||'';
   const ojosY = v===3 ? 66 : 64; const sep = v===2 ? 12 : 14;
   const cara = silueta ? `<text x="60" y="84" text-anchor="middle" font-size="30" font-weight="900" fill="#fff" font-family="Nunito,system-ui">?</text>` : `

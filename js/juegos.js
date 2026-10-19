@@ -23,8 +23,16 @@ function cartel(el, html, botones){ const c=document.createElement('div'); c.cla
 function bucle(fn){ let vivo=true, t0=performance.now(); const paso=t=>{ if(!vivo) return; const dt=Math.min(.1,(t-t0)/1000); t0=t; fn(dt); requestAnimationFrame(paso); }; requestAnimationFrame(paso); return ()=>{ vivo=false; }; }
 /* cada partida se apunta con sus aciertos y fallos (la familia lo ve en Evolución › Juegos) */
 function apuntarJuego(id, d={}){ try{ const c=cfgDe(perfil()); c.juegoLog=(c.juegoLog||[]).concat([{f:new Date().toISOString(), j:id, a:Math.max(0,Math.round(d.a||0)), e:Math.max(0,Math.round(d.e||0)), ...(d.r?{r:d.r}:{}), ...(d.pts!=null?{pts:d.pts}:{})}]).slice(-1500); guardarAj(); }catch(e){} }
-const fotosJuego = n => barajarCon(Object.keys(CONT.fotos).filter(k=>!/^portada|lobitos|_/.test(k) && CONT.palabras && Object.values(CONT.palabras).includes(k)), Date.now()).slice(0,n);
 const palabraDe = k => { const e=Object.entries(CONT.palabras||{}).find(([p,v])=>v===k && !p.includes(' ')); return e?e[0]:k; };
+/* ---------- juegos vestidos de fiesta: la semana de Samaín, Navidad, su cumpleaños… salen sus dibujos, palabras y frases ---------- */
+const fiestaJ = () => (typeof fiestaJuego==='function' ? fiestaJuego() : null);
+const clavesFiesta = () => { const t=fiestaJ(); return t ? [...new Set(t.juego.cosas.map(c=>c[2]).filter(k=>k && (CONT.fotos[k] || (CONT.emoji||{})[k])))] : []; };
+const emosFiesta = () => { const t=fiestaJ(); return t ? [...new Set(t.juego.cosas.map(c=>c[1]))] : []; };
+/* palabras de la fiesta para leer: {p: palabra, k: su foto} */
+const palabrasFiesta = () => { const t=fiestaJ(); return t ? t.juego.cosas.filter(c=>c[2] && (CONT.fotos[c[2]] || (CONT.emoji||{})[c[2]])).map(c=>({p:c[0], k:c[2]})) : []; };
+const fotosJuego = n => { const normales=barajarCon(Object.keys(CONT.fotos).filter(k=>!/^portada|lobitos|_/.test(k) && CONT.palabras && Object.values(CONT.palabras).includes(k)), Date.now());
+  return [...new Set([...barajar(clavesFiesta()), ...normales])].slice(0,n); };
+const nombreFoto = k => { const c=palabrasFiesta().find(x=>x.k===k); return c ? c.p : palabraDe(k); };
 
 /* ============ 1 · Parejas (memoria) ============ */
 function jParejas(el){
@@ -33,10 +41,10 @@ function jParejas(el){
     el.innerHTML=''; const pon=marcador(el); const ks=fotosJuego(n); const cartas=barajarCon([...ks,...ks], Date.now());
     const g=document.createElement('div'); g.className='parejas p'+n; el.appendChild(g);
     let abiertas=[], hechas=0, intentos=0, bloq=false; pon(`Parejas: 0 de ${n} · Intentos: 0`);
-    cartas.forEach((k,i)=>{ const b=document.createElement('button'); b.type='button'; b.className='carta-j'; b.innerHTML=`<span class="dorso">?</span><span class="cara">${imgHTML(k)}<b class="${claseTexto()}">${esc(palabraDe(k))}</b></span>`; b.dataset.k=k;
+    cartas.forEach((k,i)=>{ const b=document.createElement('button'); b.type='button'; b.className='carta-j'; b.innerHTML=`<span class="dorso">?</span><span class="cara">${imgHTML(k)}<b class="${claseTexto()}">${esc(nombreFoto(k))}</b></span>`; b.dataset.k=k;
       b.onclick=()=>{ if(bloq || b.classList.contains('abierta')) return; b.classList.add('abierta'); sonido('toc'); abiertas.push(b);
         if(abiertas.length===2){ intentos++; const [a,c]=abiertas; abiertas=[];
-          if(a.dataset.k===c.dataset.k){ hechas++; a.classList.add('hecha'); c.classList.add('hecha'); decir(palabraDe(a.dataset.k)); if(hechas===n){ apuntarJuego('parejas',{a:n, e:intentos-n, r:n+' parejas'}); sonido('cromo'); confeti(el); setTimeout(()=>{ if(!parar) cartel(el, `<h2>¡Todas las parejas!</h2><p class="nota">Lo has hecho en ${intentos} intentos.</p>`, [['Otra vez',()=>{ n=Math.min(8,n+1); empezar(); }]]); }, 700); } }
+          if(a.dataset.k===c.dataset.k){ hechas++; a.classList.add('hecha'); c.classList.add('hecha'); decir(nombreFoto(a.dataset.k)); if(hechas===n){ apuntarJuego('parejas',{a:n, e:intentos-n, r:n+' parejas'}); sonido('cromo'); confeti(el); setTimeout(()=>{ if(!parar) cartel(el, `<h2>¡Todas las parejas!</h2><p class="nota">Lo has hecho en ${intentos} intentos.</p>`, [['Otra vez',()=>{ n=Math.min(8,n+1); empezar(); }]]); }, 700); } }
           else { bloq=true; setTimeout(()=>{ a.classList.remove('abierta'); c.classList.remove('abierta'); bloq=false; }, 900); } }
         pon(`Parejas: ${hechas} de ${n} · Intentos: ${intentos}`); };
       g.appendChild(b); });
@@ -49,7 +57,8 @@ function jTresRaya(el){
   let tab, turno, fin, ganadas=0, partidas=0; const LIN=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
   const quien=t=>{ for(const l of LIN) if(t[l[0]] && t[l[0]]===t[l[1]] && t[l[1]]===t[l[2]]) return t[l[0]]; return t.every(Boolean)?'empate':null; };
   el.innerHTML=''; const pon=marcador(el); const g=document.createElement('div'); g.className='tres'; el.appendChild(g);
-  const pinta=()=>{ g.innerHTML=tab.map((v,i)=>`<button type="button" data-i="${i}" class="${v||''}">${v==='x'?'✖':v==='o'?'⭕':''}</button>`).join(''); pon(`Tú eres ✖ · Ganadas: ${ganadas} de ${partidas}`); };
+  const F=fiestaJ(), [FX,FO]=(F && F.juego.tres) || ['✖','⭕'];
+  const pinta=()=>{ g.innerHTML=tab.map((v,i)=>`<button type="button" data-i="${i}" class="${v||''}">${v==='x'?FX:v==='o'?FO:''}</button>`).join(''); pon(`Tú eres ${FX} · Ganadas: ${ganadas} de ${partidas}`); };
   const juegaMaquina=()=>{ const libres=tab.map((v,i)=>v?null:i).filter(i=>i!=null);
     const prueba=(q)=>libres.find(i=>{ const t=tab.slice(); t[i]=q; return quien(t)===q; });
     let i=prueba('o'); if(i==null && Math.random()<.7) i=prueba('x'); if(i==null && !tab[4] && Math.random()<.5) i=4; if(i==null) i=libres[Math.floor(Math.random()*libres.length)];
@@ -131,11 +140,13 @@ function jComecocos(el){
 function jTopos(el){
   el.innerHTML=''; const pon=marcador(el); const g=document.createElement('div'); g.className='topos'; el.appendChild(g);
   const pal=Object.entries(CONT.palabras||{}).filter(([p,k])=>/^[a-zñ]{2,6}$/.test(p) && CONT.fotos[k]).map(([p,k])=>({p,k}));
+  const palF=palabrasFiesta().filter(w=>/^[a-zñáéíóú]{2,9}$/.test(w.p)); palF.forEach(w=>{ if(!pal.some(x=>x.p===w.p)) pal.push(w); });
+  const otra=()=> palF.length && Math.random()<.5 ? palF[Math.floor(Math.random()*palF.length)] : pal[Math.floor(Math.random()*pal.length)];
   let objetivo, aciertos=0, fallos=0, tiempo=40, vivo=false, pararB=null;
   g.innerHTML=Array.from({length:9},(_,i)=>`<div class="hueco"><button type="button" class="topo" data-i="${i}" hidden><span class="${claseTexto()}"></span></button></div>`).join('');
-  const nuevoObj=()=>{ objetivo=pal[Math.floor(Math.random()*pal.length)]; decir('Toca: '+objetivo.p); pon(`Toca: <b class="${claseTexto()}">${esc(objetivo.p)}</b> ${imgHTML(objetivo.k,false,'mini-obj')} · Aciertos: ${aciertos} · ⏱ ${Math.ceil(tiempo)}`); };
+  const nuevoObj=()=>{ objetivo=otra(); decir('Toca: '+objetivo.p); pon(`Toca: <b class="${claseTexto()}">${esc(objetivo.p)}</b> ${imgHTML(objetivo.k,false,'mini-obj')} · Aciertos: ${aciertos} · ⏱ ${Math.ceil(tiempo)}`); };
   const sacar=()=>{ const libres=[...g.querySelectorAll('.topo')].filter(b=>b.hidden); if(!libres.length) return; const b=libres[Math.floor(Math.random()*libres.length)];
-    const w = Math.random()<.4 ? objetivo : pal[Math.floor(Math.random()*pal.length)]; b.dataset.p=w.p; b.querySelector('span').textContent=w.p; b.hidden=false; b.classList.remove('mal');
+    const w = Math.random()<.4 ? objetivo : otra(); b.dataset.p=w.p; b.querySelector('span').textContent=w.p; b.hidden=false; b.classList.remove('mal');
     b._t=setTimeout(()=>{ b.hidden=true; }, 1700+Math.random()*900); };
   g.addEventListener('pointerdown', e=>{ const b=e.target.closest('.topo'); if(!b || !vivo || b.hidden) return; clearTimeout(b._t);
     if(b.dataset.p===objetivo.p){ aciertos++; sonido('bien'); b.hidden=true; nuevoObj(); } else { fallos++; b.classList.add('mal'); sonido('mal'); setTimeout(()=>{ b.hidden=true; }, 300); } });
@@ -234,11 +245,12 @@ function jPuzle(el){
   const pinta=()=>{ const src=fotoURL(k,true); cont.innerHTML=pos.map((v,i)=>v===N*N-1?`<div class="pz vacio"></div>`:`<button type="button" class="pz" data-i="${i}" style="background-image:url('${src}');background-position:${(v%N)*50}% ${Math.floor(v/N)*50}%"><span>${v+1}</span></button>`).join('');
     pon(`Movimientos: ${mov} · <span class="pz-mini" style="background-image:url('${src}')"></span> Así tiene que quedar`); };
   const vecinos=i=>[i-N,i+N,(i%N)?i-1:-1,(i%N<N-1)?i+1:-1].filter(j=>j>=0&&j<N*N);
-  const nueva=()=>{ const ks=Object.keys(CONT.fotos).filter(q=>CONT.fotos[q]==='b' && !/^portada|lobitos/.test(q)); k=ks[Math.floor(Math.random()*ks.length)]; pos=[...Array(N*N).keys()]; mov=0; malos=0;
+  const nueva=()=>{ const ks=Object.keys(CONT.fotos).filter(q=>CONT.fotos[q]==='b' && !/^portada|lobitos/.test(q)); const kf=clavesFiesta().filter(q=>CONT.fotos[q]==='b');
+    k = kf.length && Math.random()<.7 ? kf[Math.floor(Math.random()*kf.length)] : ks[Math.floor(Math.random()*ks.length)]; pos=[...Array(N*N).keys()]; mov=0; malos=0;
     let hueco=N*N-1, prev=-1; for(let s=0;s<80;s++){ const op=vecinos(hueco).filter(j=>j!==prev); const j=op[Math.floor(Math.random()*op.length)]; [pos[hueco],pos[j]]=[pos[j],pos[hueco]]; prev=hueco; hueco=j; }
     if(pos.every((v,i)=>v===i)) return nueva(); pinta(); };
   cont.addEventListener('click', e=>{ const b=e.target.closest('[data-i]'); if(!b) return; const i=+b.dataset.i, h=pos.indexOf(N*N-1); if(!vecinos(i).includes(h)){ malos++; sonido('mal'); return; }
-    [pos[i],pos[h]]=[pos[h],pos[i]]; mov++; sonido('toc'); pinta(); if(pos.every((v,j)=>v===j)){ apuntarJuego('puzle',{a:1, e:malos, pts:mov, r:mov+' movimientos'}); sonido('cromo'); confeti(el); decir(palabraDe(k)); cartel(el, `<h2>¡Puzle hecho! 🎉</h2><p class="nota">En ${mov} movimientos. Era: <b>${esc(palabraDe(k))}</b>.</p>`, [['Otro puzle', nueva]]); } });
+    [pos[i],pos[h]]=[pos[h],pos[i]]; mov++; sonido('toc'); pinta(); if(pos.every((v,j)=>v===j)){ apuntarJuego('puzle',{a:1, e:malos, pts:mov, r:mov+' movimientos'}); sonido('cromo'); confeti(el); decir(nombreFoto(k)); cartel(el, `<h2>¡Puzle hecho! 🎉</h2><p class="nota">En ${mov} movimientos. Era: <b>${esc(nombreFoto(k))}</b>.</p>`, [['Otro puzle', nueva]]); } });
   nueva(); return {parar(){}};
 }
 
@@ -289,17 +301,18 @@ definir('juegos', {nav:'juegos', pintar(){
   ${pj.ok ? (c.minutos>0 && !p.prueba ? `<div class="card aviso-juego"><span>⏱ Hoy te quedan <b>${Math.ceil(quedaJuego(p)/60)} minutos</b> de juego.</span></div>` : '')
     : pj.por==='leer' ? `<div class="card aviso-juego"><span class="emo-g">📖</span><div><b>Primero, la lectura de hoy</b><span class="nota">Cuando leas una historia hoy, podrás jugar.</span></div><button class="btn btn-p" type="button" data-ir="inicio">Ir a leer</button></div>`
     : `<div class="card aviso-juego"><span class="emo-g">🌙</span><div><b>Hoy ya has jugado ${c.minutos} minutos</b><span class="nota">¡Mañana más! Ahora puedes leer otra historia o hacer un dictado.</span></div></div>`}
+  ${fiestaJ() && typeof juegoFiestaHTML==='function' ? juegoFiestaHTML(fiestaJ()) : ''}
   <div class="juegos-grid">${JUEGOS.map((j,i)=> i<n
     ? `<button type="button" class="juego-c" data-j="${j.id}" ${pj.ok?'':'disabled'}><span class="emo-j">${j.emo}</span><b>${esc(j.nombre)}</b><span class="nota">${esc(j.desc)}</span></button>`
     : `<div class="juego-c bloq"><span class="emo-j">🔒</span><b>${i===n?'Próximo juego':'¿?'}</b><span class="nota">${i===n&&fj!=null?(fj===1?'¡Te falta 1 actividad!':'Te faltan '+fj+' actividades'):'Sigue leyendo para abrirlo'}</span></div>`).join('')}</div>`;
-  activarAlbumTabs();
+  activarAlbumTabs(); if(typeof activarJuegoFiesta==='function') activarJuegoFiesta($('#s-juegos'));
   $$('#s-juegos [data-j]').forEach(b=>b.onclick=()=>ir('juego', b.dataset.j));
 }});
 
 let juegoVivo=null, relojJuego=null;
 definir('juego', {nav:'juegos', pintar(id){
-  const j=JUEGOS.find(x=>x.id===id); const p=perfil();
-  if(!j || JUEGOS.indexOf(j)>=juegosAbiertos(p) || !puedeJugar(p).ok){ ir('juegos'); return; }
+  const p=perfil(); const j = id==='fiesta' ? (typeof juegoFiestaDef==='function' ? juegoFiestaDef() : null) : JUEGOS.find(x=>x.id===id);
+  if(!j || (id!=='fiesta' && JUEGOS.indexOf(j)>=juegosAbiertos(p)) || !puedeJugar(p).ok){ ir('juegos'); return; }
   $('#s-juego').innerHTML = `<div class="juego-cab"><button class="volver" type="button" data-ir="juegos">${ic('atras')} Juegos</button><h1 class="tit">${j.emo} ${esc(j.nombre)}</h1><span class="pill" id="relojJuego"></span></div><div class="juego-zona" id="juegoZona"></div>`;
   const z=$('#juegoZona'); juegoVivo = j.fn(z);
   const limite=!p.prueba && premiosCfg().minutos>0;
