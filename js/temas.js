@@ -10,7 +10,8 @@ const TEMAS = [
   {id:'ciencia',   nombre:'Ciencia y espacio',mundos:['ciencia'],              foto:'planeta',           emo:'🚀'},
   {id:'canciones', nombre:'Canciones',        mundos:['canciones'],            foto:'portada_canciones', emo:'🎵'},
   {id:'galicia',   nombre:'Galicia',          mundos:['galicia'],              foto:'faro',              emo:'🐙'},
-  {id:'familia',   nombre:'Familia y cole',   mundos:['familia'],              foto:'colegio',           emo:'🏫'}
+  {id:'familia',   nombre:'Familia y cole',   mundos:['familia'],              foto:'colegio',           emo:'🏫'},
+  {id:'cuentos',   nombre:'Cuentos y fábulas',mundos:['cuentos'],              foto:'cuento',            emo:'📖', desc:'Caperucita, el gato con botas, Aladino, la liebre y la tortuga… ¡y tú dentro del cuento!'}
 ];
 const ALBUM_FIESTAS = {id:'fiestas', nombre:'Días especiales', mundos:['fiestas'], foto:'globo', emo:'🎉'};
 const temaDe = id => TEMAS.find(t=>t.id===id) || (id==='fiestas' ? ALBUM_FIESTAS : null);

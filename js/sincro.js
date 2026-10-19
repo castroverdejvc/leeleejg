@@ -11,7 +11,7 @@ const SINCRO_DIAS_AUDIO = 30;
 const NUBE = 'Google Drive';   // donde la familia deja las copias (carpeta «LeeLEEJG» de Mi unidad)
 const CAMPOS_LOCALES = new Set(['voz','vozPrograma','perfil','volumen','mod','modK','oidoModo','nube', ...PKEYS]);   // propios de cada aparato (o con marca aparte)
 const APARTE = new Set(['borrados','fichasMod']);   // se juntan con sus propias reglas
-const LISTAS_PERFIL = ['repasoLog','dictadoLog','temasLog','gustosLog','adivLog','letrasLog','teleLog','cambios','juegoLog','peliLog','sobresLog'];
+const LISTAS_PERFIL = ['repasoLog','dictadoLog','temasLog','gustosLog','adivLog','letrasLog','teleLog','cambios','juegoLog','peliLog','sobresLog','trabajosLog'];
 const clon = x => x==null ? x : JSON.parse(JSON.stringify(x));
 
 /* --- marcas de cambio: cada dato guarda cuándo cambió (modK), así al juntar gana el cambio más reciente de cada cosa --- */

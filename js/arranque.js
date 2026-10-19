@@ -21,7 +21,7 @@ async function cargarDatos(){
 }
 
 /* si alguna pieza no llegó a cargarse (el ordenador iba lento al abrir), se vuelve a cargar la página sin tocar los datos */
-const PIEZAS_ARRANQUE = ['confeti','activarInstalar','decirVarias','diceRespuesta','elegirDeGaleria','recargarContenido','libroSVG','guardarSesionActual','progresoFichasHTML','dictadosAdultoHTML','letrasAdultoHTML','activarPremiosAdulto','repesDe','activarTeleAdulto','activarTemporada','gustosAdultoHTML','puedeJugar','usarRecorte','sumar','activarNube','juegosAdultoHTML','finExtraHTML'];
+const PIEZAS_ARRANQUE = ['confeti','activarInstalar','decirVarias','diceRespuesta','elegirDeGaleria','recargarContenido','libroSVG','guardarSesionActual','progresoFichasHTML','dictadosAdultoHTML','letrasAdultoHTML','activarPremiosAdulto','repesDe','activarTeleAdulto','activarTemporada','gustosAdultoHTML','puedeJugar','usarRecorte','sumar','activarNube','juegosAdultoHTML','finExtraHTML','actualizarFichasDeSerie','tarjetaTrabajosHTML'];
 (async function arrancar(){
   const faltan = PIEZAS_ARRANQUE.filter(n=>typeof window[n]!=='function');
   if(faltan.length){ console.error('LeeLEEJG: faltan piezas '+faltan.join(', ')); if(window.leeReintentar) window.leeReintentar(); return; }
@@ -36,6 +36,7 @@ const PIEZAS_ARRANQUE = ['confeti','activarInstalar','decirVarias','diceRespuest
     if(enLocal()){ precargarSinInternet(); if(!datos.ajustes && !/^#nube=/.test(location.hash)) bienvenidaAparato(); }
     else if(!nubeConf()) setTimeout(sincroAlAbrir, 1500);
     nubeArrancar();   // copias automáticas (si están activadas)
+    actualizarFichasDeSerie().catch(()=>{});
   }catch(e){
     quitarPreparando();
     document.body.innerHTML=`<div class="main"><div class="card bloque"><h2>No se pudo abrir LeeLEEJG</h2><p class="sub">${esc(e.message)}</p><p class="nota">${MODO==='local'?'Cierra LeeLEEJG y ábrelo otra vez. La primera vez necesita internet.':'Cierra esta ventana y abre otra vez «Iniciar LeeLEEJG».'}</p></div></div>`;

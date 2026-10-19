@@ -357,21 +357,47 @@ definir('pista', {nav:'historias', pintar(){
 let cEst=null;
 const verOp = t => String(t).replace(/\s*\+\s*/,' + ').replace(/\s*[-−]\s*/,' − ');
 const leerOp = t => verOp(t).replace(' + ',' más ').replace(' − ',' menos ');
+/* En las sumas y restas, a veces (1 de cada 3) salen también «Todas son correctas» y «Ninguna es correcta»:
+   unas veces vale una sola operación, otras ninguna y otras todas. Obliga a comprobar cada operación. */
+const TODAS='Todas son correctas', NINGUNA='Ninguna es correcta';
+function varianteCalculo(c, azarF=Math.random){
+  if(!['suma','resta'].includes(c.tipo) || azarF()>=1/3) return null;
+  const R=c.resultado, val=t=>{ const m=String(t).replace('−','-').match(/(\d+)\s*([+-])\s*(\d+)/); return m ? (m[2]==='+' ? +m[1]+ +m[3] : +m[1]-m[3]) : NaN; };
+  if(c.ops.some(o=>isNaN(val(o)))) return null;
+  const tipo=['una','ninguna','todas'][Math.floor(azarF()*3)];
+  if(tipo==='todas'){
+    let ops=[];
+    if(c.tipo==='suma'){ for(let a=1; a<R && ops.length<3; a++){ const t=a+' + '+(R-a); if(!ops.includes(t)) ops.push(t); } }
+    else { for(let k=1; k<=6 && ops.length<3; k++) ops.push((R+k)+' - '+k); }
+    if(ops.length<3) return null;
+    ops=barajar(ops); return {tipo, ops:[...ops, TODAS, NINGUNA], ok:3};
+  }
+  if(tipo==='ninguna'){
+    const ops=c.ops.slice(), [a,op,b]=String(ops[c.ok]).replace('−','-').match(/(\d+)\s*([+-])\s*(\d+)/).slice(1);
+    const cands = op==='+' ? [`${+a+1} + ${b}`, `${a} + ${+b+1}`, `${Math.max(0,a-1)} + ${b}`] : [`${+a+1} - ${b}`, `${a} - ${Math.max(0,b-1)}`, `${+a+2} - ${b}`];
+    const nueva=cands.find(t=>val(t)!==R && val(t)>=0 && !ops.includes(t)); if(!nueva) return null;
+    ops[c.ok]=nueva; if(ops.some(o=>val(o)===R)) return null;
+    return {tipo, ops:[...ops, TODAS, NINGUNA], ok:4};
+  }
+  return {tipo, ops:[...c.ops, TODAS, NINGUNA], ok:c.ok};
+}
 function claveCalculo(){ const c=hist.calculo; if(c.cuenta && c.cuenta.length) return c.cuenta[0]; const m=hist.lineas.join(' ').match(/\[[^|\]]+\|([^\]]+)\]/); return m?m[1]:hist.portada; }
 definir('calculo', {nav:'historias', pintar(){
-  const c=hist.calculo; if(!cEst) cEst={intentos:0, mal:new Set()}; const e=cEst;
+  const c0=hist.calculo; if(!cEst) cEst={intentos:0, mal:new Set(), v:varianteCalculo(c0)}; const e=cEst;
+  const c = e.v ? {...c0, ops:e.v.ops, ok:e.v.ok} : c0;
   const k=claveCalculo(); const n = c.cuenta && c.cuenta.length ? c.cuenta.length : 0;
   const etiqueta = c.tipo==='resta' ? 'Contar y restar' : c.tipo==='contar' ? 'Contar' : 'Reto de números';
   $('#s-calculo').innerHTML = `<div class="card preg">${cabPaso(2+hist.preguntas.length, {t:etiqueta})}
     <div class="reto"><div class="fotos-reto">${n ? Array.from({length:Math.min(n,10)},()=>imgHTML(k)).join('') : `<span style="width:240px;height:170px;border-radius:16px;overflow:hidden;display:block">${imgHTML(hist.portada,true)}</span>`}</div>
       <div><div class="frase">${esc(conNombre(c.q)).replace(/\?([^?]*)$/, '?$1')}</div><button class="ico-btn" type="button" id="btnOirC" style="margin-top:12px" aria-label="Escuchar">${ic('altavoz')}</button></div></div>
     ${e.intentos?'<div class="aviso-int" style="margin-top:14px">'+(n?'Cuenta las fotos otra vez.':'Piénsalo otra vez.')+'</div>':''}
-    <div class="sumas">${c.ops.map((t,i)=>`<button type="button" class="suma${e.mal.has(i)?' mal':''}" data-i="${i}" ${e.mal.has(i)?'disabled':''}>${esc(verOp(t))}</button>`).join('')}</div></div>`;
-  $('#btnOirC').onclick=()=>decir(conNombre(c.q));
+    <div class="sumas${e.v?' con-todas':''}">${c.ops.map((t,i)=>`<button type="button" class="suma${e.mal.has(i)?' mal':''}${t===TODAS||t===NINGUNA?' suma-txt':''}" data-i="${i}" ${e.mal.has(i)?'disabled':''}>${esc(t===TODAS||t===NINGUNA?t:verOp(t))}</button>`).join('')}</div></div>`;
+  const extraQ = e.v ? ' Mira bien cada una: puede que valga una, todas o ninguna.' : '';
+  $('#btnOirC').onclick=()=>decir(conNombre(c.q)+extraQ);
   $$('#s-calculo .suma').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; e.intentos++;
-    if(i===c.ok){ sonido('bien'); sesion.calculo={ok:e.intentos===1, intentos:e.intentos, tipo:c.tipo}; guardarSesionActual(); ir('juntos'); }
+    if(i===c.ok){ sonido('bien'); sesion.calculo={ok:e.intentos===1, intentos:e.intentos, tipo:c.tipo, ...(e.v?{variante:e.v.tipo}:{})}; guardarSesionActual(); ir('juntos'); }
     else { e.mal.add(i); sonido('mal'); decir(n?'Casi. Cuenta las fotos otra vez.':'Casi. Piénsalo otra vez.'); ir('calculo'); } });
-  if(!e.intentos && !e.leida){ e.leida=true; decirPregunta(conNombre(c.q)); }
+  if(!e.intentos && !e.leida){ e.leida=true; decirPregunta(conNombre(c.q)+extraQ); }
 }, salir(){ }});
 /* 18 · Lo vemos juntos */
 definir('juntos', {nav:'historias', pintar(){
@@ -385,7 +411,9 @@ definir('juntos', {nav:'historias', pintar(){
     <div class="juntos">${vis}</div><div class="igualdad">${igual}</div>
     <div class="pie-preg" style="justify-content:center;gap:20px"><span class="correcto"><i>${ic('check')}</i>¡Correcto!</span><button class="btn btn-p btn-g" type="button" id="btnSigC">Siguiente ${ic('flecha')}</button></div></div>`;
   $('#btnSigC').onclick=()=>ir('cromonuevo');
-  decir('¡Muy bien! '+frase);
+  const v=cEst&&cEst.v; const pre = v&&v.tipo==='todas' ? `¡Todas daban ${c.resultado}! ` : v&&v.tipo==='ninguna' ? `¡Ninguna daba ${c.resultado}! La buena sería esta. ` : '';
+  if(pre){ const ig=$('#s-juntos .igualdad'); if(ig) ig.insertAdjacentHTML('beforebegin', `<p class="sub centro" style="margin:6px 0">${esc(pre)}</p>`); }
+  decir('¡Muy bien! '+pre+frase);
 }});
 
 /* ---------- 20 · Tu nuevo cromo ---------- */
