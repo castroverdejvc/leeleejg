@@ -36,9 +36,9 @@ definir('extra', {nav:'historias', pintar(){
 /* final de una lectura extra (en vez del cromo) */
 function finExtraHTML(h, s){
   const p=perfil(), min=minutosDeSesion(p, s), t=teleDe(p);
-  const saldo = t.saldo + (SES.some(x=>x.id===s.id && !x.incompleta) ? 0 : min);   // todavía no está guardada: se suma lo que acaba de ganar
+  const saldo = (t.finde ? t.proximo : t.saldo) + (SES.some(x=>x.id===s.id && !x.incompleta) ? 0 : min);   // todavía no está guardada: se suma lo que acaba de ganar (el fin de semana, para el siguiente)
   return `<div class="card cromo-g fin-extra" id="cromoCaja"><div class="carta"><div class="ft">${imgHTML(h.portada,true)}</div><div class="pie"><b>${esc(conNombre(h.titulo))}</b><span>📚 Lectura extra</span></div></div>
-    <div class="tx"><h1>${min>0?`+${minTxt(min)} de tele`:'¡Muy bien!'}</h1><p class="sub">${min>0?`Ya tienes ${minTxt(saldo)} para el fin de semana.`:'Has terminado la lectura extra.'}${min>0 && min<teleCfg().extra && !sesDe(p.id).some(x=>x.id!==s.id && !x.incompleta && x.historiaId===s.historiaId)?` Si aciertas más preguntas a la primera, ganas ${minTxt(teleCfg().extra)}.`:''}</p>
+    <div class="tx"><h1>${min>0?`+${minTxt(min)} de tele`:'¡Muy bien!'}</h1><p class="sub">${min>0?`Ya tienes ${minTxt(saldo)} para el ${t.finde?'próximo ':''}fin de semana.`:'Has terminado la lectura extra.'}${min>0 && min<teleCfg().extra && !sesDe(p.id).some(x=>x.id!==s.id && !x.incompleta && x.historiaId===s.historiaId)?` Si aciertas más preguntas a la primera, ganas ${minTxt(teleCfg().extra)}.`:''}</p>
       <div class="res-mini"><span class="chip">Preguntas ${s.aciertos} de ${s.totalPreguntas}</span><span class="chip">${s.segundos<60?s.segundos+' segundos':mmss(s.segundos)+' min'}</span></div>
       ${audioBlob || s.audio ? `<button class="btn btn-verde btn-g btn-bloque" type="button" id="btnEscucharme">${ic('altavoz')} Escucharme</button>`:''}
       <button class="btn btn-borde btn-g btn-bloque" type="button" data-ir="extra">📚 Otra lectura extra</button>

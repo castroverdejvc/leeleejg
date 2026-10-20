@@ -264,7 +264,7 @@ function tDias(z){
 /* ---------- familia: resumen de los trabajos ---------- */
 function trabajosAdultoHTML(p){
   const log=cfgDe(p).trabajosLog||[]; if(!log.length) return '';
-  const desde=lunesDe ? lunesDe() : new Date(0);
+  const desde=typeof sabadoDe==='function' ? sabadoDe() : new Date(0);
   const filas=TRABAJOS.map(t=>{ const ps=log.filter(x=>x.t===t.id); if(!ps.length) return ''; const sem=ps.filter(x=>new Date(x.f)>=desde).length;
     const A=ps.reduce((s,x)=>s+(x.a||0),0), E=ps.reduce((s,x)=>s+(x.e||0),0); const pct=A+E?Math.round(100*A/(A+E)):null;
     return `<tr><td>${t.emo} ${esc(t.nombre)}</td><td>${ps.length}</td><td>${sem}</td><td>${pct==null?'–':pct+' %'}</td></tr>`; }).join('');

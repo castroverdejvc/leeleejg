@@ -58,7 +58,7 @@ function planDe(p=perfil()){
     if(h){ tomados.add(h.id); dias[d]=h; tipo[d]=t; if(!diaDe[h.id]) diaDe[h.id]=d; }
   }
   // los días ya llegados se quedan fijos
-  const fijo = Math.min(365, hoy + (new Date().getDay()===6 ? 1 : 0));   // el sábado también el domingo (se puede leer antes, para la película)
+  const fijo = Math.min(365, hoy);
   let cambio=false; for(let d=1; d<=fijo; d++) if(!plan[d] && dias[d]){ plan[d]=dias[d].id; cambio=true; }
   if(cambio){ cfg.plan=plan; guardarAj(); }
   const res={key:JSON.stringify([temas, cfg.inicio||'', plan, Object.keys(leid).sort(), CONT.historias.length, p.nac||'', hoy]), dias, tipo, diaDe};
@@ -70,7 +70,7 @@ function nivelActualDe(p=perfil()){ const h=planDe(p).dias[diaHoyDe(p)]; return 
 function estaDisponible(h, p=perfil()){
   if(!h) return false; if(cfgDe(p).adelantar || leidasDe(p.id)[h.id]) return true;
   if(h.temporada) return typeof temporadaActiva==='function' && temporadaActiva(h.temporada, p);   // historias de fiesta: solo en su temporada
-  const d=diaPersonal(h,p); if(d) return d<=diaHoyDe(p) + (new Date().getDay()===6 ? 1 : 0);   // el sábado ya se puede leer la del domingo (para la película)
+  const d=diaPersonal(h,p); if(d) return d<=diaHoyDe(p);
   return h.nivel<=nivelActualDe(p);
 }
 function estadoTema(t, p=perfil()){
