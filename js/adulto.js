@@ -10,19 +10,36 @@ document.addEventListener('click', e=>{ const b=e.target.closest('[data-lec]'); 
 
 /* ---------- 25 · Acceso de adultos (PIN) ---------- */
 definir('pin', {zona:'pin', pintar(){
+  /* El teclado se dibuja una sola vez y con cada número solo cambian los puntos: así el iPad no pierde pulsaciones
+     aunque se toque rápido. «¿Has olvidado el PIN?» lo quita con una pregunta de mayores. */
   let val=''; const s=$('#s-pin');
-  const pinta=(msg='')=>{ s.innerHTML = `<div class="pin-pant"><div class="pin-ilus"><span class="blob"></span>${imgHTML('buho',true)}<span class="frase">Aprender<br>también<br>es crecer</span></div>
+  s.innerHTML = `<div class="pin-pant"><div class="pin-ilus"><span class="blob"></span>${imgHTML('buho',true)}<span class="frase">Aprender<br>también<br>es crecer</span></div>
     <div class="pin-caja"><div class="logo" style="font-size:1.5rem">${icLogo()}<span>LeeLEE<b>JG</b></span></div><h1 class="tit">Acceso de adultos</h1><p class="sub">Introduce tu PIN de 4 dígitos</p>
-      <div class="pin-puntos">${[0,1,2,3].map(i=>`<i class="${i<val.length?'on':''}"></i>`).join('')}</div>
+      <div class="pin-puntos" id="pinPuntos"></div>
       <div class="teclado">${[1,2,3,4,5,6,7,8,9].map(k=>`<button type="button" data-k="${k}">${k}</button>`).join('')}<button type="button" class="cero" data-k="0">0</button><button type="button" data-k="b" aria-label="Borrar">${ic('borrar')}</button></div>
-      <p class="pin-msg">${esc(msg)}</p><button class="btn btn-p btn-g" type="button" id="pinEntrar" style="min-width:300px">Entrar</button><button class="btn" type="button" id="pinVolver" style="min-width:160px">Volver</button></div></div>`;
-    $$('#s-pin [data-k]').forEach(b=>b.onclick=()=>tecla(b.dataset.k));
-    $('#pinEntrar').onclick=entrar; $('#pinVolver').onclick=()=>{ volverTrasPin=null; ir('inicio'); }; };
-  const tecla=k=>{ if(k==='b') val=val.slice(0,-1); else if(val.length<4) val+=k; pinta(); if(val.length===4) setTimeout(entrar,150); };
-  const entrar=()=>{ if(val===aj.pin){ pinOk=true; const [p,a]=volverTrasPin||['evolucion',[]]; volverTrasPin=null; ir(p,...a); } else { val=''; pinta('PIN incorrecto'); } };
-  pinta();
-  s.onkeydown=null; document.onkeydown=e=>{ if(actual!=='pin') return; if(/^\d$/.test(e.key)) tecla(e.key); else if(e.key==='Backspace') tecla('b'); else if(e.key==='Enter') entrar(); };
+      <p class="pin-msg" id="pinMsg"></p><button class="btn btn-p btn-g" type="button" id="pinEntrar" style="min-width:300px">Entrar</button><button class="btn" type="button" id="pinVolver" style="min-width:160px">Volver</button>
+      <button class="enlace-pin" type="button" id="pinOlvido">¿Has olvidado el PIN?</button></div></div>`;
+  const puntos=()=>{ $('#pinPuntos').innerHTML=[0,1,2,3].map(i=>`<i class="${i<val.length?'on':''}"></i>`).join(''); };
+  const msg=t=>{ $('#pinMsg').textContent=t; };
+  let esperando=null;
+  const tecla=k=>{ if(esperando) return; msg(''); if(k==='b') val=val.slice(0,-1); else if(val.length<4) val+=k; puntos(); if(val.length===4) esperando=setTimeout(()=>{ esperando=null; entrar(); },200); };
+  const entrar=()=>{ if(val===aj.pin){ pinOk=true; const [p,a]=volverTrasPin||['evolucion',[]]; volverTrasPin=null; ir(p,...a); } else { val=''; puntos(); msg('PIN incorrecto'); } };
+  $$('#s-pin [data-k]').forEach(b=>b.addEventListener('pointerdown', e=>{ e.preventDefault(); tecla(b.dataset.k); }));
+  $('#pinEntrar').onclick=entrar; $('#pinVolver').onclick=()=>{ volverTrasPin=null; ir('inicio'); };
+  $('#pinOlvido').onclick=olvidePin;
+  puntos();
+  s.onkeydown=null; document.onkeydown=e=>{ if($('#s-pin').hidden) return; if(/^\d$/.test(e.key)) tecla(e.key); else if(e.key==='Backspace') tecla('b'); else if(e.key==='Enter') entrar(); };
 }});
+/* PIN olvidado: una multiplicación que un niño de 1º no sabe hacer; al acertarla se quita el PIN (se puede poner otro en Datos y copias) */
+function olvidePin(){
+  const a=12+Math.floor(Math.random()*8), b=6+Math.floor(Math.random()*4);
+  const d=dialogo({titulo:'¿Has olvidado el PIN?', html:`<p class="nota">Para quitar el PIN, contesta esta pregunta de mayores:</p><p style="font-size:1.6rem;font-weight:900;margin:10px 0">¿Cuánto es ${a} × ${b}?</p>
+    <input id="olvRes" type="number" inputmode="numeric" style="width:140px;font-size:1.4rem;padding:8px;border-radius:10px;border:2px solid var(--line)"><p class="pin-msg" id="olvMsg"></p>`,
+    botones:[{t:'Cancelar',cls:'btn'},{t:'Quitar el PIN',cls:'btn-p', mantener:true, fn:()=>{
+      if(+$('#olvRes',d.el).value===a*b){ aj.pin=''; aj.pinMod=Date.now(); guardarAj(); pinOk=true; d.cerrar(); aviso('PIN quitado. Puedes poner otro en Familia › Datos y copias.'); const [p,x]=volverTrasPin||['evolucion',[]]; volverTrasPin=null; ir(p,...x); }
+      else $('#olvMsg',d.el).textContent='No es correcto.'; }}]});
+  setTimeout(()=>{ const i=$('#olvRes',d.el); if(i) i.focus(); },100);
+}
 function pedirPinNuevo(cb){
   let val=''; const d=dialogo({titulo:'Elige un PIN de 4 números', html:`<div class="pin-puntos" id="pnP" style="justify-content:center"></div><div class="teclado" style="margin:0 auto">${[1,2,3,4,5,6,7,8,9].map(k=>`<button type="button" data-k="${k}">${k}</button>`).join('')}<button type="button" class="cero" data-k="0">0</button><button type="button" data-k="b">${ic('borrar')}</button></div>`});
   const pinta=()=>{ $('#pnP',d.el).innerHTML=[0,1,2,3].map(i=>`<i class="${i<val.length?'on':''}"></i>`).join(''); }; pinta();

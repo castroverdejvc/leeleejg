@@ -1031,3 +1031,4 @@ button.peli-d.falta{cursor:pointer}
 .dia-t.tachar{text-decoration:line-through;text-decoration-color:#E5484D;text-decoration-thickness:4px}
 .dia-t.recuadrar{outline:3px solid #2FB36B;outline-offset:2px}
 @media (max-width:560px){ .num-t{width:70px;height:84px;font-size:3.4rem} .rel-pal span{font-size:1.4rem} .rel-caja{gap:50px} .orden-t p{font-size:1.2rem} }
+.enlace-pin{background:none;border:0;color:var(--primary);font-weight:800;text-decoration:underline;margin-top:10px;cursor:pointer;font-size:1rem}
