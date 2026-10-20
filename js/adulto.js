@@ -84,7 +84,7 @@ definir('evolucion', {zona:'adulto', pintar(tab){
   } else if(tabEvo==='juegos'){
     cuerpo = juegosAdultoHTML(p);
   } else if(tabEvo==='premios'){
-    cuerpo = premiosAdultoHTML(p) + gustosAdultoHTML(p);
+    cuerpo = premiosAdultoHTML(p) + gustosAdultoHTML(p) + (typeof buzonAdultoHTML==='function' ? buzonAdultoHTML(p) : '');
   } else if(tabEvo==='palabras'){
     const dif=palabrasDificiles(ms).slice(0,40), dom=palabrasDominadas(ms), pr=Object.entries(p.cfg&&p.cfg.practica||aj.practica||{});
     cuerpo = `<div class="graf-2"><div class="card bloque"><h3 style="margin-bottom:12px">Palabras que le cuestan</h3>${dif.length?`<div class="palabras-chips">${dif.map(x=>`<span>${esc(x.p)}<small>${esc(silabear(x.p).join('-'))} · ${x.n}</small></span>`).join('')}</div>`:'<p class="vacio">Ninguna por ahora. Se apuntan cuando pide ayuda o al revisar una grabación.</p>'}</div>
@@ -103,7 +103,7 @@ definir('evolucion', {zona:'adulto', pintar(tab){
   if($('#btnInforme')) $('#btnInforme').onclick=()=>ir('informe', p.id);
   activarAccionesLecturas('#s-evolucion');
   if(tabEvo==='temas') activarTemasAdulto(p);
-  if(tabEvo==='premios') activarPremiosAdulto();
+  if(tabEvo==='premios'){ activarPremiosAdulto(); if(typeof activarBuzonAdulto==='function') activarBuzonAdulto(lectorVisto()); }
 }});
 function tablaLecturas(ms){
   if(!ms.length) return '<p class="vacio">Todavía no hay lecturas.</p>';

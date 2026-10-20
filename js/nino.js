@@ -40,6 +40,7 @@ definir('inicio', {nav:'inicio', pintar(){
   ${teleHTML()}
   ${extraHTML()}
   ${sobreHTML()}
+  ${typeof buzonHTML==='function' ? buzonHTML() : ''}
   ${sorpresaHTML()}
   ${chipsTemasHTML()}
   <div class="fila2">
