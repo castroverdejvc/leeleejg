@@ -30,6 +30,28 @@ async function actualizarFichasDeSerie(){
   f.fotos=['fi_plants_h3','fi_plants_h4']; f.fotosV=2;
   await guardarFichas(); registrar('Ficha Plants: fotos nuevas de la hoja coloreada'); return true;
 }
+/* Fichas que la familia manda en foto y se preparan aquí: las imágenes van con las privadas (mis_imagenes, son de la
+   editorial y nunca van a la web pública); la ficha se añade sola una vez, cuando están todas sus imágenes.
+   Si la familia la borra, no vuelve (aj.fichasSerie apunta las ya añadidas). */
+const FICHAS_NUEVAS = [
+  {id:'school', titulo:'School things', idioma:'en', frases:true, fotos:['fi_school_h1','fi_school_h2'], creada:'2026-10-20T22:40:00', palabras:[
+    ['pencilcase','pencil case','estuche','Pencil case'], ['pencil','pencil','lápiz','Pencil case'], ['pen','pen','bolígrafo','Pencil case'], ['crayon','crayon','cera','Pencil case'],
+    ['rubber','rubber','goma','Pencil case'], ['ruler','ruler','regla','Pencil case'], ['sharpener','pencil sharpener','sacapuntas','Pencil case'], ['book','book','libro','Pencil case'],
+    ['board','board','pizarra','Classroom'], ['desk','desk','mesa','Classroom'], ['computer','computer','ordenador','Classroom'], ['chair','chair','silla','Classroom']
+  ].map(([id,t,es,g])=>({id, t, es, g, img:'fi_school_'+id}))}
+];
+async function anadirFichasNuevas(){
+  aj.fichasSerie=aj.fichasSerie||[]; let n=0;
+  for(const f of FICHAS_NUEVAS){
+    if(aj.fichasSerie.includes(f.id) || FICHAS.some(x=>x.id===f.id)) continue;
+    if([...f.fotos, ...f.palabras.map(p=>p.img)].some(k=>!MIS[k])) continue;
+    FICHAS.push(JSON.parse(JSON.stringify({...f, activa:true}))); aj.fichasSerie.push(f.id); n++;
+    registrar('Ficha nueva: '+f.titulo);
+  }
+  if(n) await guardarFichas(); return n;
+}
+const articulo = t => /^[aeiou]/i.test(t) ? 'an' : 'a';
+const esLo = (f,p,l) => f.frases && l==='en' ? `It's ${articulo(p.t)} ${p.t}.` : FRASE.es[l](p.t);
 
 /* ---------- repaso espaciado (cajas de Leitner) ---------- */
 const DIAS_CAJA=[0,1,2,4,7,14];
@@ -73,7 +95,7 @@ function empezarRepaso(fichaId){
   if(!items.length){ ir('repaso'); return; }
   rep={items, i:0, res:[], intentos:0}; ir('repasoitem');
 }
-const modoDe = it => (!it.e || it.e.c===0) ? 'toca' : 'di';
+const modoDe = it => (!it.e || it.e.c===0) ? 'toca' : (it.f.frases && it.e.c===1) ? 'sino' : 'di';
 definir('repasoitem', {nav:'repaso', pintar(){
   const it=rep.items[rep.i]; const f=it.f, p=it.p, l=f.idioma||'es'; const id=IDIOMAS[l]||IDIOMAS.es; it.modo=it.modo||modoDe(it);
   const cab=`<div class="paso-cab"><span class="pill">${id.bandera} ${esc(f.titulo)} · ${id.propio}</span><span class="der">${rep.i+1} de ${rep.items.length}<span class="barra-paso"><i style="width:${Math.round(100*(rep.i+1)/rep.items.length)}%"></i></span></span></div>`;
@@ -89,15 +111,29 @@ definir('repasoitem', {nav:'repaso', pintar(){
     $$('#s-repasoitem .op').forEach(b=>b.onclick=()=>{ const o=it.ops[+b.dataset.i]; rep.intentos++;
       if(o.ok){ $$('#s-repasoitem .op').forEach(x=>x.disabled=true); b.classList.add('bien'); b.querySelector('.et').style.visibility='visible'; sonido('bien'); decirVarias([[fraseBien(l),l],[p.t,l]]); resultado(rep.intentos===1); }
       else { b.classList.add('mal'); b.disabled=true; b.querySelector('.et').style.visibility='visible'; sonido('mal'); decir(FRASE.otra[l], l);
-        if(rep.intentos>=2){ const k=it.ops.findIndex(x=>x.ok); const bb=$(`#s-repasoitem .op[data-i="${k}"]`); bb.classList.add('bien'); bb.querySelector('.et').style.visibility='visible'; $$('#s-repasoitem .op').forEach(x=>x.disabled=true); setTimeout(()=>decir(FRASE.es[l](p.t), l), 900); resultado(false); } } });
+        if(rep.intentos>=2){ const k=it.ops.findIndex(x=>x.ok); const bb=$(`#s-repasoitem .op[data-i="${k}"]`); bb.classList.add('bien'); bb.querySelector('.et').style.visibility='visible'; $$('#s-repasoitem .op').forEach(x=>x.disabled=true); setTimeout(()=>decir(esLo(f,p,l), l), 900); resultado(false); } } });
+  } else if(it.modo==='sino'){
+    // «Is it a ruler?» → «Yes, it is.» / «No, it isn't.» (como en la ficha del cole)
+    if(!it.q){ const otros=f.palabras.filter(q=>q.id!==p.id); it.q = Math.random()<.5 || !otros.length ? p : otros[Math.floor(Math.random()*otros.length)]; }
+    const q=it.q, si=q.id===p.id, preg=`Is it ${articulo(q.t)} ${q.t}?`;
+    $('#s-repasoitem').innerHTML = `<div class="card preg">${cab}<div class="di-grid"><div class="di-ft">${imgPalabra(p,true)}</div>
+      <div class="di-tx"><h2 style="text-align:left;margin:0">${esc(preg)}</h2><button class="ico-btn" type="button" id="rpOir" aria-label="Escuchar la pregunta">${ic('altavoz')}</button>
+        <div class="botones sino"><button class="btn btn-verde btn-g" type="button" data-sn="1">Yes, it is.</button><button class="btn btn-rojo btn-g" type="button" data-sn="0">No, it isn't.</button></div>
+        <p class="estado-mic" id="rpEstado"></p></div></div><div class="pie-preg" id="rpPie"></div></div>`;
+    const oir=()=>decir(preg, 'en'); $('#rpOir').onclick=oir; setTimeout(oir, 250);
+    $$('#s-repasoitem [data-sn]').forEach(b=>b.onclick=()=>{ const ok=(b.dataset.sn==='1')===si; $$('#s-repasoitem [data-sn]').forEach(x=>x.disabled=true);
+      const res = si ? `Yes, it is. It's ${articulo(p.t)} ${p.t}.` : `No, it isn't. It's ${articulo(p.t)} ${p.t}.`;
+      $('#rpEstado').className='estado-mic '+(ok?'ok':''); $('#rpEstado').innerHTML=`<span class="respuesta-g">${esc(res)}</span>`;
+      if(ok){ b.classList.add('bien'); sonido('bien'); decirVarias([[fraseBien('en'),'en'],[res,'en']]); } else { b.classList.add('mal'); sonido('mal'); decir(res,'en'); }
+      resultado(ok); });
   } else {
-    const pregunta = l==='es' ? FRASE.queEs.es : l==='gl' ? `Como se di «${p.es||'?'}» en galego?` : `How do you say «${p.es||'?'}» in English?`;
+    const pregunta = l==='es' ? FRASE.queEs.es : l==='gl' ? `Como se di «${p.es||'?'}» en galego?` : f.frases ? "What's this?" : `How do you say «${p.es||'?'}» in English?`;
     $('#s-repasoitem').innerHTML = `<div class="card preg">${cab}<div class="di-grid"><div class="di-ft">${imgPalabra(p,true)}</div>
       <div class="di-tx"><h2 style="text-align:left;margin:0">${esc(pregunta)}</h2><button class="ico-btn" type="button" id="rpOir" aria-label="Escuchar la pregunta">${ic('altavoz')}</button>
         <button class="btn btn-p btn-xl" type="button" id="rpHablar">${ic('mic')} Responder</button><div class="medidor" id="rpMed" hidden>${'<i></i>'.repeat(12)}</div>
         <p class="estado-mic" id="rpEstado"></p><div class="botones" id="rpBotones"><button class="btn btn-g" type="button" id="rpNose">No lo sé</button></div></div></div>
       <div class="pie-preg" id="rpPie"></div></div>`;
-    const oirP=()=> l==='en' ? decirVarias([['How do you say','en'],[p.es||'','es'],['in English?','en']]) : decir(pregunta, l);
+    const oirP=()=> l==='en' && !f.frases ? decirVarias([['How do you say','en'],[p.es||'','es'],['in English?','en']]) : decir(pregunta, l);
     $('#rpOir').onclick=oirP;
     $('#rpNose').onclick=()=>{ pararEscucha(); mostrarRespuesta(false); };
     $('#rpHablar').onclick=escuchar;
@@ -125,7 +161,9 @@ definir('repasoitem', {nav:'repaso', pintar(){
     function mostrarRespuesta(ok){
       pararEscucha(); $('#rpHablar').hidden=true; $('#rpBotones').innerHTML='';
       const est=$('#rpEstado'); est.className='estado-mic '+(ok?'ok':''); est.innerHTML = `<span class="respuesta-g">${esc(p.t)}</span>`;
-      if(ok){ sonido('bien'); decirVarias([[fraseBien(l),l],[p.t,l]]); } else { decirVarias([[FRASE.es[l](p.t),l],[FRASE.repite[l](p.t),l]]); }
+      const frase = f.frases && l==='en' ? `It's ${articulo(p.t)} ${p.t}.` : p.t;
+      if(f.frases && l==='en') est.innerHTML = `<span class="respuesta-g">${esc(frase)}</span>`;
+      if(ok){ sonido('bien'); decirVarias([[fraseBien(l),l],[frase,l]]); } else { decirVarias([[esLo(f,p,l),l],[FRASE.repite[l](frase),l]]); }
       resultado(ok);
     }
   }
