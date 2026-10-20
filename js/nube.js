@@ -83,7 +83,14 @@ async function nubeSincro({soloEnviar=false}={}){
     }
     const copia=await crearCopia({diasAudio:4});
     const hu=huellaTexto(JSON.stringify({...copia, fecha:''}));
-    if(hu!==loc.huella){ await nubePost({accion:'guardar', nombre:nombreNube(), contenido:JSON.stringify(copia)}); loc.huella=hu; loc.enviada=Date.now(); }
+    if(hu!==loc.huella){
+      try{ await nubePost({accion:'guardar', nombre:nombreNube(), contenido:JSON.stringify(copia)}); loc.sinAudio=false; }
+      catch(e){   // la copia con grabaciones es grande y en el iPad a veces se corta: entonces va sin grabaciones, que pesa muy poco
+        const ligera=await crearCopia({audios:false});
+        await nubePost({accion:'guardar', nombre:nombreNube(), contenido:JSON.stringify(ligera)});
+        loc.sinAudio=true; registrar('Copias automáticas: copia enviada sin grabaciones ('+e.message+')');
+      }
+      loc.huella=hu; loc.enviada=Date.now(); }
     loc.ultima=Date.now(); loc.error=fallos.length ? 'no se pudo juntar '+fallos.join('; ') : null;
     if(fallos.length) registrar('Copias automáticas: '+loc.error);
   }catch(e){ loc.error=e.message; registrar('Copias automáticas: '+e.message); }
@@ -115,7 +122,7 @@ function nubeEstadoTxt(){
   const l=nubeLocal(); const f=t=>new Date(t).toLocaleString('es-ES',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'});
   if(nubeOcupada) return '⏳ Juntando ahora…';
   if(l.error) return `⚠️ La última vez no se pudo (${esc(l.error)}). Se vuelve a intentar sola cada 2 minutos.`;
-  return l.ultima ? `✅ Al día. Última vez: ${esc(f(l.ultima))}${l.enviada?' · copia de este aparato enviada: '+esc(f(l.enviada)):''}` : 'Todavía no se ha hecho ninguna.';
+  return l.ultima ? `✅ Al día. Última vez: ${esc(f(l.ultima))}${l.enviada?' · copia de este aparato enviada: '+esc(f(l.enviada)):''}${l.sinAudio?' (sin las grabaciones de voz: pesaban demasiado)':''}` : 'Todavía no se ha hecho ninguna.';
 }
 const codigoNube = () => { const c=nubeConf(); return c ? c.url+'#'+c.clave : ''; };
 function nubeHTML(){
