@@ -1035,3 +1035,28 @@ button.peli-d.falta{cursor:pointer}
 .con-tinta{position:relative;touch-action:none;-webkit-user-select:none;user-select:none}
 .capa-tinta{position:absolute;left:0;top:0;pointer-events:none;z-index:4;overflow:visible}
 .acceso.buzon{background:linear-gradient(135deg,#FFF4D6,#FFE7F0);border:2px dashed #F5A300}
+/* la tele dibujada (22/10) */
+.tele-mini{border:0;background:none;padding:0;width:58px;height:48px;margin-left:auto;cursor:pointer;flex:0 0 auto}
+.tele-mini .tele-svg{width:58px;height:48px;display:block}
+.tele-mini + .yo-btn{margin-left:0}
+.televisor{margin-top:20px;width:100%;display:flex;align-items:center;gap:22px;text-align:left;border:2px solid #B6D4FB;border-radius:22px;padding:14px 22px;background:linear-gradient(135deg,#EEF5FF,#E6FBF6);cursor:pointer}
+.televisor.finde{background:linear-gradient(135deg,#D9F5EF,#E6F0FF);border-color:#34B3A0}
+.televisor .tv-caja{flex:0 0 190px}.televisor .tele-svg{width:190px;height:auto;display:block}
+.televisor .tv-tx{display:flex;flex-direction:column;gap:6px;min-width:0}.televisor .tv-tx>b{font-size:1.35rem}
+.televisor .falta{font-weight:800;color:#0F766E}
+.televisor .tv-total{font-size:1.1rem}.televisor .tv-total b{color:#1E4FA3}
+.peli-rollo{display:flex;gap:4px;background:#1F2937;border-radius:8px;padding:6px 6px;width:max-content;max-width:100%;position:relative}
+.peli-rollo .fot{width:34px;height:30px;border-radius:4px;background:#E2E8F0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.62rem;line-height:1}
+.peli-rollo .fot b{font-size:.7rem}.peli-rollo .fot.ok{background:#FDE68A}.peli-rollo .fot.falta{background:#FECACA}.peli-rollo .fot.nada{opacity:.35}
+/* 22/10: la peli del sábado, una barra que se llena con las lecturas extra */
+.peli-barra{position:relative;height:26px;border-radius:13px;background:#E2E8F0;overflow:hidden;margin:8px 0;max-width:420px}
+.peli-barra>span{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#F59E0B,#FDE047);border-radius:13px;transition:width .6s ease}
+.peli-barra>b{position:relative;display:block;text-align:center;line-height:26px;font-size:.9rem}
+.peli-barra.chica{height:10px;margin:2px 0 0;width:200px;max-width:100%}.peli-barra.chica>span{border-radius:5px}
+.peli-sab{display:flex;flex-direction:column;gap:2px}
+.pelis-col{display:flex;flex-direction:column;gap:18px;min-width:0}
+.reloj-vuela{position:fixed;z-index:3000;font-size:1.9rem;font-weight:900;color:#0F766E;pointer-events:none;transition:transform .8s cubic-bezier(.3,.7,.4,1),opacity .8s ease-in;transform:translate(0,0);white-space:nowrap;text-shadow:0 2px 0 #fff}
+.tele-late{animation:teleLate .16s ease}
+@keyframes teleLate{50%{transform:scale(1.08)}}
+@media (max-width:560px){ .televisor{flex-direction:column;align-items:flex-start;padding:12px 14px;gap:10px} .televisor .tv-caja{flex:none;align-self:center} .televisor .tele-svg{width:170px} .tele-mini{width:46px;height:38px} .tele-mini .tele-svg{width:46px;height:38px} }
+@media (prefers-reduced-motion: reduce){ .reloj-vuela{transition:none} .tele-late{animation:none} }

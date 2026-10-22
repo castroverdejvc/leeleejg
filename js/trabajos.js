@@ -84,7 +84,10 @@ function objetivoDeTrazo(els, pts){
   let mejor=null, nota=0;
   els.forEach(el=>{ const [cx,cy]=centroDe(el); const r=el.getBoundingClientRect();
     const encima=pts.filter(p=>dentroDe(el,p,6)).length/pts.length;
-    const rodea = cx>caja.l && cx<caja.r && cy>caja.t && cy<caja.b && (caja.r-caja.l)<Math.max(r.width,r.height)*2.2 && (caja.b-caja.t)<Math.max(r.width,r.height)*2.2 ? 0.6 : 0;
+    // si el trazo rodea varios (un círculo grande que pilla el centro de otro), gana el que queda más en medio
+    const cc=[(caja.l+caja.r)/2,(caja.t+caja.b)/2], radio=Math.max(caja.r-caja.l, caja.b-caja.t)/2||1;
+    const enMedio=Math.max(0, 1-Math.hypot(cx-cc[0], cy-cc[1])/radio);
+    const rodea = cx>caja.l && cx<caja.r && cy>caja.t && cy<caja.b && (caja.r-caja.l)<Math.max(r.width,r.height)*2.2 && (caja.b-caja.t)<Math.max(r.width,r.height)*2.2 ? 0.6+0.3*enMedio : 0;
     const n=Math.max(encima, rodea); if(n>nota){ nota=n; mejor=el; } });
   return nota>=0.35 ? mejor : null;
 }

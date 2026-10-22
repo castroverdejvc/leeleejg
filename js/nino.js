@@ -51,6 +51,7 @@ definir('inicio', {nav:'inicio', pintar(){
   <button class="acceso blanco" type="button" data-ir="calendario"><span class="icono-g">${ic('calendario')}</span><span><b>Ver mi calendario</b>${pend?`<span class="nota">Tienes ${pend} ${pend===1?'historia':'historias'} sin leer de otros días.</span>`:''}</span><span class="ir">${ic('dcha')}</span></button>`;
   $('#btnLeerHoy').onclick=()=>empezarHistoria(h);
   activarSemanaPasadaNino();
+  if(typeof televisorInicio==='function') televisorInicio();
   if($('#btnSeguirHist')) $('#btnSeguirHist').onclick=seguirDondeLoDejo;
   activarAvisoTemas($('#s-inicio')); activarAtrasadas($('#s-inicio')); activarTemporada($('#s-inicio'));
   setTimeout(()=>{ if(actual==='inicio') comprobarPremios(); }, 400);

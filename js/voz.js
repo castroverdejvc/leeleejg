@@ -65,7 +65,7 @@ let actx;
 function ctxAudio(){ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); return actx; }
 function sonido(tipo){
   try{
-    const a=ctxAudio(); const v=(aj.volumen ?? .9)*.18; const notas = tipo==='bien' ? [523,659,784,1047] : tipo==='cromo' ? [523,659,784,1047,1319] : tipo==='toc' ? [784] : [311,247];
+    const a=ctxAudio(); const v=(aj.volumen ?? .9)*.18; const notas = tipo==='bien' ? [523,659,784,1047] : tipo==='cromo' ? [523,659,784,1047,1319] : tipo==='toc' ? [784] : tipo==='clin' ? [1568,2093] : [311,247];
     notas.forEach((f,i)=>{ const o=a.createOscillator(), g=a.createGain(); o.type='triangle'; o.frequency.value=f;
       const t=a.currentTime+i*.11; g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(Math.max(.001,v),t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+.28);
       o.connect(g).connect(a.destination); o.start(t); o.stop(t+.3); });
