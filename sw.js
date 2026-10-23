@@ -3,7 +3,7 @@
    También guarda el programa y las fotos para que funcione sin internet.
    En el ordenador con «Iniciar LeeLEEJG» este fichero no se usa. */
 'use strict';
-const VERSION = '7.0';   // la misma que app.py (preparar_tablet.py lo comprueba)
+const VERSION = '7.0.1';   // la misma que app.py (preparar_tablet.py lo comprueba)
 const CACHE_PROG = 'leeleejg-programa';      // el programa (se renueva cuando cambia precache.json)
 const CACHE_FUENTES = 'leeleejg-fuentes';    // letras de Google Fonts, guardadas la primera vez
 const ID_OK = /^[A-Za-z0-9_-]{1,64}$/;
@@ -11,6 +11,8 @@ const CLAVE_OK = /^[a-z0-9_]{1,40}$/;
 const NUEVA_OK = /^[A-Za-z0-9_-]{1,60}\.json$/;
 const PATRON_PAL = /\[([^|\]]+)\|([a-z0-9_]+)\]/g;
 const MUNDO_DE_TEMA = {futbol: 'liga'};
+/* La IA (Claude) solo funciona en el ordenador: aquí no hay clave ni se llama a internet para eso */
+const IA_SOLO_PC = 'Disponible en el ordenador: la IA funciona allí y lo que prepara llega aquí al juntar los datos.';
 
 /* ---------------- IndexedDB ---------------- */
 let dbProm = null;
@@ -112,7 +114,7 @@ async function contenidoConNuevas(){
 async function servir(req, ruta){
   const metodo = req.method;
   if(metodo==='GET' || metodo==='HEAD'){
-    if(ruta==='/api/estado'){ return json({version:VERSION, voz:'navegador', vozNombre:'', oido:'navegador', datos:'este aparato', voces:[], oidos:[], cargando:false, local:true, aparato: await aparato()}); }
+    if(ruta==='/api/estado'){ return json({version:VERSION, voz:'navegador', vozNombre:'', oido:'navegador', datos:'este aparato', voces:[], oidos:[], cargando:false, local:true, ia:{activa:false, local:true}, aparato: await aparato()}); }
     if(ruta==='/api/datos'){
       const [ajustes, ses, conAudio] = await Promise.all([leer('kv','ajustes'), todos('sesiones'), claves('audios')]);
       const hay = new Set(conAudio);
@@ -140,6 +142,7 @@ async function servir(req, ruta){
     m = ruta.match(/^\/api\/historias-nuevas\/(.+)$/);
     if(m){ const n=decodeURIComponent(m[1]); const p = NUEVA_OK.test(n) && await leer('nuevas', n); return p ? json(p.historias) : json({error:'no existe'}, 404); }
     if(ruta==='/contenido.json') return json(await contenidoConNuevas());
+    if(ruta.startsWith('/api/ia/')) return ruta==='/api/ia/estado' ? json({activa:false, local:true, motivo:'La IA funciona en el ordenador. Lo que se prepara allí llega a la tablet al juntar los datos.'}) : json({error:IA_SOLO_PC}, 404);
     if(ruta==='/api/registro') return json(   // para mirar el registro de la tablet si algo falla (abriendo …/api/registro)
       (await leer('kv','registro')) || []);
     return null;
@@ -172,6 +175,7 @@ async function servir(req, ruta){
     if(ruta==='/api/abrir-carpeta') return json({ok:false, carpeta:'Guardado en este aparato'});
     if(ruta==='/api/registro'){ const d = (await req.json().catch(()=>null)) || {}; await registrar('Navegador: '+String(d.mensaje||'')); return json({ok:true}); }
     if(ruta==='/api/sincro/copia'){ await poner('kv', new Date().toISOString(), 'ultimaCopia'); return json({ok:true}); }
+    if(ruta.startsWith('/api/ia/')) return json({error:IA_SOLO_PC}, 404);
     return json({error:'ruta desconocida'}, 404);
   }
   if(metodo==='DELETE'){
@@ -186,6 +190,7 @@ async function servir(req, ruta){
     m = ruta.match(/^\/api\/historias-nuevas\/(.+)$/);
     if(m){ const n=decodeURIComponent(m[1]); if(!NUEVA_OK.test(n)) return json({error:'nombre no válido'}, 400); const p = await leer('nuevas', n);
       if(p){ await poner('papelera', {...p, f:Date.now()}, 'historias_'+Date.now()+'_'+n); await quitar('nuevas', n); await registrar('Historias nuevas quitadas: '+n); } return json({ok:true}); }
+    if(ruta.startsWith('/api/ia/')) return json({error:IA_SOLO_PC}, 404);
     return json({error:'ruta desconocida'}, 404);
   }
   return json({error:'método no válido'}, 405);

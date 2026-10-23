@@ -62,7 +62,8 @@ function turnoJuntos(ptr){
 
 /* ---------- empezar una historia ---------- */
 function empezarHistoria(h){
-  hist=h; sesion=null; audioBlob=null; lect=null;
+  hist = typeof iaVariante==='function' ? iaVariante(h) : h;   // al volver a leerla, las preguntas nuevas aprobadas (Ayudante IA)
+  sesion=null; audioBlob=null; lect=null;
   sinMic=false;   // «Leer sin micrófono» vale solo para una historia: en la siguiente se vuelve a ofrecer
   if(!micProbado && navigator.mediaDevices) ir('mic'); else ir('lectura');
 }
@@ -88,7 +89,7 @@ function marcapaginasHTML(){
 }
 function seguirDondeLoDejo(){
   const s=sesionAMedias();
-  if(s){ hist=historia(s.historiaId); sesion=JSON.parse(JSON.stringify(s)); sesion._audioSubido=true; audioBlob=null; lect=null;
+  if(s){ hist=historia(s.historiaId); if(s.pregIA && typeof iaVariante==='function') hist=iaVariante(hist, true); sesion=JSON.parse(JSON.stringify(s)); sesion._audioSubido=true; audioBlob=null; lect=null;
     qi=sesion.preguntas.length; qEst=null; cEst=null;
     if(qi<hist.preguntas.length) ir('pregunta'); else if(hist.calculo && !sesion.calculo) ir('calculo'); else ir('cromonuevo');
     return; }
@@ -237,8 +238,9 @@ function ayudaPalabra(i){
   const w=palabras[i]; if(!w) return;
   const k=w.clave || claveDePalabra(w.p); const texto=w.el.textContent;
   if(lect && lect.activa){ lect.ayudas.add(i); w.el.classList.add('ayudada'); }
+  const qs = typeof iaBotonSignificado==='function' ? iaBotonSignificado(texto, (w.el.closest('p')||w.el).textContent) : null;   // «¿Qué significa?» (Ayudante IA)
   dialogo({cls:'ayuda-pal', html:`<div class="ft">${k?imgHTML(k,true):'📖'}</div><div class="silabas-g">${silabasHTML(limpiar(texto)||texto)}</div>`,
-    botones:[{t:ic('altavoz')+' Escuchar', cls:'btn-p', mantener:true, fn:()=>oirPalabra(texto)},{t:ic('recargar')+' Volver a leer', fn:()=>{}}]});
+    botones:[{t:ic('altavoz')+' Escuchar', cls:'btn-p', mantener:true, fn:()=>oirPalabra(texto)}, ...(qs?[qs]:[]), {t:ic('recargar')+' Volver a leer', fn:()=>{}}]});
   oirPalabra(texto);
   if(lect && lect.activa) aviso('Ayuda guardada');
 }
@@ -303,7 +305,7 @@ async function cerrarLectura(){
     segundos:Math.round(seg), totalPalabras:palabras.length, ppm:Math.round(palabras.slice(ini).filter(w=>!w.adulto).length/(seg/60)), palabras:estados, ...(ini?{desdePalabra:ini}:{}), auto:oyo, oido:l.oidoId?'vosk':(l.sr?'navegador':'ninguno'),
     oidoStats: l.rt ? {peticiones:l.rt.n, msMedio:Math.round(l.rt.suma/l.rt.n), msMax:Math.round(l.rt.max), retrasoMedio: l.retrasos&&l.retrasos.length ? +media(l.retrasos).toFixed(2) : null, reconocidas:l.ok?l.ok.filter(Boolean).length:0} : null,
     oidoTexto: (l.oidoId ? l.finales.map(f=>f.w).join(' ') : (l.txtPrevio+' '+l.txtSesion)).trim().slice(0,2000) || undefined, oidoLimite: oyo ? +limite.toFixed(1) : undefined,
-    ...(palabras.some(w=>w.adulto)?{juntos:aj.juntos}:{}), ...(l.modelo?{escuchada:true}:{}), frasesEscuchadas:l.frases||0, letra:aj.letra, tam:aj.tam, imagenes:aj.img, preguntas:[], aciertos:0, totalPreguntas:hist.preguntas.length, calculo:null, revisada: pendientes===0, incompleta:true };
+    ...(palabras.some(w=>w.adulto)?{juntos:aj.juntos}:{}), ...(l.modelo?{escuchada:true}:{}), ...(hist.pregIA?{pregIA:true}:{}), frasesEscuchadas:l.frases||0, letra:aj.letra, tam:aj.tam, imagenes:aj.img, preguntas:[], aciertos:0, totalPreguntas:hist.preguntas.length, calculo:null, revisada: pendientes===0, incompleta:true };
   if(sesion.oidoStats) registrar(`Oído ${sesion.oido}: ${sesion.oidoStats.reconocidas}/${palabras.length} palabras reconocidas, retraso medio ${sesion.oidoStats.retrasoMedio} s, petición media ${sesion.oidoStats.msMedio} ms (máx ${sesion.oidoStats.msMax})`);
   audioBlob=blob;
   if(aj.marcapaginas && aj.marcapaginas.historiaId===hist.id){ aj.marcapaginas=null; guardarAj(); }

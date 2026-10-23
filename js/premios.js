@@ -261,14 +261,31 @@ function sobresDe(p=perfil()){
 }
 function sobreHTML(){
   const p=perfil(), s=sobresDe(p); if(!s.activo) return '';
-  if(s.pend) return `<div class="card acceso sobre-cartas gana"><span class="emo-g">🎴</span><span><b>${s.pend===1?'¡Tienes un sobre de cartas!':`¡Tienes ${s.pend} sobres de cartas!`}</b><span class="nota">Pídeselo a papá o a mamá.</span></span></div>`;
+  if(s.pend) return `<button type="button" class="card acceso sobre-cartas gana" id="sobreInicio"><span class="emo-g">🎴</span><span><b>${s.pend===1?'¡Tienes un sobre de cartas!':`¡Tienes ${s.pend} sobres de cartas!`}</b><span class="nota">Pídeselo a papá o a mamá. Cuando te lo den, tocad aquí.</span></span></button>`;
   return `<div class="card acceso sobre-cartas"><span class="emo-g">🎴</span><span><b>Próximo sobre de cartas</b><span class="nota">${s.faltan===1?'¡Te falta 1 actividad!':'Te faltan '+s.faltan+' actividades'}</span><span class="barra-t"><i style="width:${Math.round(100*(s.cada-s.faltan)/s.cada)}%;background:#E11D48"></i></span></span></div>`;
 }
 function sobresAdultoHTML(p){
   const s=sobresDe(p); if(!s.activo) return '';
   return `<div class="sobres-fam"><p class="nota">🎴 Sobres de cartas: ${esc(p.nombre)} ha ganado <b>${s.ganados}</b> y se le han dado <b>${s.dados}</b>.${s.pend?` <b>Tiene ${s.pend===1?'1 sobre':s.pend+' sobres'} por dar.</b>`:` El siguiente, dentro de ${s.faltan===1?'1 actividad':s.faltan+' actividades'}.`}</p>
-    ${s.pend?`<button class="btn btn-mini btn-p" type="button" id="sobreDado">Ya le he dado un sobre</button>`:''}</div>`;
+    ${s.pend?`<div class="botones" style="margin-top:6px"><button class="btn btn-mini btn-p" type="button" id="sobreDado">Ya le he dado un sobre</button>${s.pend>1?`<button class="btn btn-mini btn-verde" type="button" id="sobreDadoTodos">Ya le he dado los ${s.pend}</button>`:''}</div>`:''}</div>`;
 }
+/* 23/10: apuntar los sobres dados (uno o todos los que tiene por dar) */
+function darSobres(p, n=1){ const c=cfgDe(p); const ya=new Date().toISOString(); c.sobresLog=(c.sobresLog||[]).concat(Array.from({length:Math.max(1,n)},()=>({f:ya}))).slice(-500); guardarAj(); }
 function activarSobresAdulto(p){
-  const b=$('#sobreDado'); if(b) b.onclick=()=>{ const c=cfgDe(p); c.sobresLog=(c.sobresLog||[]).concat([{f:new Date().toISOString()}]).slice(-500); guardarAj(); aviso('Apuntado'); ir('evolucion','premios'); };
+  const b=$('#sobreDado'); if(b) b.onclick=()=>{ darSobres(p, 1); aviso('Apuntado'); ir('evolucion','premios'); };
+  const t=$('#sobreDadoTodos'); if(t) t.onclick=()=>{ darSobres(p, sobresDe(p).pend); aviso('Apuntados'); ir('evolucion','premios'); };
+}
+/* la tarjeta de Inicio: papá o mamá la tocan cuando le dan el sobre (con el PIN, o con una multiplicación de mayores si no hay PIN) */
+function activarSobreInicio(){
+  const b=$('#sobreInicio'); if(!b) return;
+  b.onclick=()=>{ const p=perfil(), s=sobresDe(p); if(!s.pend) return;
+    const a=12+Math.floor(Math.random()*8), m=6+Math.floor(Math.random()*4), conPin=!!aj.pin;
+    const d=dialogo({titulo:'🎴 Sobre de cartas', html:`<p class="nota">Esto es para papá o mamá. ${esc(p.nombre)} tiene <b>${s.pend===1?'1 sobre':s.pend+' sobres'}</b> por recibir.</p>
+      <p style="font-weight:800;margin:10px 0 6px">${conPin?'Pon el PIN de la familia:':`¿Cuánto es ${a} × ${m}?`}</p>
+      <input id="sobreRes" type="${conPin?'password':'number'}" inputmode="numeric" autocomplete="off" style="width:150px;font-size:1.4rem;padding:8px;border-radius:10px;border:2px solid var(--line)"><p class="pin-msg" id="sobreMsg"></p>`,
+      botones:[{t:'Ya le hemos dado 1 sobre',cls:'btn-p', mantener:true, fn:()=>dar(1)}].concat(s.pend>1?[{t:`Ya le hemos dado los ${s.pend}`,cls:'btn-verde', mantener:true, fn:()=>dar(s.pend)}]:[]).concat([{t:'Todavía no',cls:'btn'}])});
+    function dar(n){ const v=($('#sobreRes',d.el).value||'').trim(); const bien = conPin ? v===aj.pin : +v===a*m;
+      if(!bien){ $('#sobreMsg',d.el).textContent = conPin?'PIN incorrecto':'No es correcto'; return; }
+      darSobres(p, n); d.cerrar(); sonido('cromo'); aviso(n===1?'Sobre apuntado':'Sobres apuntados'); ir('inicio'); }
+    setTimeout(()=>{ const i=$('#sobreRes',d.el); if(i) i.focus(); },100); };
 }

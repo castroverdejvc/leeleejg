@@ -52,6 +52,7 @@ definir('inicio', {nav:'inicio', pintar(){
   $('#btnLeerHoy').onclick=()=>empezarHistoria(h);
   activarSemanaPasadaNino();
   if(typeof televisorInicio==='function') televisorInicio();
+  if(typeof activarSobreInicio==='function') activarSobreInicio();
   if($('#btnSeguirHist')) $('#btnSeguirHist').onclick=seguirDondeLoDejo;
   activarAvisoTemas($('#s-inicio')); activarAtrasadas($('#s-inicio')); activarTemporada($('#s-inicio'));
   setTimeout(()=>{ if(actual==='inicio') comprobarPremios(); }, 400);
@@ -191,13 +192,14 @@ definir('practicar', {nav:'practicar', pintar(reiniciar){
   const k=claveDePalabra(p); const sil=silabear(p);
   $('#s-practicar').innerHTML = `<div class="pag-cab"><h1 class="tit">Practicar una palabra</h1><div style="text-align:center"><b>${practI+1} de ${practLista.length}</b><div class="prog-puntos">${practLista.map((_,i)=>`<i class="${i<practI?'ok':i===practI?'on':''}"></i>`).join('')}</div></div></div>
   <div class="card practica"><div class="ft">${k?imgHTML(k,true):'📖'}</div><div><div class="palabra-g"><div class="silabas-g" id="silP">${sil.map((s,i)=>`<span class="s ${i%2?'b':'a'}" data-i="${i}">${esc(s)}</span>`).join('<span class="p">·</span>')}</div></div>
-    <div class="botones"><button class="btn btn-borde btn-g" type="button" id="btnOirP">${ic('altavoz')} Escuchar</button><button class="btn btn-p btn-g" type="button" id="btnSigP">Siguiente palabra ${ic('flecha')}</button></div></div></div>
+    <div class="botones"><button class="btn btn-borde btn-g" type="button" id="btnOirP">${ic('altavoz')} Escuchar</button>${typeof iaBotonPracticarHTML==='function'?iaBotonPracticarHTML(p):''}<button class="btn btn-p btn-g" type="button" id="btnSigP">Siguiente palabra ${ic('flecha')}</button></div></div></div>
   ${tarjetaDictadoHTML()}`;
   activarTarjetaDictado($('#s-practicar'));
   const oir=async()=>{ const ss=$$('#silP .s'); let turno=null; const sigue=()=>turno===null || (turno===vozTurno && actual==='practicar');
     for(let i=0;i<sil.length && sigue();i++){ ss.forEach((x,j)=>x.classList.toggle('on', j===i)); const pr=decir(sil[i]); turno=vozTurno; await pr; await pausa(120); }
     if(!sigue()) return; ss.forEach(x=>x.classList.remove('on')); await decir(p); };
   $('#btnOirP').onclick=oir;
+  if(typeof activarIaPracticar==='function') activarIaPracticar(p);
   $('#btnSigP').onclick=()=>{ aj.practica=aj.practica||{}; aj.practica[p]=(aj.practica[p]||0)+1; guardarAj(); practHechas.push(p); practI++; if(practI>=practLista.length) ir('practicafin'); else ir('practicar', false); };
   setTimeout(oir, 300);
 }, salir(){ callar(); }});

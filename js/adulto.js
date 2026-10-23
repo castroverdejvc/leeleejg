@@ -71,7 +71,7 @@ definir('evolucion', {zona:'adulto', pintar(tab){
     const sem=semanas(ms);
     cuerpo = `<div class="graf-2"><div class="card graf-card"><h3>Comprensión</h3>${barras(sem.map(w=>media(w.ses.map(pctComp))), sem.map(w=>w.etq), {max:100, color:'#5CCB8F'})}</div>
       <div class="card graf-card"><h3>Fluidez <small>(palabras por minuto)</small></h3>${barras(sem.map(w=>media(w.ses.map(s=>s.ppm||0))), sem.map(w=>w.etq), {max:Math.max(100, Math.ceil(Math.max(0,...ms.map(s=>s.ppm||0))/25)*25), color:'#9B8CF5'})}</div></div>
-      <div class="card informe-banda">${ic('informe')}<div><b>Informe para la tutora</b><span class="nota">Resumen del progreso de ${esc(p.nombre)} con gráficos y palabras que le cuestan.</span></div><button class="btn btn-p" type="button" id="btnInforme">Generar informe</button></div>
+      <div class="card informe-banda">${ic('informe')}<div><b>Informe para la tutora</b><span class="nota">Resumen del progreso de ${esc(p.nombre)} con gráficos y palabras que le cuestan.</span></div><button class="btn btn-p" type="button" id="btnInforme">Generar informe</button>${typeof iaEnlaceHistorias==='function'?`<button class="btn btn-borde" type="button" data-iair="informe">${ic('bombilla')} Informe con IA</button>`:''}</div>
       <div class="card bloque" style="margin-top:18px"><h3 style="margin-bottom:12px">Todas las lecturas</h3>${tablaLecturas(ms)}</div>`;
   } else if(tabEvo==='grabaciones'){
     const g=ms.filter(s=>s.audio).reverse();
