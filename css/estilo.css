@@ -1055,6 +1055,13 @@ button.peli-d.falta{cursor:pointer}
 .peli-barra.chica{height:10px;margin:2px 0 0;width:200px;max-width:100%}.peli-barra.chica>span{border-radius:5px}
 .peli-sab{display:flex;flex-direction:column;gap:2px}
 /* 23/10: ranking de semanas */
+.val-lista{list-style:none;padding:0;margin:0;display:grid;gap:8px;text-align:left}
+.val-lista li{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-radius:12px;background:#F6F8FC;line-height:1.45}
+.val-lista li.val-bien{background:#ECFDF3}.val-lista li.val-ojo{background:#FFF7E6}.val-lista li.val-info{background:#F1F5FF}
+.rk-tabla tbody tr[data-sem]{cursor:pointer}.rk-tabla tbody tr[data-sem]:hover td{background:#F7FAFF}
+.rk-orden{flex-wrap:wrap}
+.cifras-est .cifra-s b{font-size:1.35rem;line-height:1.2}
+.det-sem{text-align:left}.det-sem h3{margin:10px 0 2px;font-size:1rem}.det-sem .tele-tabla td:last-child{text-align:right}
 .rk-tabla{width:100%}.rk-tabla td,.rk-tabla th{padding:7px 8px;text-align:left;vertical-align:middle}
 .rk-tabla .rk-pos{font-size:1.25rem;width:40px;text-align:center}
 .rk-tabla tr.en-curso td{background:#F3F8FF}

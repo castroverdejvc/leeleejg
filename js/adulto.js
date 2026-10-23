@@ -65,7 +65,7 @@ function barras(vals, etq, {max=100, color='#7DD9A8', suf=''}={}){
 const pctComp = s => { const n=preguntasHechas(s); return n ? Math.round(100*(s.aciertos||0)/n) : null; };
 definir('evolucion', {zona:'adulto', pintar(tab){
   if(tab) tabEvo=tab; const p=lectorVisto(); const ms=sesDe(p.id);
-  const TABS=[['semana','Esta semana'],['lecturas','Lecturas'],['temas','Temas e intereses'],['grabaciones','Grabaciones'],['palabras','Palabras'],['calculo','Cálculo'],['juegos','Juegos'],['ranking','Ranking de semanas'],['premios','Premios y gustos']];
+  const TABS=[['semana','Esta semana'],['lecturas','Lecturas'],['temas','Temas e intereses'],['grabaciones','Grabaciones'],['palabras','Palabras'],['calculo','Cálculo'],['juegos','Juegos'],['ranking','Ranking y estadísticas'],['premios','Premios y gustos']];
   let cuerpo='';
   if(tabEvo==='lecturas'){
     const sem=semanas(ms);
