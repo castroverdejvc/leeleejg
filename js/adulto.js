@@ -65,7 +65,7 @@ function barras(vals, etq, {max=100, color='#7DD9A8', suf=''}={}){
 const pctComp = s => { const n=preguntasHechas(s); return n ? Math.round(100*(s.aciertos||0)/n) : null; };
 definir('evolucion', {zona:'adulto', pintar(tab){
   if(tab) tabEvo=tab; const p=lectorVisto(); const ms=sesDe(p.id);
-  const TABS=[['semana','Esta semana'],['lecturas','Lecturas'],['temas','Temas e intereses'],['grabaciones','Grabaciones'],['palabras','Palabras'],['calculo','Cálculo'],['juegos','Juegos'],['premios','Premios y gustos']];
+  const TABS=[['semana','Esta semana'],['lecturas','Lecturas'],['temas','Temas e intereses'],['grabaciones','Grabaciones'],['palabras','Palabras'],['calculo','Cálculo'],['juegos','Juegos'],['ranking','Ranking de semanas'],['premios','Premios y gustos']];
   let cuerpo='';
   if(tabEvo==='lecturas'){
     const sem=semanas(ms);
@@ -83,6 +83,8 @@ definir('evolucion', {zona:'adulto', pintar(tab){
     cuerpo = semanaHTML(p) + semanaPasadaFamHTML(p);
   } else if(tabEvo==='juegos'){
     cuerpo = juegosAdultoHTML(p);
+  } else if(tabEvo==='ranking'){
+    cuerpo = rankingSemanasHTML(p);
   } else if(tabEvo==='premios'){
     cuerpo = premiosAdultoHTML(p) + gustosAdultoHTML(p) + (typeof buzonAdultoHTML==='function' ? buzonAdultoHTML(p) : '');
   } else if(tabEvo==='palabras'){
@@ -103,6 +105,7 @@ definir('evolucion', {zona:'adulto', pintar(tab){
   if($('#btnInforme')) $('#btnInforme').onclick=()=>ir('informe', p.id);
   activarAccionesLecturas('#s-evolucion');
   if(tabEvo==='temas') activarTemasAdulto(p);
+  if(tabEvo==='ranking') activarRanking();
   if(tabEvo==='premios'){ activarPremiosAdulto(); if(typeof activarBuzonAdulto==='function') activarBuzonAdulto(lectorVisto()); }
 }});
 function tablaLecturas(ms){

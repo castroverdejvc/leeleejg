@@ -1054,6 +1054,18 @@ button.peli-d.falta{cursor:pointer}
 .peli-barra>b{position:relative;display:block;text-align:center;line-height:26px;font-size:.9rem}
 .peli-barra.chica{height:10px;margin:2px 0 0;width:200px;max-width:100%}.peli-barra.chica>span{border-radius:5px}
 .peli-sab{display:flex;flex-direction:column;gap:2px}
+/* 23/10: ranking de semanas */
+.rk-tabla{width:100%}.rk-tabla td,.rk-tabla th{padding:7px 8px;text-align:left;vertical-align:middle}
+.rk-tabla .rk-pos{font-size:1.25rem;width:40px;text-align:center}
+.rk-tabla tr.en-curso td{background:#F3F8FF}
+.rk-tabla tr.tot td{border-top:2px solid var(--line);font-weight:800}
+.rk-barra{display:block;height:6px;border-radius:3px;background:#EEF2F7;margin-top:4px;min-width:70px}.rk-barra i{display:block;height:100%;border-radius:3px}
+@media (max-width:600px){ .rk-tabla thead{display:none} .rk-tabla,.rk-tabla tbody{display:block}
+  .rk-tabla tr{display:grid;grid-template-columns:36px 1fr 1fr;gap:4px 10px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .rk-tabla td{padding:0;border:0}.rk-tabla td:first-child{grid-row:span 4}.rk-tabla td:nth-child(2){grid-column:span 2;font-weight:800}
+  .rk-tabla td[data-l]::before{content:attr(data-l);display:block;font-size:.72rem;color:#64748B;font-weight:700}
+  .rk-tabla tr.tot td:first-child{display:none}.rk-tabla tr.tot td:nth-child(2){grid-column:1 / -1}.rk-tabla tr.tot{grid-template-columns:1fr 1fr}
+  .rk-tabla td:last-child:empty{display:none} }
 .pelis-col{display:flex;flex-direction:column;gap:18px;min-width:0}
 .reloj-vuela{position:fixed;z-index:3000;font-size:1.9rem;font-weight:900;color:#0F766E;pointer-events:none;transition:transform .8s cubic-bezier(.3,.7,.4,1),opacity .8s ease-in;transform:translate(0,0);white-space:nowrap;text-shadow:0 2px 0 #fff}
 .tele-late{animation:teleLate .16s ease}
