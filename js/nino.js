@@ -38,12 +38,14 @@ definir('inicio', {nav:'inicio', pintar(){
       <button class="btn btn-p btn-xl" type="button" id="btnLeerHoy">${hecha?'Leer otra vez':'Leer'} ${ic('flecha')}</button></div></article>
   ${premiosHTML()}
   ${typeof motivacionHTML==='function' ? motivacionHTML() : ''}
+  ${typeof metasHTML==='function' ? metasHTML() : ''}
   ${teleHTML()}
   ${extraHTML()}
   ${typeof aprenderHTML==='function' ? aprenderHTML() : ''}
   ${typeof deportesHTML==='function' ? deportesHTML() : ''}
   ${typeof advientoHTML==='function' ? advientoHTML() : ''}
   ${typeof cartaHTML==='function' ? cartaHTML() : ''}
+  ${typeof premiosRealesHTML==='function' ? premiosRealesHTML() : ''}
   ${sobreHTML()}
   ${typeof buzonHTML==='function' ? buzonHTML() : ''}
   ${sorpresaHTML()}
@@ -63,6 +65,8 @@ definir('inicio', {nav:'inicio', pintar(){
   setTimeout(()=>{ if(actual==='inicio') comprobarPremios(); }, 400);
   if(typeof avisarSorpresa==='function') avisarSorpresa();
   if(typeof avisarRecord==='function') avisarRecord();
+  if(typeof activarPremiosReales==='function') activarPremiosReales($('#s-inicio'));
+  if(typeof avisarMetas==='function') avisarMetas();
 }});
 
 /* ---------- 03 · Calendario ---------- */

@@ -1275,3 +1275,29 @@ button.peli-d.falta{cursor:pointer}
 .fase.sel{background:var(--primary);color:#fff;border-color:var(--primary)}
 .fase.bloq{opacity:.5}
 .record{font-size:1.4rem;font-weight:900;color:#B45309}
+/* objetivos, revistas y cofre del tesoro (24/10/2026) */
+.metas{display:grid;gap:12px;padding:16px 20px;margin-top:16px}
+.metas-cab{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.metas-cab b{font-size:1.2rem}
+.obj-lista{display:grid;gap:6px}
+.obj{display:flex;gap:10px;align-items:center;padding:8px 12px;border-radius:12px;background:var(--surface-2)}
+.obj.ok{background:var(--green-soft)}
+.obj-m{font-size:1.3rem}
+.obj-t{flex:1;font-weight:700}
+.obj-n{font-weight:900;color:var(--ink-2);white-space:nowrap}
+.rev-barra{display:grid;gap:4px}
+.rev-barra>span:first-child{font-weight:800}
+.barra-t.doble{position:relative;height:14px;overflow:visible}
+.barra-t.doble i{background:linear-gradient(90deg,#60A5FA,#2563EB)}
+.barra-t .hito{position:absolute;top:-8px;transform:translateX(-50%);font-size:1rem}
+.cofre{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:14px;background:linear-gradient(90deg,#FFF7ED,#FDF2F8);border:2px dashed #F59E0B}
+.cofre-emo{font-size:2.4rem}
+.cofre .tx{display:grid;gap:4px;flex:1}
+.premio-real{border:3px solid #F59E0B;background:linear-gradient(90deg,#FFFBEB,#FFF1F2)}
+.premio-real.caja{animation:late 1.6s infinite;border-color:#E11D48}
+.gran-premio{display:grid;justify-items:center;gap:6px;text-align:center}
+.gran-premio>span{font-size:4.5rem}
+.obj-edit{display:grid;gap:8px}
+.obj-fila{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.op-caja{display:inline-flex;gap:6px;align-items:center;padding:6px 12px;border-radius:10px;border:2px solid var(--line);font-weight:800}
+.rev-barra .barra-t,.cofre .barra-t{width:100%;max-width:none;height:14px}

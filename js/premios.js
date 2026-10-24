@@ -5,7 +5,8 @@
    Desde el 24/10/2026 (estrellas.js): estCriatura, estJuego, sobreDia, sorpresa…, y la tele con tDia, tExtra, tTrabajo, peliExtras y los topes. */
 const PREMIOS_DEF = {criatura:2, juego:5, minutos:15, trasLeer:true, tele:10, teleExtra:15, teleRelee:5, teleFicha:5, teleTrabajo:1, sobre:15, restaFallo:0.5, peliExtra:9,
   estCriatura:8, estJuego:30, sobreDia:4, sorpresa:true, sorpresaExtras:2, movilCada:3, movilMax:30, eduMax:4,
-  tDia:15, tExtra:10, tRelee:5, tFicha:5, tTrabajo:2, peliExtras:7, teleMaxDia:120, teleMaxSemana:240};
+  tDia:15, tExtra:10, tRelee:5, tFicha:5, tTrabajo:2, peliExtras:7, teleMaxDia:120, teleMaxSemana:240,
+  revista1:45, revista2:75, cajaPeq:500, cajaGrande:1000};
 const premiosCfg = () => ({...PREMIOS_DEF, ...(aj.premios||{})});
 
 /* actividades (ejercicios) = lecturas terminadas + dictados + repasos de fichas + rondas de «As letras» */
@@ -266,7 +267,7 @@ function premiosAdultoHTML(p){
       <div class="campo"><label for="prMovil">📱 Móvil: 1 minuto cada</label>${sel('prMovil',[2,3,4,5],+c.movilCada,' ⭐')}</div>
       <div class="campo"><label for="prMovilMax">📱 Móvil como mucho (fin de semana)</label><select id="prMovilMax">${[0,15,20,30,45,60].map(x=>`<option value="${x}" ${x===+c.movilMax?'selected':''}>${x?x+' minutos':'Sin móvil'}</option>`).join('')}</select></div>
       <div class="campo"><label for="prEduMax">🧩 «Aprender jugando»: como mucho al día</label>${sel('prEduMax',[0,2,4,6,8],+c.eduMax,' ⭐').replace('>Sin límite<','>No dan ⭐<')}</div></div>
-    ${sobresAdultoHTML(p)}
+    ${sobresAdultoHTML(p)}</div>${typeof metasAdultoHTML==='function'?metasAdultoHTML(p):''}<div>
     <p class="nota" style="margin-top:8px">El usuario de pruebas no tiene límite de tiempo.</p></div>`;
 }
 function activarPremiosAdulto(){
@@ -274,7 +275,7 @@ function activarPremiosAdulto(){
   const guarda=()=>{ aj.premios={...(aj.premios||{}), minutos:+$('#prMin').value, trasLeer:sw('#prLeer'), sobreDia:+$('#prSobreDia').value, sorpresa:sw('#prSorpresa'), estCriatura:+$('#prEstCri').value, estJuego:+$('#prEstJue').value, movilCada:+$('#prMovil').value, movilMax:+$('#prMovilMax').value, eduMax:+$('#prEduMax').value}; delete aj.premios.teleGuarda; guardarAj(); aviso('Guardado'); };
   ['#prMin','#prSobreDia','#prEstCri','#prEstJue','#prMovil','#prMovilMax','#prEduMax'].forEach(s=>$(s).onchange=guarda);
   ['#prLeer','#prSorpresa'].forEach(id=>$(id).onclick=()=>{ const b=$(id); b.setAttribute('aria-checked', String(b.getAttribute('aria-checked')!=='true')); guarda(); });
-  activarTeleAdulto(lectorVisto()); activarSobresAdulto(lectorVisto());
+  activarTeleAdulto(lectorVisto()); activarSobresAdulto(lectorVisto()); if(typeof activarMetasAdulto==='function') activarMetasAdulto(lectorVisto());
 }
 
 /* ---------------- sobres de cartas (premio de verdad: la familia da un sobre de cartas) ---------------- */

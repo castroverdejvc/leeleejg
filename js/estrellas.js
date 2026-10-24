@@ -26,7 +26,7 @@ const pctBien = (bien, n) => n ? bien/n : 0;
 let _cacheEv={k:null, v:null};
 function estrellasEventos(p=perfil()){
   const c=cfgDe(p);
-  const k=[p.id, SES.length, SES.filter(s=>!s.incompleta).length, claveDia(new Date()), JSON.stringify(aj.premios||{}), ...['dictadoLog','repasoLog','letrasLog','trabajosLog','eduLog'].map(x=>(c[x]||[]).length)].join('|');
+  const k=[p.id, SES.length, SES.filter(s=>!s.incompleta).length, claveDia(new Date()), JSON.stringify(aj.premios||{}), ...['dictadoLog','repasoLog','letrasLog','trabajosLog','eduLog','objManualLog','deporteLog'].map(x=>(c[x]||[]).length)].join('|');
   if(_cacheEv.k===k) return _cacheEv.v;
   const ev=calcularEventos(p, c); _cacheEv={k, v:ev}; return ev;
 }
@@ -48,6 +48,7 @@ function calcularEventos(p, c){
   (c.eduLog||[]).filter(x=>x.f).sort((a,b)=>a.f<b.f?-1:1).forEach(x=>{ const k=claveDia(x.f), ya=porDia[k]||0, n=+x.n||0;
     const d=Math.min(1 + (n && pctBien(+x.bien||0, n)>=0.8 ? 1 : 0), maxEdu-ya); if(d>0){ porDia[k]=ya+d; ev.push({f:x.f, n:d, tipo:'juego'}); } });
   if(typeof eventosRacha==='function') ev.push(...eventosRacha(p));
+  if(typeof eventosObjetivos==='function') ev.push(...eventosObjetivos(p, ev.slice().sort((a,b)=>+new Date(a.f)-+new Date(b.f))));
   return ev.sort((a,b)=>+new Date(a.f)-+new Date(b.f));
 }
 /* estrellas entre dos fechas (por defecto, desde el 24/10/2026 hasta ahora) */
@@ -225,5 +226,5 @@ function motivacionHTML(){
 function avisarRecord(){
   const p=perfil(); if(p.prueba) return; const m=motivacionDe(p); if(!m || !m.rec || m.falta>=0) return;
   const c=cfgDe(p), k=claveDia(m.cur.desde); if(c.recordAvisado===k) return; c.recordAvisado=k; guardarAj();
-  setTimeout(()=>{ if(actual!=='inicio') return; const d=dialogo({titulo:'🏅 ¡Nuevo récord!', html:`<p class="sub">Esta semana llevas <b>${m.cur.est} ⭐</b>: ¡más que en ninguna otra semana!</p>`, cls:'dlg-premio', botones:[{t:'¡Bien!', cls:'btn-p'}]}); sonido('cromo'); confeti(d.el.querySelector('.dialogo')||document.body); decir(`¡Nuevo récord, ${nombre()}! Esta semana llevas ${m.cur.est} estrellas.`); }, 2200);
+  (typeof cuandoLibre==='function' ? cuandoLibre : (fn,ms)=>setTimeout(()=>{ if(actual==='inicio') fn(); },ms))(()=>{ const d=dialogo({titulo:'🏅 ¡Nuevo récord!', html:`<p class="sub">Esta semana llevas <b>${m.cur.est} ⭐</b>: ¡más que en ninguna otra semana!</p>`, cls:'dlg-premio', botones:[{t:'¡Bien!', cls:'btn-p'}]}); sonido('cromo'); confeti(d.el.querySelector('.dialogo')||document.body); decir(`¡Nuevo récord, ${nombre()}! Esta semana llevas ${m.cur.est} estrellas.`); }, 2200);
 }
