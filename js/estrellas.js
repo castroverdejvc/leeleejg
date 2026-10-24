@@ -26,7 +26,7 @@ const pctBien = (bien, n) => n ? bien/n : 0;
 let _cacheEv={k:null, v:null};
 function estrellasEventos(p=perfil()){
   const c=cfgDe(p);
-  const k=[p.id, SES.length, SES.filter(s=>!s.incompleta).length, claveDia(new Date()), JSON.stringify(aj.premios||{}), ...['dictadoLog','repasoLog','letrasLog','trabajosLog','eduLog','objManualLog','deporteLog'].map(x=>(c[x]||[]).length)].join('|');
+  const k=[p.id, SES.length, SES.filter(s=>!s.incompleta).length, claveDia(new Date()), JSON.stringify(aj.premios||{}), ...[...LOGS_FICHA,'trabajosLog','eduLog','objManualLog','deporteLog'].map(x=>(c[x]||[]).length)].join('|');
   if(_cacheEv.k===k) return _cacheEv.v;
   const ev=calcularEventos(p, c); _cacheEv={k, v:ev}; return ev;
 }
@@ -41,7 +41,7 @@ function calcularEventos(p, c){
     else { tipo='relee'; n=1; }
     ev.push({f:s.fecha, n, tipo, hid:s.historiaId, sid:s.id});
   });
-  ['dictadoLog','repasoLog','letrasLog'].forEach(k=>(c[k]||[]).forEach(x=>{ if(!x.f) return; const n=+x.n||0; ev.push({f:x.f, n: 1 + (n && pctBien(+x.bien||0, n)>=0.8 ? 1 : 0), tipo:'ficha'}); }));
+  LOGS_FICHA.forEach(k=>(c[k]||[]).forEach(x=>{ if(!x.f) return; const n=+x.n||0; ev.push({f:x.f, n: 1 + (n && pctBien(+x.bien||0, n)>=0.8 ? 1 : 0), tipo:'ficha'}); }));
   (c.trabajosLog||[]).forEach(x=>{ if(!x.f) return; const a=+x.a||0, e=+x.e||0; ev.push({f:x.f, n: 1 + ((a+e) && pctBien(a, a+e)>=0.8 ? 1 : 0), tipo:'trabajo'}); });
   // juegos de «Aprender jugando»: una ronda terminada ⭐ (⭐⭐ si casi todo bien), como mucho eduMax ⭐ al día
   const maxEdu=+premiosCfg().eduMax||0, porDia={};

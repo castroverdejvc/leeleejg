@@ -63,7 +63,7 @@ function buzonAdultoHTML(p){
   const log=cfgDe(p).deseosLog||[];
   const rondas=[...new Set(log.map(x=>x.ronda||claveDia(x.f)))].reverse();
   const fila=(r)=>{ const xs=log.filter(x=>(x.ronda||claveDia(x.f))===r); const f=xs[0]?fechaCorta(xs[0].f):'';
-    return `<tr><td>${esc(f)}</td>${BUZON.map(g=>{ const x=xs.filter(y=>y.q===g.id).pop(); return `<td>${x?(g.voz?'«'+esc(x.r)+'»':esc(x.r)):'–'}</td>`; }).join('')}</tr>`; };
+    return `<tr><td>${esc(f)}</td>${BUZON.map(g=>{ const x=xs.filter(y=>y.q===g.id).pop(); return `<td>${x?(g.voz?'«'+esc(x.r)+'»':esc(x.r)):'–'}${x && (g.id==='historias'||g.voz) && typeof iaEnlaceHistorias==='function' ? ` <button class="btn btn-mini" type="button" data-iaidea="${esc(x.r)}" title="Hacer historias con esto (Ayudante IA)">✨</button>`:''}</td>`; }).join('')}</tr>`; };
   return `<div class="card bloque" style="margin-top:18px"><div class="pag-cab" style="margin:0 0 6px"><h3>📮 Su buzón de ideas</h3><button class="btn btn-mini" type="button" id="buzonPedir">${cfgDe(p).buzonPedir?'Se le preguntará al abrir':'Preguntarle ahora'}</button></div>
     <p class="nota" style="margin-bottom:10px">Una vez a la semana le pregunta qué le gusta del programa y qué quiere que haya. Con «Preguntarle ahora» le sale la próxima vez que abra el programa.</p>
     ${rondas.length?`<div class="tabla-w"><table><thead><tr><th>Fecha</th><th>¿Le gusta?</th><th>Lo que más</th><th>Lo que menos</th><th>Historias de…</th><th>Ejercicio nuevo</th><th>Las historias son</th><th>Lo que pidió</th></tr></thead><tbody>${rondas.slice(0,8).map(fila).join('')}</tbody></table></div>`:'<p class="vacio">Todavía no ha contestado. Le saldrá en Inicio cuando haya leído 3 historias.</p>'}</div>`;

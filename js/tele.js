@@ -55,7 +55,7 @@ function teleDetalle(p=perfil(), desde=semanaTele(), hasta=diasDespues(desde,7))
     const tipo = esComp(s.historiaId) ? (primera?'extra':'relee') : (primera && esPropuesta(p, s.historiaId) ? 'propuesta' : 'relee');
     const T=teleCfg(s.fecha); det[tipo].n++; det[tipo].min += tipo==='extra' ? minExtra(s, T) : conResta(T[tipo], fallosDe(s));
   });
-  ['dictadoLog','repasoLog','letrasLog'].forEach(k=>(c[k]||[]).forEach(x=>{ if(new Date(x.f)<desde || (hasta && new Date(x.f)>=hasta)) return; const n=+x.n||0, b=+x.bien||0; det.ficha.n++; det.ficha.min+= n ? conResta(teleCfg(x.f).ficha, Math.max(0,n-b)) : 0; }));
+  LOGS_FICHA.forEach(k=>(c[k]||[]).forEach(x=>{ if(new Date(x.f)<desde || (hasta && new Date(x.f)>=hasta)) return; const n=+x.n||0, b=+x.bien||0; det.ficha.n++; det.ficha.min+= n ? conResta(teleCfg(x.f).ficha, Math.max(0,n-b)) : 0; }));
   // trabajos del cole (unir puntos, leer y marcar…): un minuto cada uno terminado
   (c.trabajosLog||[]).forEach(x=>{ if(new Date(x.f)<desde || (hasta && new Date(x.f)>=hasta)) return; det.trabajo.n++; det.trabajo.min+=conResta(teleCfg(x.f).trabajo, +x.e||0); });
   return det;

@@ -72,7 +72,7 @@ definir('evolucion', {zona:'adulto', pintar(tab){
     cuerpo = `<div class="graf-2"><div class="card graf-card"><h3>Comprensión</h3>${barras(sem.map(w=>media(w.ses.map(pctComp))), sem.map(w=>w.etq), {max:100, color:'#5CCB8F'})}</div>
       <div class="card graf-card"><h3>Fluidez <small>(palabras por minuto)</small></h3>${barras(sem.map(w=>media(w.ses.map(s=>s.ppm||0))), sem.map(w=>w.etq), {max:Math.max(100, Math.ceil(Math.max(0,...ms.map(s=>s.ppm||0))/25)*25), color:'#9B8CF5'})}</div></div>
       <div class="card informe-banda">${ic('informe')}<div><b>Informe para la tutora</b><span class="nota">Resumen del progreso de ${esc(p.nombre)} con gráficos y palabras que le cuestan.</span></div><button class="btn btn-p" type="button" id="btnInforme">Generar informe</button>${typeof iaEnlaceHistorias==='function'?`<button class="btn btn-borde" type="button" data-iair="informe">${ic('bombilla')} Informe con IA</button>`:''}</div>
-      <div class="card bloque" style="margin-top:18px"><h3 style="margin-bottom:12px">Todas las lecturas</h3>${tablaLecturas(ms)}</div>`;
+      ${typeof fluidezAdultoHTML==='function'?fluidezAdultoHTML(p):''}${typeof pruebasNivelAdultoHTML==='function'?pruebasNivelAdultoHTML(p):''}<div class="card bloque" style="margin-top:18px"><h3 style="margin-bottom:12px">Todas las lecturas</h3>${tablaLecturas(ms)}</div>`;
   } else if(tabEvo==='grabaciones'){
     const g=ms.filter(s=>s.audio).reverse();
     cuerpo = `<div class="lista-rev">${g.length?g.map(s=>{ const h=historia(s.historiaId); return `<div class="fila-rev">${h?imgHTML(h.portada):''}<div class="tx"><b>${esc(s.titulo)}</b><span class="nota">${esc(fechaCorta(s.fecha))} · ${mmss(s.segundos)} · ${s.ppm} palabras/min ${s.revisada?'':'· <b style="display:inline;color:var(--coral)">sin revisar</b>'}</span><div class="pl"></div></div>
@@ -91,7 +91,7 @@ definir('evolucion', {zona:'adulto', pintar(tab){
     const dif=palabrasDificiles(ms).slice(0,40), dom=palabrasDominadas(ms), pr=Object.entries(p.cfg&&p.cfg.practica||aj.practica||{});
     cuerpo = `<div class="graf-2"><div class="card bloque"><h3 style="margin-bottom:12px">Palabras que le cuestan</h3>${dif.length?`<div class="palabras-chips">${dif.map(x=>`<span>${esc(x.p)}<small>${esc(silabear(x.p).join('-'))} · ${x.n}</small></span>`).join('')}</div>`:'<p class="vacio">Ninguna por ahora. Se apuntan cuando pide ayuda o al revisar una grabación.</p>'}</div>
       <div class="card bloque"><h3 style="margin-bottom:12px">Palabras que ya domina</h3>${dom.length?`<div class="palabras-chips">${dom.slice(0,80).map(x=>`<span>${esc(x)}</span>`).join('')}</div>`:'<p class="vacio">Aparecen cuando lee una palabra bien al menos dos veces.</p>'}
-      ${pr.length?`<h3 style="margin:18px 0 10px">Ha practicado</h3><div class="palabras-chips">${pr.map(([w,n])=>`<span>${esc(w)}<small>×${n}</small></span>`).join('')}</div>`:''}</div></div>`;
+      ${pr.length?`<h3 style="margin:18px 0 10px">Ha practicado</h3><div class="palabras-chips">${pr.map(([w,n])=>`<span>${esc(w)}<small>×${n}</small></span>`).join('')}</div>`:''}</div></div>${typeof palabrasDiaAdultoHTML==='function'?palabrasDiaAdultoHTML(p):''}`;
   } else {
     const cs=ms.filter(s=>s.calculo); const tipos=[['suma','Sumas'],['resta','Restas'],['contar','Contar']];
     const pct=t=>{ const x=cs.filter(s=>s.calculo.tipo===t); return x.length?Math.round(100*x.filter(s=>s.calculo.ok).length/x.length):0; };
@@ -100,11 +100,14 @@ definir('evolucion', {zona:'adulto', pintar(tab){
   }
   $('#s-evolucion').innerHTML = `<div class="pag-cab"><h1>Evolución</h1>${selLector('evolucion')}</div>
     <div class="ficha">${avatarHTML(p)}<div><b>${esc(p.nombre)}</b><span class="nota">${esc([p.curso, p.prueba?'usuario de pruebas':'', ms.length?ms.length+' lecturas':'Todavía sin lecturas'].filter(Boolean).join(' · '))}</span></div></div>
+    ${typeof avisosFamiliaHTML==='function'?avisosFamiliaHTML(p):''}
     <div class="tabs" role="tablist">${TABS.map(([k,t])=>`<button type="button" role="tab" data-tab="${k}" aria-selected="${k===tabEvo}">${t}</button>`).join('')}</div>${cuerpo}`;
   $$('#s-evolucion [data-tab]').forEach(b=>b.onclick=()=>ir('evolucion', b.dataset.tab));
   if($('#btnInforme')) $('#btnInforme').onclick=()=>ir('informe', p.id);
   activarAccionesLecturas('#s-evolucion');
   if(tabEvo==='temas') activarTemasAdulto(p);
+  if(typeof activarAvisosFamilia==='function') activarAvisosFamilia(p);
+  if(tabEvo==='lecturas' && typeof activarPruebasNivelAdulto==='function') activarPruebasNivelAdulto(p);
   if(tabEvo==='ranking') activarRanking();
   if(tabEvo==='premios'){ activarPremiosAdulto(); if(typeof activarBuzonAdulto==='function') activarBuzonAdulto(lectorVisto()); }
 }});
@@ -293,6 +296,7 @@ definir('vozsonido', {zona:'adulto', pintar(guardado){
   <div class="card ajuste"><h3>${ic('altavoz')} Volumen</h3><div class="vol"><span style="width:22px;display:inline-flex;color:var(--ink-3)">${ic('altavoz')}</span><input type="range" id="vsVol" min="0" max="1" step="0.05" value="${aj.volumen??.9}"><b id="vsVolT">${Math.round((aj.volumen??.9)*100)}%</b></div></div>
   <div class="card ajuste"><div class="interruptor"><div><h3 style="margin-bottom:4px"><span style="width:24px;height:24px;border-radius:50%;background:var(--primary);color:#fff;display:inline-grid;place-items:center;font-size:.9rem">?</span> Audio de preguntas</h3><p class="nota">Lee las preguntas en voz alta automáticamente.</p></div><button type="button" class="switch" id="vsPreg" role="switch" aria-checked="${aj.audioPreguntas!==false}"></button></div></div>
   ${EST.oido==='vosk'?oidoModoHTML():''}
+  ${typeof enLocal==='function' && enLocal()?'':'<div id="whisperCaja"></div>'}
   <div class="card ajuste"><h3>${ic('engranaje')} Estado del programa</h3><div class="estado-prog"><div>Versión <b>${esc(EST.version||'4')}</b></div>
     <div>Voz: ${EST.voz==='piper'?`<span class="ok">voz española del programa (${esc(EST.vozNombre)})</span>`:'<span class="no">voz del navegador</span>'}</div>
     <div>Oído: ${EST.oido==='vosk' && aj.oidoModo==='internet'?'<span class="ok">el de Google (con internet); si no hay internet, el del programa</span>':EST.oido==='vosk'?'<span class="ok">reconocimiento sin internet (la voz del niño no sale del ordenador)</span>':'<span class="no">reconocimiento del navegador (necesita internet)</span>'}</div>${enLocal()?'<div>Datos: <span class="ok">guardados en este aparato</span></div>':''}</div></div>
@@ -300,6 +304,7 @@ definir('vozsonido', {zona:'adulto', pintar(guardado){
   const hecho=()=>{ guardarAj(); const g=$('#s-vozsonido .guardado'); if(!g) $('#s-vozsonido').insertAdjacentHTML('beforeend', `<div class="guardado"><i>${ic('check')}</i><div><b>Cambios guardados</b><br><span class="nota">La voz y el sonido se han actualizado correctamente.</span></div></div>`); };
   $('#vsVoz').onchange=e=>{ const v=e.target.value; aj.vozPrograma = v===''; if(v) aj.voz=v; elegirVoz(); hecho(); decir(`Hola, ${nombre()}. Así sueno yo.`); };
   $('#vsProbar').onclick=()=>decir(`Hola, ${nombre()}. ¿Qué historia vamos a leer hoy?`);
+  if(typeof cargarWhisper==='function' && $('#whisperCaja')) cargarWhisper();
   $('#vsVol').oninput=e=>{ aj.volumen=+e.target.value; $('#vsVolT').textContent=Math.round(aj.volumen*100)+'%'; };
   $('#vsVol').onchange=()=>{ hecho(); sonido('bien'); };
   $$('#s-vozsonido [data-oido]').forEach(b=>b.onclick=()=>{ aj.oidoModo=b.dataset.oido; hecho(); ir('vozsonido', true); });
@@ -322,11 +327,13 @@ definir('datos', {zona:'adulto', async pintar(){
   <div style="margin-top:22px">${nubeHTML()}</div>
   ${nubeConf()?'':`<div style="margin-top:22px">${sincroHTML(enLocal()?inf:sin)}</div>`}
   ${instalarHTML()}
+  ${enLocal()?'':'<div id="espacioCaja"></div>'}
   <div class="card ajuste" style="margin-top:22px"><div class="interruptor"><div><h3 style="margin-bottom:4px">${ic('candado')} PIN de la zona de adultos</h3><p class="nota">${aj.pin?'Hay un PIN puesto: los niños no pueden entrar aquí.':'Sin PIN: cualquiera puede entrar en esta zona.'}</p></div><button class="btn" type="button" id="dPin">${aj.pin?'Quitar el PIN':'Poner un PIN'}</button></div></div>
   <details class="card ajuste creditos"><summary><b>Créditos de las fotos (Wikimedia Commons)</b></summary><ol>${CONT.creditos.map(c=>`<li>${esc(c.clave)}: <a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.file)}</a>${c.autor?' · '+esc(c.autor):''} · ${esc(c.lic)}</li>`).join('')}</ol></details>`;
   $('#dGrab').onclick=()=>ir('evolucion','grabaciones');
   $('#dCarpeta').onclick=async()=>{ const r=await postJSON('/api/abrir-carpeta',{}).catch(()=>({ok:false})); if(!r.ok) dialogo({titulo:'Carpeta de datos', html:`<p class="nota">Está en:<br><b>${esc(inf.carpeta||'')}</b></p>`, botones:[{t:'Vale',cls:'btn-p'}]}); };
   activarSincro(); activarNube(); activarInstalar();
+  if(typeof cargarEspacio==='function' && !enLocal()) cargarEspacio();
   if(enLocal()){ $('#dPin').onclick=()=>{ if(aj.pin){ aj.pin=''; guardarAj(); ir('datos'); } else pedirPinNuevo(v=>{ aj.pin=v; pinOk=true; guardarAj(); aviso('PIN guardado'); ir('datos'); }); }; return; }
   $('#dCrear').onclick=async()=>{ const b=$('#dCrear'); b.disabled=true; b.textContent='Creando copia…'; try{ await postJSON('/api/copia',{}); aviso('Copia creada'); ir('datos'); }catch(e){ b.disabled=false; dialogo({titulo:'No se pudo crear la copia', html:`<p class="nota">${esc(e.message)}</p>`, botones:[{t:'Vale',cls:'btn-p'}]}); } };
   $('#dRestaurar').onclick=async()=>{ const cs=await api('/api/copias').catch(()=>[]);
@@ -350,6 +357,7 @@ definir('informe', {zona:'adulto', nav:'evolucion', pintar(id){
     <div class="cifras"><div><b>${mp(ult)}</b><span>Palabras por minuto (últimas 5)</span></div><div><b>${mp(pri)}</b><span>Palabras por minuto (primeras 5)</span></div><div><b>${totP?Math.round(acP*100/totP):0}%</b><span>Comprensión a la primera</span></div><div><b>${calc.length?Math.round(calcOk*100/calc.length):0}%</b><span>Cálculo a la primera</span></div></div>
     <div class="graf-2"><div><h3>Comprensión por semana</h3>${barras(sem.map(w=>media(w.ses.map(pctComp))), sem.map(w=>w.etq), {max:100, color:'#5CCB8F'})}</div><div><h3>Palabras por minuto por semana</h3>${barras(sem.map(w=>media(w.ses.map(s=>s.ppm||0))), sem.map(w=>w.etq), {max:Math.max(100, Math.ceil(Math.max(0,...ms.map(s=>s.ppm||0))/25)*25), color:'#9B8CF5'})}</div></div>
     <div><h3 style="margin-bottom:10px">Palabras que más le cuestan</h3>${dif.length?`<table><thead><tr><th>Palabra</th><th>Sílabas</th><th>Veces difícil</th><th>Veces leída</th></tr></thead><tbody>${dif.map(([w,x])=>`<tr><td><b>${esc(w)}</b></td><td>${esc(silabear(w).join('-'))}</td><td>${x.prac+x.ayuda}</td><td>${x.veces}</td></tr>`).join('')}</tbody></table>`:'<p class="vacio">Sin palabras difíciles registradas.</p>'}</div>
+    ${typeof pruebasNivelAdultoHTML==='function' && (cfgDe(p).nivelLog||[]).length ? pruebasNivelAdultoHTML(p, false) : ''}${typeof fluidezAdultoHTML==='function' ? fluidezAdultoHTML(p) : ''}
     <p class="nota">Palabras que ya lee bien (al menos dos veces sin ayuda): ${palabrasDominadas(ms).length}. Informe generado por LeeLEEJG.</p></div>`;
   $('#btnImprimir').onclick=()=>window.print();
 }});

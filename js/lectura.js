@@ -301,7 +301,7 @@ async function cerrarLectura(){
     const oida = k => k>=0 && k<estados.length && (estados[k].e==='ok' || estados[k].e==='ayuda');
     if(oida(a) && oida(b) && b-a<=4){ o.e='ok'; o.i=1; delete o.a; pendientes--; } });
   const p=perfil();
-  sesion={ id:nuevoId(), v:4, fecha:new Date().toISOString(), lectorId:p.id, lector:p.nombre, prueba:!!p.prueba, historiaId:hist.id, dia:diaPersonal(hist)||hist.dia, titulo:conNombre(hist.titulo), mundo:hist.mundo, nivel:hist.nivel,
+  sesion={ ...(typeof pruebaNivelEnCurso!=='undefined' && pruebaNivelEnCurso===hist.id ? {pruebaNivel:true} : {}), id:nuevoId(), v:4, fecha:new Date().toISOString(), lectorId:p.id, lector:p.nombre, prueba:!!p.prueba, historiaId:hist.id, dia:diaPersonal(hist)||hist.dia, titulo:conNombre(hist.titulo), mundo:hist.mundo, nivel:hist.nivel,
     segundos:Math.round(seg), totalPalabras:palabras.length, ppm:Math.round(palabras.slice(ini).filter(w=>!w.adulto).length/(seg/60)), palabras:estados, ...(ini?{desdePalabra:ini}:{}), auto:oyo, oido:l.oidoId?'vosk':(l.sr?'navegador':'ninguno'),
     oidoStats: l.rt ? {peticiones:l.rt.n, msMedio:Math.round(l.rt.suma/l.rt.n), msMax:Math.round(l.rt.max), retrasoMedio: l.retrasos&&l.retrasos.length ? +media(l.retrasos).toFixed(2) : null, reconocidas:l.ok?l.ok.filter(Boolean).length:0} : null,
     oidoTexto: (l.oidoId ? l.finales.map(f=>f.w).join(' ') : (l.txtPrevio+' '+l.txtSesion)).trim().slice(0,2000) || undefined, oidoLimite: oyo ? +limite.toFixed(1) : undefined,
@@ -373,13 +373,16 @@ definir('cromonuevo', {nav:'cromos', pintar(){
   $('#s-cromonuevo').innerHTML = `<div class="card" style="padding:20px 26px 6px">${cabPaso(T, {t: eraNueva?'Tu nuevo cromo':'Historia terminada', cls:'verde'})}</div>
   <div class="card cromo-g" id="cromoCaja" style="margin-top:-10px;border-top-left-radius:0;border-top-right-radius:0"><div class="carta"><div class="ft">${imgHTML(h.portada,true)}</div><div class="pie"><b>${esc(conNombre(h.titulo))}</b><span>${TA.emo} ${esc(TA.nombre)} · ${nA} de ${hsA.length}</span></div></div>
     <div class="tx"><h1>${eraNueva?'¡Nuevo cromo!':'¡Muy bien!'}</h1><p class="sub">${albumCompleto?`🏆 ¡Has completado el álbum de ${esc(TA.nombre)}!`:eraNueva?`Has aprendido sobre ${esc(m.nombre.toLowerCase())}.`:'¡Cromo repetido! Ya tenías este, así que te llevas un repe para cambiar con otro niño.'}</p>${typeof esfuerzoHTML==='function'?esfuerzoHTML():''}
-      ${mejora?`<p class="mejora-rel">🚀 ¡Hoy la has leído más rápido! La otra vez, ${mejora.antes} palabras por minuto; hoy, ${mejora.hoy}.</p>`:''}
+      ${typeof fluidezHTML==='function' ? fluidezHTML(h, sesion, eraNueva) : (mejora?`<p class="mejora-rel">🚀 ¡Hoy la has leído más rápido! La otra vez, ${mejora.antes} palabras por minuto; hoy, ${mejora.hoy}.</p>`:'')}
       <div class="res-mini"><span class="chip">Preguntas ${sesion.aciertos} de ${sesion.totalPreguntas}</span>${teleChipHTML(sesion)}${typeof estrellasChipHTML==='function'?estrellasChipHTML(sesion):''}${sesion.calculo?`<span class="chip">Números ${sesion.calculo.ok?'✓':'con ayuda'}</span>`:''}<span class="chip">${sesion.segundos<60?sesion.segundos+' segundos':mmss(sesion.segundos)+' min'}</span></div>
       ${miAudio?`<button class="btn btn-verde btn-g btn-bloque" type="button" id="btnEscucharme">${ic('altavoz')} Escucharme</button>`:''}
+      ${typeof ordenarBotonHTML==='function' ? ordenarBotonHTML(h) : ''}
       <button class="btn btn-borde btn-g btn-bloque" type="button" data-ir="cromos">${ic('album')} Ver mi álbum</button>
       <button class="btn btn-p btn-g btn-bloque" type="button" data-ir="inicio">${ic('casa')} Volver al inicio</button>
       <p class="nota" id="guardadoTxt"></p></div></div>`;
   if(miAudio) $('#btnEscucharme').onclick=()=>sonarAudio(miAudio);
+  if(typeof activarOrdenarBoton==='function') activarOrdenarBoton(h);
+  if(typeof registrarPruebaNivel==='function') registrarPruebaNivel(sesion);
   if(eraNueva){ confeti($('#cromoCaja')); sonido('cromo'); }
   coleccion=TA.id;
   if(albumCompleto){ setTimeout(()=>{ confeti($('#cromoCaja')); sonido('bien'); }, 1600); }

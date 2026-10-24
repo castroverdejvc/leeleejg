@@ -28,7 +28,7 @@ function marcasManual(p){ const m={}; (cfgDe(p).objManualLog||[]).slice().sort((
 function objetivosSemana(p, desde, base){
   const hasta=diasDespues(desde,7), k=claveDia(desde), c=cfgDe(p), en=f=>{ const t=+new Date(f); return t>=+desde && t<+hasta; };
   const ev=(base||estrellasEventos(p).filter(e=>e.tipo!=='objetivos')).filter(e=>en(e.f));
-  const logs=['dictadoLog','repasoLog','letrasLog','trabajosLog','eduLog'].flatMap(x=>(c[x]||[]).filter(y=>y.f && en(y.f)).map(y=>({f:y.f})));
+  const logs=[...LOGS_FICHA,'trabajosLog','eduLog'].flatMap(x=>(c[x]||[]).filter(y=>y.f && en(y.f)).map(y=>({f:y.f})));
   const dep=(c.deporteLog||[]).filter(y=>y.gano && en(y.f)).map(y=>({f:y.f}));
   const man=marcasManual(p);
   /* para cada objetivo: lista de momentos que cuentan (ordenados) → hecho y cuándo se cumplió */

@@ -79,9 +79,10 @@ definir('repaso', {nav:'repaso', pintar(){
   <div class="fichas-grid">${FICHAS.filter(f=>f.activa!==false).map(f=>{ const tot=f.palabras.length, ap=f.palabras.filter(p=>aprendida(f,p)).length; const id=IDIOMAS[f.idioma]||IDIOMAS.es;
     return `<button type="button" class="ficha-c" data-f="${esc(f.id)}"><span class="ft">${f.fotos&&f.fotos[0]?imgHTML(f.fotos[f.fotos.length-1],true):imgPalabra(f.palabras[0]||{},true)}</span><span class="tx"><span class="chip">${id.bandera} ${id.propio}</span><b>${esc(f.titulo)}</b><span class="nota">${tot} palabras · ${ap} aprendidas</span><span class="barra-t" style="width:100%"><i style="width:${tot?Math.round(100*ap/tot):0}%;background:var(--green)"></i></span></span></button>`; }).join('')}</div>`
   : `<div class="card bloque centro"><p class="sub">Todavía no hay fichas. Papá o mamá pueden añadirlas en <b>Familia y profesorado › Fichas de clase</b>.</p></div>`}
-  ${tarjetaDictadoHTML()}${typeof tarjetaTrabajosHTML==='function'?tarjetaTrabajosHTML():''}`;
+  ${tarjetaDictadoHTML()}${typeof tarjetaCaligrafiaHTML==='function'?tarjetaCaligrafiaHTML():''}${typeof tarjetaTrabajosHTML==='function'?tarjetaTrabajosHTML():''}`;
   $('#s-repaso .pag-cab').insertAdjacentHTML('afterend', tarjetaLetrasHTML()); $('#btnLetras').onclick=empezarLetras;
   if(typeof activarTarjetaTrabajos==='function') activarTarjetaTrabajos($('#s-repaso'));
+  if(typeof activarTarjetaCaligrafia==='function') activarTarjetaCaligrafia($('#s-repaso'));
   activarTarjetaDictado($('#s-repaso'));
   if($('#btnRepasoHoy')) $('#btnRepasoHoy').onclick=()=>empezarRepaso(null);
   $$('#s-repaso [data-f]').forEach(b=>b.onclick=()=>empezarRepaso(b.dataset.f));
@@ -201,7 +202,7 @@ definir('fichas', {zona:'adulto', pintar(id){
     s.innerHTML = `<div class="pag-cab"><div><h1>Fichas de clase</h1><p class="sub">Añade las fichas del cole para que las repase cada día en su idioma (inglés, gallego o castellano).</p></div><button class="btn btn-p" type="button" id="fNueva">+ Nueva ficha</button></div>
     <div class="fichas-grid">${FICHAS.map(f=>{ const idm=IDIOMAS[f.idioma]||IDIOMAS.es; return `<div class="ficha-c"><span class="ft">${f.fotos&&f.fotos[0]?imgHTML(f.fotos[f.fotos.length-1],true):imgPalabra(f.palabras[0]||{},true)}</span><span class="tx"><span class="chip">${idm.bandera} ${idm.nombre}</span><b>${esc(f.titulo)}</b><span class="nota">${f.palabras.length} palabras${f.activa===false?' · desactivada':''}</span>
       <span class="botones"><button class="btn btn-mini" type="button" data-ed="${esc(f.id)}">Editar</button><button class="btn btn-mini btn-rojo" type="button" data-bo="${esc(f.id)}">Borrar</button></span></span></div>`; }).join('') || '<p class="vacio">Todavía no hay fichas.</p>'}</div>
-    ${FICHAS.length?progresoFichasHTML():''}${dictadosAdultoHTML()}${aj.perfiles.filter(p=>!p.prueba).map(letrasAdultoHTML).join('')}${typeof trabajosAdultoHTML==='function'?aj.perfiles.filter(p=>!p.prueba).map(trabajosAdultoHTML).join(''):''}`;
+    ${FICHAS.length?progresoFichasHTML():''}${dictadosAdultoHTML()}${aj.perfiles.filter(p=>!p.prueba).map(letrasAdultoHTML).join('')}${typeof trabajosAdultoHTML==='function'?aj.perfiles.filter(p=>!p.prueba).map(trabajosAdultoHTML).join(''):''}${typeof caligrafiaAdultoHTML==='function'?aj.perfiles.filter(p=>!p.prueba).map(caligrafiaAdultoHTML).join(''):''}`;
     $('#fNueva').onclick=()=>ir('fichas','nueva');
     $$('#s-fichas [data-ed]').forEach(b=>b.onclick=()=>ir('fichas', b.dataset.ed));
     $$('#s-fichas [data-bo]').forEach(b=>b.onclick=()=>{ const f=FICHAS.find(x=>x.id===b.dataset.bo); dialogo({titulo:`¿Borrar la ficha «${esc(f.titulo)}»?`, html:'<p class="nota">Se quita del repaso. Las imágenes quedan en la carpeta de datos.</p>', botones:[{t:'Conservar',cls:'btn'},{t:'Borrar',cls:'btn-rojo', fn:async()=>{ FICHAS=FICHAS.filter(x=>x.id!==f.id); await guardarFichas(); ir('fichas', null); }}]}); });
