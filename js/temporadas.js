@@ -46,7 +46,7 @@ function vezTemporada(t, f=fechaTemp(), p){
 const enTemporada = (t, f=fechaTemp(), p) => !!vezTemporada(t, f, p);
 const largoTemporada = (t, f, p) => { const r=vezTemporada(t,f,p); return r ? r[1]-r[0] : Infinity; };
 /* las que están ahora, primero las más cortas (la semana del Libro antes que «Primavera») */
-const temporadasActivas = (f, p) => listaTemporadas().filter(t=>enTemporada(t,f,p) && historiasTemporada(t.id).length).sort((a,b)=>largoTemporada(a,f,p)-largoTemporada(b,f,p));
+const temporadasActivas = (f, p) => listaTemporadas().filter(t=>enTemporada(t,f,p) && historiasTemporada(t.id).length).sort((a,b)=>((b.prioridad||0)-(a.prioridad||0)) || (largoTemporada(a,f,p)-largoTemporada(b,f,p)));
 const temporadaActiva = (id, p) => { const t=temporada(id); return !!t && enTemporada(t, fechaTemp(), p); };
 /* la próxima que empieza en los siguientes 10 días */
 function temporadaProxima(p){
@@ -59,7 +59,7 @@ const fiestaJuego = () => temporadasActivas().find(t=>t.juego && t.juego.cosas &
 const leidasTemporada = (id, p=perfil()) => { const l=leidasDe(p.id); return historiasTemporada(id).filter(h=>l[h.id]).length; };
 const metaTemporada = id => Math.min(TEMP_META, historiasTemporada(id).length);
 const temporadaGanada = (id, p=perfil()) => historiasTemporada(id).length>0 && leidasTemporada(id,p) >= metaTemporada(id);
-const criaturaDeTemporada = id => (typeof CRIATURAS_ESPECIALES!=='undefined' ? CRIATURAS_ESPECIALES.find(c=>c.temporada===id) : null);
+const criaturaDeTemporada = id => (typeof especiales==='function' ? especiales().find(c=>c.temporada===id) : null);
 
 /* tarjeta de Inicio: las dos primeras grandes; si coinciden más fiestas, el resto en pequeño */
 function temporadaHTML(){
@@ -72,7 +72,14 @@ function temporadaHTML(){
         <span class="barra-t"><i style="width:${Math.round(100*Math.min(n,meta)/meta)}%;background:var(--tc)"></i></span><span class="nota">${Math.min(n,meta)} de ${meta}</span></div>
       <button class="btn btn-p" type="button" data-temp="${t.id}">Historias ${esc(deTemporada(t))} ${ic('flecha')}</button></div>`; };
   const peque=t=>`<button type="button" class="temp-mini" data-temp="${t.id}" style="--tc:${t.color};--ts:${t.suave}"><span>${t.emo}</span><b>${esc(t.nombre)}</b><span class="nota">${leidasTemporada(t.id)} de ${metaTemporada(t.id)}</span></button>`;
-  return act.slice(0,2).map(grande).join('') + (act.length>2 ? `<div class="temp-minis"><span class="nota">También es…</span>${act.slice(2).map(peque).join('')}</div>` : '');
+  /* 24/10/2026: fiestas hermanas (Samaín, Halloween y Día de Muertos) en una sola tarjeta */
+  const grupoDe=t=>(t.hermanas||[]).join('+'); const grupos={}; act.forEach(t=>{ const g=grupoDe(t); if(g) (grupos[g]=grupos[g]||[]).push(t); });
+  const juntas=Object.values(grupos).filter(g=>g.length>=2); const enGrupo=new Set(juntas.flat().map(t=>t.id));
+  const grupoHTML=g=>`<div class="card temporada grupo-temp" style="--tc:${g[0].color};--ts:${g[0].suave}"><div class="guirnalda" aria-hidden="true">${g.map(t=>t.emo+' ').join('').repeat(4)}</div>
+      <div class="tx"><b>¡Semana de ${g.map(t=>esc(t.nombre)).join(g.length===2?' y ':', ').replace(/, ([^,]*)$/,' y $1')}!</b><span class="nota">Fiestas hermanas de distintos sitios. Lee 3 historias de cada una y gana su muñeco especial.</span>
+      <div class="hermanas">${g.map(t=>{ const n=leidasTemporada(t.id), meta=metaTemporada(t.id), c=criaturaDeTemporada(t.id); return `<button type="button" class="hermana" data-temp="${t.id}" style="--tc:${t.color};--ts:${t.suave}">${c?`<span class="cri-temp">${criaturaSVG(c,{silueta:n<meta})}</span>`:`<span class="emo-g">${t.emo}</span>`}<b>${t.emo} ${esc(t.nombre)}</b><span class="barra-t"><i style="width:${Math.round(100*Math.min(n,meta)/meta)}%;background:var(--tc)"></i></span><span class="nota">${n>=meta?'¡Conseguido!':Math.min(n,meta)+' de '+meta}</span></button>`; }).join('')}</div></div></div>`;
+  const resto=act.filter(t=>!enGrupo.has(t.id)); const huecos=Math.max(0, 2-juntas.length);
+  return juntas.map(grupoHTML).join('') + resto.slice(0,huecos).map(grande).join('') + (resto.length>huecos ? `<div class="temp-minis"><span class="nota">También es…</span>${resto.slice(huecos).map(peque).join('')}</div>` : '');
 }
 function activarTemporada(raiz){ $$('[data-temp]', raiz).forEach(b=>b.onclick=()=>ir('temporada', b.dataset.temp)); }
 
@@ -86,13 +93,19 @@ definir('temporada', {nav:'inicio', pintar(id){
   <div class="card temporada cab" style="--tc:${t.color};--ts:${t.suave}"><div class="guirnalda" aria-hidden="true">${(t.emo+' ').repeat(12)}</div>
     ${c?`<span class="cri-temp">${criaturaSVG(c,{silueta:n<meta})}</span>`:''}<div class="tx"><h1 class="tit">${t.emo} ${esc(t.nombre)}</h1><p class="sub">${esc(t.frase)}</p>
     <span class="nota">${n>=meta?`¡Has ganado a ${esc(c?c.nombre:'tu premio')}!`:`Lee ${meta} y gana ${c?'a '+esc(c.nombre):'un premio'}: llevas ${n}.`}</span></div></div>
+  ${t.def?`<div class="card bloque def-temp"><b>¿Qué se celebra?</b><p>${esc(t.def)}</p><button class="btn btn-mini" type="button" id="btnDefTemp">${ic('altavoz')} Escuchar</button></div>`:''}
+  ${(t.hermanas||[]).length>1?`<div class="temp-minis hermanas-nav"><span class="nota">Fiestas hermanas:</span>${t.hermanas.filter(x=>x!==t.id).map(temporada).filter(Boolean).map(x=>`<button type="button" class="temp-mini" data-temp="${x.id}" style="--tc:${x.color};--ts:${x.suave}"><span>${x.emo}</span><b>${esc(x.nombre)}</b></button>`).join('')}</div>`:''}
   ${activa?'':`<p class="nota" style="margin:10px 0">Estas historias solo se pueden leer en la semana ${esc(deTemporada(t))}.</p>`}
   <div class="historias">${hs.map(h=>{ const ok=disponible(h);
     return `<button type="button" class="hist${ok?'':' bloq'}" data-h="${h.id}"><span class="ft">${imgHTML(h.portada)}${l[h.id]?'<span class="ok">✓ Leída</span>':''}</span><span class="tx"><b>${esc(conNombre(h.titulo))}</b><span class="nota">${esc(conNombre(h.resumen))}</span></span></button>`; }).join('')}</div>
   ${activa && t.juego && typeof juegoFiestaHTML==='function' ? juegoFiestaHTML(t) : ''}
+  ${n>=meta && typeof grabarAbuelosHTML==='function' ? grabarAbuelosHTML(t) : ''}
   ${adiv.length?`<div class="card bloque" style="margin-top:16px"><b>${t.emo} Adivinanzas ${esc(deTemporada(t))}</b><p class="nota">Escucha y toca la respuesta.</p><div class="botones" style="margin-top:8px"><button class="btn btn-p" type="button" id="btnAdivTemp">Jugar a las adivinanzas</button></div></div>`:''}`;
   $$('#s-temporada .hist').forEach(b=>b.onclick=()=>{ const h=historia(b.dataset.h); if(disponible(h)) empezarHistoria(h); else aviso('Solo en la semana '+deTemporada(t)); });
   if($('#btnAdivTemp')) $('#btnAdivTemp').onclick=()=>ir('adivinanzas', {temporada:t.id});
+  if($('#btnDefTemp')) $('#btnDefTemp').onclick=()=>decir(t.def);
+  if(typeof activarGrabarAbuelos==='function') activarGrabarAbuelos(t);
+  activarTemporada($('#s-temporada'));
   if(typeof activarJuegoFiesta==='function') activarJuegoFiesta($('#s-temporada'));
   decir(`${activa?cabTemporada(t):t.nombre} ${n>=meta?'':'Lee '+meta+' historias y gana una criatura especial.'}`);
 }});

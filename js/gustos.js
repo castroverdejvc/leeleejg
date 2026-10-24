@@ -148,7 +148,11 @@ const ADIVINANZAS = [
   ["Tengo un saco que se llena de aire y sueno en las fiestas gallegas. ¿Qué soy?", [["el tambor", "tambor"], ["la gaita", "gaita"], ["la guitarra", "guitarra"]], 1, "galicia"],
   ["Soy una catedral muy grande y a mí llegan los caminantes del Camino. ¿Dónde estoy?", [["en Lugo", "muralla"], ["en el mar", "mar"], ["en Santiago", "catedral"]], 2, "galicia"]
 ].map(([q,ops,ok,temporada],i)=>({id:'a'+(i+1), q, ops, ok, temporada:temporada||''}));
-const adivinanzasDe = t => ADIVINANZAS.filter(a=>a.temporada===t);
+/* 24/10/2026: las fiestas nuevas traen sus adivinanzas en contenido.json (temporadas[].adivinanzas) */
+let _adivFiestas=null;
+function adivFiestas(){ const ts=CONT.temporadas||[]; if(_adivFiestas===ts) return; _adivFiestas=ts;
+  ts.forEach(t=>(t.adivinanzas||[]).forEach((a,k)=>{ const id='a_'+t.id+'_'+(k+1); if(!ADIVINANZAS.some(x=>x.id===id)) ADIVINANZAS.push({id, q:a[0], ops:a[1], ok:a[2], temporada:t.id}); })); }
+const adivinanzasDe = t => { adivFiestas(); return ADIVINANZAS.filter(a=>a.temporada===t); };
 
 const fotoOpcion = k => String(k).startsWith('e:') ? `<span class="emo" aria-hidden="true">${k.slice(2)}</span>` : imgHTML(k, true);
 const hoyClave = () => claveDia(new Date());
@@ -163,7 +167,7 @@ function gustosDeHoy(p=perfil()){
 function adivinanzaDeHoy(p=perfil()){
   const log=cfgDe(p).adivLog||[], hoy=hoyClave();
   const hecha=log.find(x=>claveDia(x.f)===hoy && !x.extra);
-  const act=(typeof temporadasActivas==='function'?temporadasActivas():[]).map(t=>t.id);
+  adivFiestas(); const act=(typeof temporadasActivas==='function'?temporadasActivas():[]).map(t=>t.id);
   const vistas=new Set(log.map(x=>x.id));
   const cand=[...ADIVINANZAS.filter(a=>act.includes(a.temporada)), ...barajarCon(ADIVINANZAS.filter(a=>!a.temporada), semilla('adiv-'+p.id))];
   return {hecha:!!hecha, a: cand.find(a=>!vistas.has(a.id)) || cand[Math.floor(Date.now()/DIA_MS)%cand.length]};

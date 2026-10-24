@@ -30,7 +30,7 @@ function statsSemana(p, desde, primeraLectura){
   const calc=hechas.filter(s=>s.calculo), calcOk=calc.filter(s=>s.calculo.ok).length;
   const ayuda={}; hechas.forEach(s=>(s.palabras||[]).forEach(w=>{ if(w.e==='ayuda'||w.e==='practica') ayuda[w.p]=(ayuda[w.p]||0)+1; }));
   // tele
-  const det=teleDetalle(p, desde, hasta), gan=sumaDet(det);
+  const det=teleDetalle(p, desde, hasta), gan=sumaDet(det, desde);
   const log=(c.teleLog||[]).filter(x=>semanaDeGasto(x.f)===k);
   const regalo=log.filter(x=>x.min<0).reduce((a,x)=>a-x.min,0), visto=log.filter(x=>x.min>0).reduce((a,x)=>a+x.min,0);
   const pe=peliculaDe(p, desde), ps=peliSabadoDe(p, desde);
@@ -39,17 +39,16 @@ function statsSemana(p, desde, primeraLectura){
   todas.filter(s=>!s.incompleta).sort((a,b)=>a.fecha<b.fecha?-1:1).forEach(s=>{ if(vistas.has(s.historiaId)) return; vistas.add(s.historiaId);
     if(!esComp(s.historiaId) && enRango(s.fecha, desde, hasta)) cromos++; });
   const cambios=(c.cambios||[]).filter(x=>x.f && enRango(x.f, desde, hasta)).length;
-  const a0=actividadesAntes(p, desde), a1=actividadesAntes(p, hasta);
-  const cada=(n)=>Math.max(1, +n||1);
-  const criaturas=Math.floor(a1/cada(P.criatura))-Math.floor(a0/cada(P.criatura));
-  const nJ=typeof JUEGOS!=='undefined'?JUEGOS.length:0, jAb=a=>Math.min(nJ, 1+Math.floor(a/cada(P.juego)));
-  const juegos=nJ ? jAb(a1)-jAb(a0) : 0;
-  const sobres=(+P.sobre>0) ? Math.floor(a1/P.sobre)-Math.floor(a0/P.sobre) : 0;
+  // 24/10/2026: muñecos, juegos y sobres con las estrellas (lo de antes, con las reglas de antes)
+  const criaturas=munecosHasta(p, hasta)-munecosHasta(p, desde);
+  const juegos=typeof JUEGOS!=='undefined' ? juegosHasta(p, hasta)-juegosHasta(p, desde) : 0;
+  const sobres=sobresHasta(p, hasta)-sobresHasta(p, desde);
+  const estrellas=estrellasEntre(p, desde, hasta), movil=movilDe(p, desde);
   const sobresDados=(c.sobresLog||[]).filter(x=>enRango(x.f, desde, hasta)).length;
   // fichas, trabajos, juegos, adivinanzas
   const reg=k2=>(c[k2]||[]).filter(x=>enRango(x.f, desde, hasta));
   const ficha=(xs)=>({n:xs.length, pct:pctDe(xs.reduce((a,x)=>a+(+x.bien||0),0), xs.reduce((a,x)=>a+(+x.n||0),0))});
-  const rep=ficha(reg('repasoLog')), dic=ficha(reg('dictadoLog')), let_=ficha(reg('letrasLog'));
+  const rep=ficha(reg('repasoLog')), dic=ficha(reg('dictadoLog')), let_=ficha(reg('letrasLog')), edu=ficha(reg('eduLog'));
   const tr=reg('trabajosLog'), trA=tr.reduce((a,x)=>a+(+x.a||0),0), trE=tr.reduce((a,x)=>a+(+x.e||0),0);
   const jl=reg('juegoLog'); let segJuego=0; Object.entries(c.juegoDias||{}).forEach(([d,s])=>{ const f=new Date(d+'T12:00'); if(enRango(f, desde, hasta)) segJuego+=+s||0; });
   const adi=reg('adivLog');
@@ -57,8 +56,8 @@ function statsSemana(p, desde, primeraLectura){
     seg, dias, lecturas:hechas.length, delDia:det.propuesta.n, extra:det.extra.n, relee:det.relee.n, aMedias:ses.length-hechas.length,
     preguntas:qs.length, primera, fallos, comp, ppm, calc:calc.length, calcOk, ayuda,
     gan, regalo, puede:gan+regalo, visto, peliV:pe.completa, peliS:ps.completa, extrasSabado:ps.total,
-    cromos, cambios, criaturas, juegos, sobres, sobresDados,
-    repaso:rep, dictado:dic, letras:let_, trabajos:tr.length, trPct:pctDe(trA, trA+trE), partidas:jl.length, minJuego:segJuego/60,
+    cromos, cambios, criaturas, juegos, sobres, sobresDados, estrellas, movil:movil.ganados, movilJugado:movil.jugados,
+    repaso:rep, dictado:dic, letras:let_, edu, trabajos:tr.length, trPct:pctDe(trA, trA+trE), partidas:jl.length, minJuego:segJuego/60,
     adivinanzas:adi.length, adivPrimera:adi.filter(x=>x.intentos===1).length};
 }
 function semanasDe(p=perfil()){
@@ -69,7 +68,7 @@ function semanasDe(p=perfil()){
   const out=[]; for(let d=new Date(primera); d<=hoy; d=diasDespues(d,7)) out.push(statsSemana(p, new Date(d)));
   return out;
 }
-const conAlgo = w => w.seg>0 || w.lecturas>0 || w.puede>0 || w.visto>0 || w.repaso.n || w.dictado.n || w.letras.n || w.trabajos;
+const conAlgo = w => w.seg>0 || w.lecturas>0 || w.puede>0 || w.visto>0 || w.repaso.n || w.dictado.n || w.letras.n || w.trabajos || (w.edu && w.edu.n);
 const tiempoTxt = seg => seg<60 ? (seg>0?`${Math.round(seg)} segundos`:'—') : minTxt(Math.round(seg/60));
 const premiosN = w => w.cromos + w.criaturas + w.juegos + w.sobres;
 const fechaSem = w => { const fc=d=>d.toLocaleDateString('es-ES',{day:'numeric', month:'short'}); return `${fc(w.desde)} – ${fc(diasDespues(w.desde,6))}`; };
@@ -98,7 +97,7 @@ function valoracionesDe(p, sem){
   const ppmU=prom(cerr.slice(-3), w=>w.ppm), tp=tend(w=>w.ppm, 0.1);
   if(ppmU!=null) V.push([tp<0?'ojo':tp>0?'bien':'info', `Lee unas <b>${Math.round(ppmU)} palabras por minuto</b>.${tp>0?' Cada vez más rápido. 📈':tp<0?' Algo más despacio que antes (puede ser porque las historias son más largas o difíciles).':''}`]);
   // 6 · lecturas extra y peli del sábado
-  const exM=prom(cerr.slice(-4), w=>w.extra); const pelisS=cerr.filter(w=>w.peliS).length; const meta=+premiosCfg().peliExtra||9;
+  const exM=prom(cerr.slice(-4), w=>w.extra); const pelisS=cerr.filter(w=>w.peliS).length; const meta=cur?cur.extrasSabado:(+premiosCfg().peliExtras||7);
   V.push([pelisS?'bien':'info', `Hace de media <b>${Math.round(exM*10)/10} lecturas extra</b> a la semana (para la peli del sábado hacen falta ${meta}). Peli del sábado: <b>${pelisS} de ${cerr.length}</b>.${cur&&!cur.peliS&&cur.extra?` Esta semana lleva ${cur.extra} de ${meta}.`:''}`]);
   // 7 · tele
   const totP=cerr.reduce((a,w)=>a+w.puede,0), totV=cerr.reduce((a,w)=>a+w.visto,0);
@@ -120,7 +119,7 @@ function valoracionesDe(p, sem){
   if(at) V.push(['ojo', `Tiene <b>${at} ${at===1?'historia atrasada':'historias atrasadas'}</b> del calendario.`]);
   // 12 · premios
   const tot=k2=>sem.reduce((a,w)=>a+w[k2],0); const so=typeof sobresDe==='function'?sobresDe(p):{pend:0};
-  V.push(['bien', `Premios desde el principio: ${tot('cromos')} ${tot('cromos')===1?'cromo':'cromos'}, ${tot('criaturas')} ${tot('criaturas')===1?'criatura':'criaturas'}, ${tot('juegos')} ${tot('juegos')===1?'juego nuevo':'juegos nuevos'}${+premiosCfg().sobre>0?` y ${tot('sobres')} ${tot('sobres')===1?'sobre':'sobres'} de cartas`:''}.${so.pend?` <b>Tiene ${so.pend===1?'1 sobre':so.pend+' sobres'} por dar.</b>`:''}`]);
+  V.push(['bien', `Premios desde el principio: ${tot('cromos')} ${tot('cromos')===1?'cromo':'cromos'}, ${tot('criaturas')} ${tot('criaturas')===1?'criatura':'criaturas'}, ${tot('juegos')} ${tot('juegos')===1?'juego nuevo':'juegos nuevos'} y ${tot('sobres')} ${tot('sobres')===1?'sobre':'sobres'} de cartas.${so.pend?` <b>Tiene ${so.pend===1?'1 sobre':so.pend+' sobres'} por dar.</b>`:''}`]);
   return V;
 }
 
@@ -170,8 +169,8 @@ function detalleSemanaHTML(p, w){
     <div><h3>📖 Lectura</h3><table class="tele-tabla">${fila('Tiempo leyendo', tiempoTxt(w.seg))}${fila('Días con lectura', w.dias+' de 7')}${fila('Lecturas terminadas', w.lecturas)}${fila('· del día', w.delDia)}${fila('· extra', w.extra)}${fila('· volver a leer', w.relee)}${w.aMedias?fila('Dejadas a medias', w.aMedias):''}${fila('Palabras por minuto', w.ppm==null?'—':Math.round(w.ppm))}</table>
       <h3>🧠 Preguntas</h3><table class="tele-tabla">${fila('Comprensión', w.comp==null?'—':Math.round(w.comp)+' %')}${fila('Bien a la primera', w.preguntas?`${w.primera} de ${w.preguntas}`:'—')}${fila('Fallos', w.fallos)}${fila('Cálculo bien', w.calc?`${w.calcOk} de ${w.calc}`:'—')}</table></div>
     <div><h3>📺 Tele</h3><table class="tele-tabla">${fila('Ganada', minTxt(w.gan))}${w.regalo?fila('Regalada', minTxt(w.regalo)):''}${fila('Pudo ver', minTxt(w.puede))}${fila('Vista (apuntada)', w.visto?minTxt(w.visto):'—')}${fila('Peli del viernes', w.peliV?'🎬 sí':'no')}${fila('Peli del sábado', w.peliS?'🍿 sí':`no (${w.extra} de ${w.extrasSabado})`)}</table>
-      <h3>🎁 Premios</h3><table class="tele-tabla">${fila('Cromos nuevos', w.cromos)}${w.cambios?fila('Cambios de cromos', w.cambios):''}${fila('Criaturas', w.criaturas)}${fila('Juegos nuevos', w.juegos)}${+premiosCfg().sobre>0?fila('Sobres de cartas ganados', w.sobres)+fila('Sobres dados', w.sobresDados):''}</table>
-      <h3>✏️ Fichas y más</h3><table class="tele-tabla">${fila('Repaso de fichas', ficha(w.repaso))}${fila('Dictados', ficha(w.dictado))}${fila('«As letras»', ficha(w.letras))}${fila('Trabajos del cole', w.trabajos?`${w.trabajos} · ${pc(w.trPct)}`:'—')}${fila('Juegos', w.partidas||w.minJuego?`${w.partidas} partidas · ${minTxt(w.minJuego)}`:'—')}${fila('Adivinanzas', w.adivinanzas?`${w.adivinanzas} (${w.adivPrimera} a la primera)`:'—')}</table></div></div>
+      <h3>🎁 Premios</h3><table class="tele-tabla">${fila('Cromos nuevos', w.cromos)}${w.cambios?fila('Cambios de cromos', w.cambios):''}${fila('Criaturas', w.criaturas)}${fila('Juegos nuevos', w.juegos)}${fila('Sobres de cartas ganados', w.sobres)+fila('Sobres dados', w.sobresDados)}${fila('Estrellas', w.estrellas+' ⭐')}${w.movil?fila('Móvil ganado', minTxt(w.movil)):''}</table>
+      <h3>✏️ Fichas y más</h3><table class="tele-tabla">${fila('Repaso de fichas', ficha(w.repaso))}${fila('Dictados', ficha(w.dictado))}${fila('«As letras»', ficha(w.letras))}${fila('Aprender jugando', ficha(w.edu))}${fila('Trabajos del cole', w.trabajos?`${w.trabajos} · ${pc(w.trPct)}`:'—')}${fila('Juegos', w.partidas||w.minJuego?`${w.partidas} partidas · ${minTxt(w.minJuego)}`:'—')}${fila('Adivinanzas', w.adivinanzas?`${w.adivinanzas} (${w.adivPrimera} a la primera)`:'—')}</table></div></div>
     ${ay.length?`<p class="nota">Pidió ayuda con: ${ay.map(([x,n])=>`<b>${esc(x)}</b>${n>1?' ×'+n:''}`).join(', ')}</p>`:''}</div>`;
 }
 function activarRanking(){

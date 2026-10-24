@@ -65,9 +65,9 @@ function televisorHTML(){
   return `<button class="televisor${finde?' finde':''}" type="button" data-ir="tele" id="televisor">
     <span class="tv-caja" id="tvGrande">${teleSVG(finde?t.saldo:g)}</span>
     <span class="tv-tx"><b>${finde?(t.saldo>0?'¡Es fin de semana! Tu tele de hoy':'¡Es fin de semana!'):'Tu tele del fin de semana'}</b>
-      <span class="tv-total">${finde?(t.saldo>0?`Puedes ver <b>${minTxt(t.saldo)}</b>`:''):`Llevas <b id="tvTotal">${minTxt(g)}</b>`}</span>
+      <span class="tv-total">${finde?(t.hoyPuede>0?`Hoy puedes ver <b>${minTxt(t.hoyPuede)}</b>`:t.saldo>0?`Hoy ya está. Mañana, <b>${minTxt(Math.min(t.saldo, teleMaxDia()||t.saldo))}</b>`:''):`Llevas <b id="tvTotal">${minTxt(g)}</b>${t.tope?' (¡el máximo!)':''}`}</span>
       ${finde?`<span class="nota">Para el próximo fin de semana ya llevas <b id="tvProx">${minTxt(g)}</b>.</span>`:''}
-      <span class="falta">${esc(faltaTxt(p, g))}</span>${peli}${peliS}</span></button>`;
+      <span class="falta">${esc(faltaTxt(p, g))}</span>${peli}${peliS}${typeof movilActivo==='function' && movilActivo() ? (()=>{ const m=movilDe(p); return `<span class="nota">📱 Móvil: ${finde?(m.saldo>0?`te quedan ${minTxt(m.saldo)}`:m.ganados?'¡ya jugado!':'esta vez no hay'):`llevas ${minTxt(m.ganados)} de ${minTxt(m.max)}`}</span>`; })() : ''}</span></button>`;
 }
 /* al pintar Inicio: si ha ganado minutos desde la última vez que vio la tele grande, entran volando */
 function televisorInicio(){

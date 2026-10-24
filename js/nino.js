@@ -39,6 +39,9 @@ definir('inicio', {nav:'inicio', pintar(){
   ${premiosHTML()}
   ${teleHTML()}
   ${extraHTML()}
+  ${typeof aprenderHTML==='function' ? aprenderHTML() : ''}
+  ${typeof advientoHTML==='function' ? advientoHTML() : ''}
+  ${typeof cartaHTML==='function' ? cartaHTML() : ''}
   ${sobreHTML()}
   ${typeof buzonHTML==='function' ? buzonHTML() : ''}
   ${sorpresaHTML()}
@@ -56,6 +59,7 @@ definir('inicio', {nav:'inicio', pintar(){
   if($('#btnSeguirHist')) $('#btnSeguirHist').onclick=seguirDondeLoDejo;
   activarAvisoTemas($('#s-inicio')); activarAtrasadas($('#s-inicio')); activarTemporada($('#s-inicio'));
   setTimeout(()=>{ if(actual==='inicio') comprobarPremios(); }, 400);
+  if(typeof avisarSorpresa==='function') avisarSorpresa();
 }});
 
 /* ---------- 03 · Calendario ---------- */

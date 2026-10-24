@@ -1079,3 +1079,171 @@ button.peli-d.falta{cursor:pointer}
 @keyframes teleLate{50%{transform:scale(1.08)}}
 @media (max-width:560px){ .televisor{flex-direction:column;align-items:flex-start;padding:12px 14px;gap:10px} .televisor .tv-caja{flex:none;align-self:center} .televisor .tele-svg{width:170px} .tele-mini{width:46px;height:38px} .tele-mini .tele-svg{width:46px;height:38px} }
 @media (prefers-reduced-motion: reduce){ .reloj-vuela{transition:none} .tele-late{animation:none} }
+
+/* ---------- estrellas, muñecos con evolución, sobre del día y móvil (24/10/2026) ---------- */
+.estrellas-card{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.estrellas-cab{grid-column:1/-1;display:flex;align-items:baseline;gap:10px;padding:0 10px}
+.est-n{font-weight:900;font-size:1.6rem;color:#B7791F}
+.sobre-dia{background:#FFF1F4}
+.sobre-dia.sorpresa{background:linear-gradient(90deg,#FFF4D6,#FFE4EC);outline:2px dashed #F59E0B}
+.sobre-dia.gana{background:#E9F9EF;outline:2px solid var(--green)}
+.chip-estrella{background:#FFF6D6;color:#8A5A00}
+.formas{display:flex;gap:4px;justify-content:center;margin-top:2px}
+.formas i{width:9px;height:9px;border-radius:99px;background:#E2E8F0}
+.formas i.si{background:#8B5CF6}
+.cri-formas{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
+.cri-formas .cri-carta{min-width:0;padding:8px}
+.cri-formas svg{width:96px;height:96px}
+.flecha-evo{font-size:1.6rem;color:#8B5CF6;font-weight:900}
+.criatura.forma3{filter:drop-shadow(0 0 6px rgba(255,200,61,.8))}
+.cromo.vacio-c{border:2px dashed var(--line-2);background:transparent;box-shadow:none}
+.cromo.vacio-c .ft{display:grid;place-items:center}
+.num-c{font-size:2rem;font-weight:900;color:#C9D3E2}
+.movil-caja{margin-top:18px}
+.movil-reloj{font-size:3rem}
+@media (max-width:560px){.cri-formas svg{width:72px;height:72px}.est-n{font-size:1.3rem}}
+.sumas.cuatro{grid-template-columns:repeat(2,minmax(0,1fr))}
+.sumas.cuatro .suma-txt{font-size:1.5rem;white-space:normal;padding:18px 10px}
+.nivel-calc{background:#EEF2FF;color:#4338CA}
+.explica-calc{display:flex;gap:14px;align-items:center;max-width:620px;margin:0 auto;padding:16px 18px;border-radius:18px;background:var(--surface-2)}
+.explica-calc p{font-size:1.4rem;font-weight:800;line-height:1.35}
+@media (max-width:560px){.sumas.cuatro .suma{font-size:1.6rem}.sumas.cuatro .suma-txt{font-size:1.05rem}.explica-calc p{font-size:1.1rem}}
+
+/* ---------- Aprender jugando (24/10/2026) ---------- */
+.aprender-c{background:linear-gradient(90deg,#EEF6FF,#FFF4E6)}
+.edu-c{border-top:6px solid var(--ec)}
+.edu-zona{max-width:860px;margin:0 auto}
+.edu-prog{display:flex;gap:6px;justify-content:center;margin:6px 0 12px}
+.edu-prog i{width:22px;height:8px;border-radius:99px;background:#E2E8F0}
+.edu-prog i.ya{background:var(--green)}
+.edu-prog i.ahora{background:var(--primary)}
+.edu-preg{position:relative;display:grid;justify-items:center;gap:10px;text-align:center;background:var(--surface);border-radius:22px;padding:16px 50px 18px;box-shadow:var(--shadow-s)}
+.edu-oir{position:absolute;top:10px;right:10px}
+.edu-gr{font-size:1.6rem;font-weight:800;line-height:1.3}
+.edu-gr b{color:var(--primary)}
+.letra-g{font-size:2.6rem;color:#E11D48!important;letter-spacing:.06em}
+.edu-foto{display:block;width:150px;height:115px;border-radius:14px;overflow:hidden;background:var(--bg-2)}
+.edu-foto img{width:100%;height:100%;object-fit:cover}
+.edu-foto .emo,.edu-foto span{font-size:4rem;display:grid;place-items:center;height:100%}
+.edu-palabra{font-size:2.6rem;font-weight:900;letter-spacing:.12em}
+.edu-palabra.grande{font-size:3.4rem;letter-spacing:.04em;font-family:var(--letra, inherit)}
+.edu-palabra .hueco{color:#E11D48}
+.edu-ops{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}
+.edu-ops.n2,.edu-ops.n3{grid-template-columns:repeat(var(--n,2),minmax(0,1fr))}
+.edu-ops.n3{--n:3}
+.edu-ops.n5{grid-template-columns:repeat(2,minmax(0,1fr))}
+.edu-ops.n5 .edu-op:last-child{grid-column:1/-1}
+.edu-op{display:grid;justify-items:center;align-content:center;gap:6px;min-height:120px;padding:12px;border-radius:20px;border:3px solid var(--primary-soft-2);background:var(--surface);font-size:1.2rem;font-weight:800;box-shadow:var(--shadow-s);transition:transform .12s}
+.edu-op:active{transform:scale(.97)}
+.edu-op.bien{border-color:var(--green);background:var(--green-soft)}
+.edu-op.mal{opacity:.4}
+.edu-op .edu-foto{width:100%;max-width:200px;height:120px}
+.letra-op{font-size:2.6rem}
+.num-g{font-size:2.6rem;font-weight:900;font-variant-numeric:tabular-nums}
+.edu-emos{font-size:1.8rem;line-height:1.2;word-break:break-all;max-width:320px}
+.edu-cuenta{display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap}
+.edu-cuenta .signo{font-size:2.4rem}
+.tachados{opacity:.35;text-decoration:line-through}
+.recta{display:flex;gap:6px;justify-content:center}
+.recta span{min-width:52px;padding:8px 6px;border-radius:12px;background:var(--surface-2);font-size:1.6rem;font-weight:900}
+.recta .yo{background:#DBEAFE}
+.recta .hueco{background:#FFE4E6;color:#E11D48}
+.precio{color:#B45309!important;font-size:2rem}
+.monedas{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.moneda{display:grid;place-items:center;width:52px;height:52px;border-radius:99px;font-weight:900;font-size:1rem;color:#5B3A00;background:radial-gradient(circle at 35% 30%,#FFE9A8,#E3B341);border:3px solid #C99A2E}
+.moneda.m1{background:radial-gradient(circle at 35% 30%,#F2F2F2,#C9A44C);}
+.moneda.m5,.moneda.m10{border-radius:8px;width:66px;height:42px;background:linear-gradient(135deg,#C7F0D8,#7CC79A);border-color:#3F8F60;color:#14532D}
+.edu-reloj{width:200px;height:200px}
+.edu-forma{width:110px;height:110px}
+.bola-color{width:96px;height:96px;border-radius:99px;border:3px solid rgba(0,0,0,.15)}
+.emo-cuerpo{font-size:4.2rem;line-height:1}
+.simon-dice{display:grid;gap:4px}
+.simon-lbl{font-size:1.2rem;color:var(--ink-3)}
+.no-toco{display:flex;gap:10px;align-items:center;font-size:2rem}
+.no-toco b{font-size:1.3rem}
+.no-toco small{font-size:.9rem;color:var(--ink-3)}
+.edu-ops.textos .edu-op{min-height:80px;font-size:1.3rem}
+.edu-fin{display:grid;justify-items:center;gap:8px;text-align:center;padding:26px;position:relative;overflow:hidden}
+.edu-fin .emo-g{font-size:4rem}
+.est-gana{font-size:2.2rem;font-weight:900;color:#B7791F}
+.ahorcado{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center;justify-items:center;background:var(--surface);border-radius:22px;padding:16px;box-shadow:var(--shadow-s)}
+.globo-cont{display:grid;justify-items:center}
+.globo{font-size:5rem;transform:scale(var(--t));transition:transform .4s}
+.ahorcado .edu-palabra{display:flex;gap:8px;justify-content:center;margin-top:10px}
+.ahorcado .l{min-width:42px;border-bottom:4px solid var(--ink);text-align:center}
+.ahorcado .l.vacia{color:transparent}
+.teclado-edu{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:16px 0}
+.tecla{min-width:56px;height:56px;border-radius:14px;border:2px solid var(--primary-soft-2);background:var(--surface);font-size:1.6rem;font-weight:900}
+.tecla.bien{background:var(--green-soft);border-color:var(--green)}
+.tecla.mal{background:#FEE2E2;border-color:#FCA5A5;opacity:.6}
+.huecos{display:flex;gap:8px;justify-content:center;margin:16px 0}
+.hueco-p{min-width:64px;height:64px;border-radius:14px;border:3px dashed var(--line-2);display:grid;place-items:center;font-size:1.8rem;font-weight:900}
+.huecos.letras .hueco-p{min-width:52px}
+.hueco-p.lleno{border-style:solid;border-color:var(--green);background:var(--green-soft)}
+.fichas-p{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.ficha-p{min-width:72px;height:68px;padding:0 14px;border-radius:16px;border:3px solid #FCD34D;background:#FFFBEB;font-size:1.8rem;font-weight:900}
+.ficha-p:disabled{opacity:.25}
+.ficha-p.mal{animation:sacude .4s}
+@keyframes sacude{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.parejas-en{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px}
+.parejas-en .col{display:grid;gap:10px}
+.pe-p{min-height:86px;border-radius:16px;border:3px solid #FBCFE8;background:#FFF1F7;font-size:1.6rem;font-weight:900}
+.pe-p.sel{border-color:#E11D48;background:#FFE4E6}
+.pe-d{min-height:86px;border-radius:16px;border:3px solid var(--primary-soft-2);background:var(--surface);display:grid;place-items:center;padding:4px}
+.pe-d .edu-foto{height:78px;width:110px}
+.pe-p.hecho,.pe-d.hecho{opacity:.3;border-color:var(--green)}
+.pe-d.mal{animation:sacude .4s}
+@media (max-width:560px){
+  .edu-gr{font-size:1.25rem}.edu-preg{padding:14px 44px 14px}.edu-op{min-height:96px}.edu-op .edu-foto{height:90px}
+  .letra-op,.num-g{font-size:2rem}.edu-palabra{font-size:2rem}.edu-palabra.grande{font-size:2.4rem}
+  .ahorcado{grid-template-columns:1fr}.globo{font-size:3.6rem}.tecla{min-width:44px;height:48px;font-size:1.3rem}
+  .ficha-p{min-width:58px;height:58px;font-size:1.4rem}.hueco-p{min-width:50px;height:54px;font-size:1.4rem}
+  .bola-color{width:72px;height:72px}.edu-reloj{width:170px;height:170px}.edu-forma{width:84px;height:84px}
+}
+/* fiestas hermanas (24/10/2026) */
+.grupo-temp{display:block}
+.grupo-temp .tx{display:grid;gap:6px}
+.hermanas{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:8px}
+.hermana{display:grid;justify-items:center;gap:4px;padding:10px;border-radius:18px;border:2px solid var(--tc);background:var(--ts);text-align:center}
+.hermana .cri-temp svg{width:72px;height:72px}
+.hermana .barra-t{width:100%;height:10px}
+.def-temp{margin:12px 0;display:grid;gap:6px;justify-items:start}
+.def-temp p{font-size:1.1rem;line-height:1.45}
+/* racha, pasaporte, Adviento, carta y grabación (24/10/2026) */
+.racha{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto;padding:4px 12px;border-radius:99px;background:#FFF1E6}
+.racha .fuego{font-size:1.4rem}
+.esfuerzo{font-weight:800;color:#0F766E}
+.pasaporte{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.sello{display:grid;justify-items:center;gap:4px;padding:14px 8px;border-radius:20px;border:3px dashed var(--line-2);background:transparent;text-align:center;filter:grayscale(1);opacity:.6}
+.sello.puesto{border:3px solid var(--tc);background:var(--ts);filter:none;opacity:1;transform:rotate(-2deg)}
+.sello.ahora{filter:none;opacity:1;border-color:var(--tc)}
+.sello-emo{font-size:2.6rem}
+.adviento{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px}
+.vent{position:relative;display:grid;place-items:center;aspect-ratio:1;border-radius:18px;background:linear-gradient(135deg,#B91C1C,#7F1D1D);color:#fff;border:3px solid #FCD34D}
+.vent .num{position:absolute;top:6px;left:10px;font-weight:900;font-size:1.3rem}
+.vent.futura{background:linear-gradient(135deg,#94A3B8,#64748B);border-color:#CBD5E1}
+.vent.pasada{opacity:.55}
+.vent.hoy{animation:late 1.4s infinite;background:linear-gradient(135deg,#16A34A,#166534)}
+.vent.abierta{background:#FFFBEB;color:var(--ink)}
+.vent .e{font-size:2.6rem}
+@keyframes late{50%{transform:scale(1.05)}}
+.vent-dlg{display:grid;justify-items:center;gap:10px;text-align:center}
+.vent-dlg span{font-size:3.4rem}
+.vent-dlg p{font-size:1.2rem;font-weight:700}
+.destinos{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-top:12px}
+.destino{display:grid;justify-items:center;gap:6px;padding:18px 10px;border-radius:20px;border:3px solid var(--primary-soft-2);background:var(--surface);font-size:1.1rem}
+.deseos{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:10px}
+.deseo{display:grid;justify-items:center;gap:4px;padding:8px;border-radius:16px;border:3px solid transparent;background:var(--surface);box-shadow:var(--shadow-s)}
+.deseo .edu-foto{width:100%;height:90px}
+.deseo.elegido{border-color:var(--green);background:var(--green-soft)}
+.hueco-p.ahora{border-color:var(--primary)}
+.tecla.pista{background:#FEF3C7;border-color:#F59E0B;animation:late 1s infinite}
+.carta-papel{max-width:560px;margin:16px auto;padding:30px 34px;background:#FFFDF5;border-radius:12px;box-shadow:var(--shadow);font-family:var(--letra, inherit);font-size:1.5rem;line-height:1.6;position:relative;overflow:hidden;border:1px solid #F1E3B8}
+.carta-cab{font-weight:900}
+.firma{text-align:right;font-weight:900}
+.grab-abuelos{margin-top:16px;display:grid;gap:8px}
+.grab-abuelos .poema{font-size:1.3rem;font-weight:700;font-style:italic;line-height:1.5}
+.grab-abuelos .grabando{background:#DC2626;border-color:#DC2626;color:#fff}
+.grab-abuelos audio{width:100%;margin-top:6px}
+@media print{ body.imprime-carta *{visibility:hidden} body.imprime-carta .carta-papel, body.imprime-carta .carta-papel *{visibility:visible} body.imprime-carta .carta-papel{position:fixed;top:20px;left:0;right:0;box-shadow:none;border:0} }
+@media (max-width:560px){.hermanas{grid-template-columns:1fr 1fr;gap:8px}.hermana{padding:8px 4px}.hermana .cri-temp svg{width:52px;height:52px}.hermana b{font-size:.95rem}}
