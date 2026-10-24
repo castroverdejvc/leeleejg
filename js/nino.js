@@ -37,9 +37,11 @@ definir('inicio', {nav:'inicio', pintar(){
       ${hecha?'<span class="pill verde">'+ic('check')+(hoyLeida?' ¡Ya la has leído hoy!':' ¡Ya la has leído!')+'</span>':''}
       <button class="btn btn-p btn-xl" type="button" id="btnLeerHoy">${hecha?'Leer otra vez':'Leer'} ${ic('flecha')}</button></div></article>
   ${premiosHTML()}
+  ${typeof motivacionHTML==='function' ? motivacionHTML() : ''}
   ${teleHTML()}
   ${extraHTML()}
   ${typeof aprenderHTML==='function' ? aprenderHTML() : ''}
+  ${typeof deportesHTML==='function' ? deportesHTML() : ''}
   ${typeof advientoHTML==='function' ? advientoHTML() : ''}
   ${typeof cartaHTML==='function' ? cartaHTML() : ''}
   ${sobreHTML()}
@@ -60,6 +62,7 @@ definir('inicio', {nav:'inicio', pintar(){
   activarAvisoTemas($('#s-inicio')); activarAtrasadas($('#s-inicio')); activarTemporada($('#s-inicio'));
   setTimeout(()=>{ if(actual==='inicio') comprobarPremios(); }, 400);
   if(typeof avisarSorpresa==='function') avisarSorpresa();
+  if(typeof avisarRecord==='function') avisarRecord();
 }});
 
 /* ---------- 03 · Calendario ---------- */

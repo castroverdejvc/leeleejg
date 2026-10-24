@@ -299,6 +299,7 @@ definir('juegos', {nav:'juegos', pintar(){
   $('#s-juegos').innerHTML = `${albumTabsHTML('juegos')}<div class="album-cab"><div><h1 class="tit">Mis juegos</h1><p class="sub">Cada ${c.estJuego} ⭐ se abre un juego nuevo.</p></div>
     <div class="contador">🎮<div><b>${n} de ${JUEGOS.length}</b><br><span>${fj==null?'¡todos abiertos!':fj===1?'te falta 1 ⭐':'te faltan '+fj+' ⭐'}</span></div></div></div>
   ${typeof aprenderHTML==='function' ? aprenderHTML() : ''}
+  ${typeof deportesHTML==='function' ? deportesHTML() : ''}
   ${pj.ok ? (c.minutos>0 && !p.prueba ? `<div class="card aviso-juego"><span>⏱ Hoy te quedan <b>${Math.ceil(quedaJuego(p)/60)} minutos</b> de juego.</span></div>` : '')
     : pj.por==='leer' ? `<div class="card aviso-juego"><span class="emo-g">📖</span><div><b>Primero, la lectura de hoy</b><span class="nota">Cuando leas una historia hoy, podrás jugar.</span></div><button class="btn btn-p" type="button" data-ir="inicio">Ir a leer</button></div>`
     : `<div class="card aviso-juego"><span class="emo-g">🌙</span><div><b>Hoy ya has jugado ${c.minutos} minutos</b><span class="nota">¡Mañana más! Ahora puedes leer otra historia o hacer un dictado.</span></div></div>`}
@@ -312,9 +313,13 @@ definir('juegos', {nav:'juegos', pintar(){
 
 let juegoVivo=null, relojJuego=null;
 definir('juego', {nav:'juegos', pintar(id){
-  const p=perfil(); const j = id==='fiesta' ? (typeof juegoFiestaDef==='function' ? juegoFiestaDef() : null) : JUEGOS.find(x=>x.id===id);
-  if(!j || (id!=='fiesta' && JUEGOS.indexOf(j)>=juegosAbiertos(p)) || !puedeJugar(p).ok){ ir('juegos'); return; }
-  $('#s-juego').innerHTML = `<div class="juego-cab"><button class="volver" type="button" data-ir="juegos">${ic('atras')} Juegos</button><h1 class="tit">${j.emo} ${esc(j.nombre)}</h1><span class="pill" id="relojJuego"></span></div><div class="juego-zona" id="juegoZona"></div>`;
+  const p=perfil();
+  if(String(id).startsWith('dep:')){ const d=typeof DEPORTES!=='undefined' ? DEPORTES.find(x=>x.id===id.slice(4)) : null;   // deportes (deportes.js)
+    if(!d || !deporteAbierto(d,p) || !puedeJugar(p).ok){ ir('deportes'); return; } }
+  const j = String(id).startsWith('dep:') ? (()=>{ const d=DEPORTES.find(x=>x.id===id.slice(4)); return {emo:d.emo, nombre:d.nombre, fn:z=>deporteJuego(z,d), volver:'deportes'}; })()
+          : id==='fiesta' ? (typeof juegoFiestaDef==='function' ? juegoFiestaDef() : null) : JUEGOS.find(x=>x.id===id);
+  if(!j || (id!=='fiesta' && !j.volver && JUEGOS.indexOf(j)>=juegosAbiertos(p)) || !puedeJugar(p).ok){ ir('juegos'); return; }
+  $('#s-juego').innerHTML = `<div class="juego-cab"><button class="volver" type="button" data-ir="${j.volver||'juegos'}">${ic('atras')} Juegos</button><h1 class="tit">${j.emo} ${esc(j.nombre)}</h1><span class="pill" id="relojJuego"></span></div><div class="juego-zona" id="juegoZona"></div>`;
   const z=$('#juegoZona'); juegoVivo = j.fn(z);
   const limite=!p.prueba && premiosCfg().minutos>0;
   const pinta=()=>{ const r=$('#relojJuego'); if(r) r.textContent = limite ? `⏱ ${Math.ceil(quedaJuego()/60)} min` : ''; r && (r.hidden=!limite); };

@@ -1247,3 +1247,31 @@ button.peli-d.falta{cursor:pointer}
 .grab-abuelos audio{width:100%;margin-top:6px}
 @media print{ body.imprime-carta *{visibility:hidden} body.imprime-carta .carta-papel, body.imprime-carta .carta-papel *{visibility:visible} body.imprime-carta .carta-papel{position:fixed;top:20px;left:0;right:0;box-shadow:none;border:0} }
 @media (max-width:560px){.hermanas{grid-template-columns:1fr 1fr;gap:8px}.hermana{padding:8px 4px}.hermana .cri-temp svg{width:52px;height:52px}.hermana b{font-size:.95rem}}
+/* motivación y podio de semanas (24/10/2026) */
+.motivacion{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:end;padding:16px 20px;margin-top:16px;background:linear-gradient(135deg,#FFFBEB,#F0F9FF)}
+.mot-tx{display:grid;gap:6px}
+.mot-tx>b{font-size:1.25rem}
+.puestos{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.pst{padding:4px 10px;border-radius:99px;background:var(--surface);font-size:.9rem;border:1px solid var(--line)}
+.pst.yo{border-color:#F59E0B;background:#FEF3C7}
+.podio{display:flex;align-items:flex-end;gap:6px}
+.esc{display:grid;justify-items:center;gap:2px;width:84px;text-align:center}
+.esc i{display:block;width:100%;border-radius:10px 10px 0 0;background:#CBD5E1}
+.esc.e1 i{height:70px;background:#FCD34D}.esc.e2 i{height:50px;background:#E2E8F0}.esc.e3 i{height:34px;background:#F4C095}
+.esc.yo b{color:#B45309}
+.esc .med{font-size:1.6rem}
+.esc.vacio{width:84px}
+@media (max-width:560px){.motivacion{grid-template-columns:1fr}.podio{justify-content:center}.esc,.esc.vacio{width:30%}}
+/* deportes (24/10/2026) */
+.deportes-c{background:linear-gradient(90deg,#ECFDF5,#EFF6FF)}
+.dep-c{border-top:6px solid #18B47B}
+.dep-botones{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+.dep-botones .btn{min-width:140px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.dep-marc{margin-top:4px}
+.dep-modo{display:grid;justify-items:center;gap:10px;padding:24px;text-align:center;max-width:520px;margin:0 auto}
+.dep-modo .botones{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.fases{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.fase{width:46px;height:46px;border-radius:12px;border:2px solid var(--primary-soft-2);background:var(--surface);font-weight:900;font-size:1.2rem;display:grid;place-items:center}
+.fase.sel{background:var(--primary);color:#fff;border-color:var(--primary)}
+.fase.bloq{opacity:.5}
+.record{font-size:1.4rem;font-weight:900;color:#B45309}

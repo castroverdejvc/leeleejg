@@ -3,7 +3,7 @@
    También guarda el programa y las fotos para que funcione sin internet.
    En el ordenador con «Iniciar LeeLEEJG» este fichero no se usa. */
 'use strict';
-const VERSION = '7.3';   // la misma que app.py (preparar_tablet.py lo comprueba)
+const VERSION = '7.4';   // la misma que app.py (preparar_tablet.py lo comprueba)
 const CACHE_PROG = 'leeleejg-programa';      // el programa (se renueva cuando cambia precache.json)
 const CACHE_FUENTES = 'leeleejg-fuentes';    // letras de Google Fonts, guardadas la primera vez
 const ID_OK = /^[A-Za-z0-9_-]{1,64}$/;

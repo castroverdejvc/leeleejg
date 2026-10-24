@@ -190,3 +190,40 @@ function activarMovilCaja(p){
   b.onclick=()=>{ if(!corriendo){ corriendo=true; ini=Date.now(); b.textContent='⏸ Parar'; movilReloj=setInterval(pinta,1000); decir('¡A jugar!'); } else { parar(); ir('tele'); } };
   const salir=PANT.tele.salir; PANT.tele.salir=function(){ parar(); PANT.tele.salir=salir; if(salir) salir.apply(this, arguments); };
 }
+
+/* ---------- motivación: esta semana frente a la pasada, récord y podio de semanas (24/10/2026) ---------- */
+function semanasEstrellas(p=perfil()){
+  const ev=estrellasEventos(p); if(!ev.length) return [];
+  const hoySab=sabadoDe(hoyTele()); let d=sabadoDe(new Date(ev[0].f)); const out=[];
+  for(; +d<=+hoySab; d=diasDespues(d,7)){ const h=diasDespues(d,7); out.push({desde:new Date(d), est:ev.filter(e=>{ const t=+new Date(e.f); return t>=+d && t<+h; }).reduce((a,e)=>a+e.n,0), actual:+d===+hoySab}); }
+  return out;
+}
+const ORD = n => n+'.º';
+function puestoDe(sem, w){ return 1 + sem.filter(x=>x!==w && x.est>w.est).length; }
+function motivacionDe(p=perfil()){
+  const sem=semanasEstrellas(p); const cur=sem.find(w=>w.actual); if(!cur) return null;
+  const ahora=hoyTele(), pasada=diasDespues(cur.desde,-7);
+  const pasadaHastaAhora = estrellasEntre(p, pasada, new Date(+pasada + (+ahora - +cur.desde)));
+  const cerradas=sem.filter(w=>!w.actual); const rec=cerradas.reduce((m,w)=>!m||w.est>m.est?w:m, null);
+  const ult=sem.slice(-3).reverse();   // esta, hace 1, hace 2
+  return {cur, dif: cur.est - pasadaHastaAhora, hayPasada: cerradas.some(w=>+w.desde===+pasada), rec, falta: rec ? rec.est - cur.est : null,
+    puestos: ult.map((w,i)=>({w, i, puesto:puestoDe(sem, w)})), total:sem.length, sem};
+}
+function motivacionHTML(){
+  const p=perfil(); if(p.prueba) return ''; const m=motivacionDe(p); if(!m || m.total<1) return '';
+  const fc=d=>d.toLocaleDateString('es-ES',{day:'numeric', month:'short'});
+  const comp = !m.hayPasada ? 'Es tu primera semana con estrellas.' : m.dif>0 ? `Vas <b>${m.dif} ⭐ por delante</b> de la semana pasada a estas horas. ¡Sigue así!` : m.dif<0 ? `Vas <b>${-m.dif} ⭐ por detrás</b> de la semana pasada a estas horas. ¡Tú puedes!` : 'Vas igual que la semana pasada a estas horas.';
+  const recTxt = !m.rec ? '' : m.falta<0 ? `🏅 <b>¡Nuevo récord!</b> Superas tu mejor semana (${m.rec.est} ⭐).` : m.falta===0 ? `🏅 ¡Igualas tu récord de ${m.rec.est} ⭐! Una estrella más y lo batirás.` : m.falta<=5 ? `🏅 ¡Estás a <b>${m.falta} ${m.falta===1?'estrella':'estrellas'}</b> de tu récord (${m.rec.est} ⭐)!` : `🏅 Tu récord: ${m.rec.est} ⭐ (semana del ${fc(m.rec.desde)}). Te faltan ${m.falta}.`;
+  const nomb=i=>i===0?'Esta semana':i===1?'La pasada':'Hace 2 semanas';
+  const top=m.sem.filter(w=>w.est>0).sort((a,b)=>b.est-a.est || b.desde-a.desde).slice(0,3);
+  const escalon=(w,pos)=>w?`<div class="esc e${pos}${w.actual?' yo':''}"><span class="med">${['🥇','🥈','🥉'][pos-1]}</span><b>${w.est} ⭐</b><span class="nota">${w.actual?'¡esta semana!':fc(w.desde)}</span><i></i></div>`:'<div class="esc vacio"></div>';
+  return `<div class="card motivacion"><div class="mot-tx"><b>🏆 Tu semana: ${m.cur.est} ⭐</b><span class="nota">${comp}</span>${recTxt?`<span class="nota">${recTxt}</span>`:''}
+      <span class="puestos">${m.puestos.map(x=>`<span class="pst${x.i===0?' yo':''}">${nomb(x.i)}: <b>${x.puesto<=3?['🥇','🥈','🥉'][x.puesto-1]:''} ${ORD(x.puesto)}</b>${x.i===0?' <small>(de momento)</small>':''}</span>`).join('')}</span></div>
+    ${m.total>=2?`<div class="podio">${escalon(top[1],2)}${escalon(top[0],1)}${escalon(top[2],3)}</div>`:''}</div>`;
+}
+/* celebrar un récord nuevo (una vez por semana) */
+function avisarRecord(){
+  const p=perfil(); if(p.prueba) return; const m=motivacionDe(p); if(!m || !m.rec || m.falta>=0) return;
+  const c=cfgDe(p), k=claveDia(m.cur.desde); if(c.recordAvisado===k) return; c.recordAvisado=k; guardarAj();
+  setTimeout(()=>{ if(actual!=='inicio') return; const d=dialogo({titulo:'🏅 ¡Nuevo récord!', html:`<p class="sub">Esta semana llevas <b>${m.cur.est} ⭐</b>: ¡más que en ninguna otra semana!</p>`, cls:'dlg-premio', botones:[{t:'¡Bien!', cls:'btn-p'}]}); sonido('cromo'); confeti(d.el.querySelector('.dialogo')||document.body); decir(`¡Nuevo récord, ${nombre()}! Esta semana llevas ${m.cur.est} estrellas.`); }, 2200);
+}
