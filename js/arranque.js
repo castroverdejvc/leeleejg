@@ -13,6 +13,8 @@ async function cargarDatos(){
   if(!aj.perfiles || !aj.perfiles.length) aj.perfiles=[PERFIL_INICIAL()];
   if(!aj.perfiles.find(p=>p.id===aj.perfil)) aj.perfil=aj.perfiles[0].id;
   aj.perfiles.forEach(p=>{ if(!p.cfg) p.cfg = p.id===aj.perfil ? Object.fromEntries(PKEYS.map(k=>[k, aj[k]])) : {...cfgBase(p), inicio:aj.inicio}; delete p.cfg.mundo; /* ajuste de una versión antigua, sin uso */ });
+  // 24/10: lo que la 7.3–7.5 guardaba fuera del perfil (Aprender jugando, deportes, móvil, revistas, cajas, objetivos, cartas…) pasa al niño que estaba usando el programa
+  { const cur=perfil(); PKEYS_24.forEach(k=>{ if(aj[k]!=null && cur.cfg && cur.cfg[k]==null) cur.cfg[k]=JSON.parse(JSON.stringify(aj[k])); }); }
   if(!aj.perfiles.some(p=>p.prueba)) aj.perfiles.push({id:'pruebas', nombre:'Pruebas', color:'#64748B', prueba:true, cfg:cfgBase({prueba:true})});
   Object.assign(aj, cfgBase(perfil()), perfil().cfg||{});
   SES=(datos.sesiones||[]).map(normSesion).sort((a,b)=>a.fecha<b.fecha?-1:1);
