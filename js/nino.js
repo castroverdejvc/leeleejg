@@ -36,6 +36,7 @@ definir('inicio', {nav:'inicio', pintar(){
       <h1>${esc(conNombre(h.titulo))}</h1><p>${esc(conNombre(h.resumen))}</p>
       ${hecha?'<span class="pill verde">'+ic('check')+(hoyLeida?' ¡Ya la has leído hoy!':' ¡Ya la has leído!')+'</span>':''}
       <button class="btn btn-p btn-xl" type="button" id="btnLeerHoy">${hecha?'Leer otra vez':'Leer'} ${ic('flecha')}</button></div></article>
+  ${typeof diaHoyHTML==='function' ? diaHoyHTML() : ''}
   ${typeof pruebaNivelHTML==='function' ? pruebaNivelHTML() : ''}
   ${typeof palabrasDiaHTML==='function' ? palabrasDiaHTML() : ''}
   ${premiosHTML()}

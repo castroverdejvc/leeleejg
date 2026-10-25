@@ -1344,3 +1344,52 @@ small.verde{color:var(--green)}small.rojo{color:#DC2626}
 .aviso-f{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;background:#F1F5FF}.aviso-f.val-ojo{background:#FFF7E6}.aviso-f.val-bien{background:#ECFDF3}
 .aviso-f .tx{flex:1}.x-aviso{border:0;background:none;font-size:1.3rem;color:#64748B;cursor:pointer;padding:0 6px}
 .resumen-sem .cifras small{display:inline;font-size:.8rem;font-weight:800}
+/* lectura del día: santo y día internacional (25/10/2026) */
+.dia-hoy{margin-top:14px;padding:16px 18px;background:linear-gradient(135deg,#FFF7E6,#FFEFF6);border:1px solid #F6D9B8;display:grid;gap:12px}
+.dia-hoy .dh-cab{display:flex;gap:14px;align-items:flex-start;cursor:pointer}
+.dia-hoy .dh-fecha{font-size:1.25rem;font-weight:900;display:block;margin-bottom:2px}
+.dia-hoy .dh-linea{display:block;color:var(--ink-2,#334);font-size:1rem;line-height:1.35}
+.dia-hoy .dh-casa{color:#B4235A;font-weight:800}
+.dia-hoy .dh-leer{display:flex;align-items:center;gap:14px;width:100%;text-align:left;border:0;border-radius:var(--r);padding:10px 12px;background:#fff;box-shadow:var(--shadow-s)}
+.dia-hoy .dh-leer .tx b{display:block;font-size:1.1rem}
+.dia-hoy .dh-leer .tx .nota{display:block}
+.dia-hoy .dh-leer.hecha{background:#ECFDF3}
+.dia-hoy .dh-leer .ir{margin-left:auto;width:38px;height:38px;border-radius:50%;background:var(--bg-2,#F1F5FB);display:grid;place-items:center;flex:none}
+.dia-hoy .mini-fotos{width:64px;height:48px;border-radius:10px;overflow:hidden;flex:none;display:block}
+.dia-hoy .mini-fotos img{width:100%;height:100%;object-fit:cover}
+.dia-hoy .mini-fotos img,.dia-hoy .mini-fotos .emo{margin:0;transform:none;border:0;box-shadow:none;width:100%;height:100%;border-radius:0}
+.dia-hoy .mini-fotos .emo{display:grid;place-items:center;font-size:2rem;background:#FFF4DC}
+/* pegatinas del «Álbum del año» (25/10/2026) */
+.pegatina{position:relative;display:grid;place-items:center;width:100%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 50% 40%,#fff 0 56%,var(--pc) 57%);border:5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.18),inset 0 0 0 3px var(--pc);transform:rotate(-3deg);overflow:hidden}
+.pegatina .pg-fecha{position:absolute;top:7%;left:50%;transform:translateX(-50%);background:var(--pc);color:#fff;font-weight:900;font-size:.72rem;padding:1px 8px;border-radius:999px;white-space:nowrap;z-index:2}
+.pegatina .pg-ft{width:56%;aspect-ratio:1;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:#fff}
+.pegatina .pg-ft img{width:100%;height:100%;object-fit:cover}
+.pegatina .pg-ft .emo{font-size:2.2rem;line-height:1}
+.pegatina .pg-nombre{position:absolute;bottom:13%;left:50%;transform:translateX(-50%);background:#fff;color:var(--pc);font-weight:900;font-size:.72rem;padding:1px 8px;border-radius:999px;max-width:86%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.pegatina .pg-quien{position:absolute;bottom:3%;left:50%;transform:translateX(-50%);color:#fff;font-size:.6rem;font-weight:800;white-space:nowrap}
+.pegatina.grande{max-width:220px}
+.pegatina.grande .pg-fecha,.pegatina.grande .pg-nombre{font-size:1rem;padding:2px 12px}
+.pegatina.grande .pg-quien{font-size:.8rem}
+.pegatina.grande .pg-ft .emo{font-size:4rem}
+.pg-meses{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.pg-meses button{border:2px solid var(--pc);background:#fff;color:var(--pc);border-radius:999px;padding:6px 12px;font-weight:900;text-transform:capitalize}
+.pg-meses button[aria-pressed="true"]{background:var(--pc);color:#fff}
+.pg-meses .pg-c{display:inline-block;background:rgba(0,0,0,.12);border-radius:999px;padding:0 6px;font-size:.75rem;margin-left:2px}
+.pg-tit-mes{color:var(--pc);margin:4px 0 10px;font-size:1.4rem}
+.pg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:14px}
+.pg-hueco{display:grid;gap:4px;justify-items:center;border:0;background:none;padding:0;text-align:center}
+.pg-vacia{display:grid;place-items:center;align-content:center;width:100%;aspect-ratio:1;border-radius:50%;border:3px dashed var(--pc);color:var(--pc);background:#fff;opacity:.75}
+.pg-vacia b{font-size:1.6rem;line-height:1}
+.pg-vacia.futura{opacity:.4}
+.pg-hueco.hoy .pg-vacia{opacity:1;border-style:solid;animation:latidoPg 1.6s ease-in-out infinite}
+.pg-hueco.hoy .nota{font-size:.75rem;font-weight:800}
+@keyframes latidoPg{50%{transform:scale(1.06)}}
+.pg-ver{display:grid;justify-items:center;gap:8px;text-align:center}
+.pg-fin{display:grid;justify-items:center;gap:10px;padding:10px;text-align:center}
+.pg-fin .pegatina{width:200px}
+.pegatina:not(.grande) .pg-ft{width:64%}
+.pg-pie{font-weight:900;font-size:.8rem;color:var(--pc);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pg-hueco.tiene{transition:transform .15s}.pg-hueco.tiene:hover{transform:scale(1.05)}
+.pg-hueco{align-content:start;align-self:start}
+.pg-vacia,.pg-hueco .pegatina{align-self:start}
+@media (max-width:560px){.pg-grid{grid-template-columns:repeat(4,1fr);gap:10px}.pg-vacia b{font-size:1.2rem}.pegatina .pg-fecha{font-size:.6rem;padding:0 5px}.pg-pie{font-size:.7rem}}

@@ -251,7 +251,7 @@ definir('criaturas', {nav:'cromos', pintar(){
     decir(`${ult.nombre}. Tipo ${T.n.toLowerCase()}. ${T.frase}`); });
 }});
 /* pestañas de los dos álbumes */
-function albumTabsHTML(act){ return `<div class="album-tabs"><button type="button" data-alb="cromos" aria-pressed="${act==='cromos'}">📚 Cromos de lecturas</button><button type="button" data-alb="cromosextra" aria-pressed="${act==='cromosextra'}">📚 Cromos de extras</button><button type="button" data-alb="criaturas" aria-pressed="${act==='criaturas'}">🐾 Muñecos</button><button type="button" data-alb="pasaporte" aria-pressed="${act==='pasaporte'}">🛂 Pasaporte</button><button type="button" data-alb="juegos">🎮 Juegos</button></div>`; }
+function albumTabsHTML(act){ return `<div class="album-tabs"><button type="button" data-alb="cromos" aria-pressed="${act==='cromos'}">📚 Cromos de lecturas</button><button type="button" data-alb="cromosextra" aria-pressed="${act==='cromosextra'}">📚 Cromos de extras</button><button type="button" data-alb="criaturas" aria-pressed="${act==='criaturas'}">🐾 Muñecos</button><button type="button" data-alb="pegatinas" aria-pressed="${act==='pegatinas'}">📅 Álbum del año</button><button type="button" data-alb="pasaporte" aria-pressed="${act==='pasaporte'}">🛂 Pasaporte</button><button type="button" data-alb="juegos">🎮 Juegos</button></div>`; }
 function activarAlbumTabs(){ $$('[data-alb]').forEach(b=>b.onclick=()=>ir(b.dataset.alb)); }
 
 /* ---------------- familia: resumen de la semana y ajustes de premios ---------------- */

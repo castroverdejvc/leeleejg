@@ -50,6 +50,7 @@ definir('mispremios', {nav:'inicio', pintar(){
       <div class="card bloque"><h3>🧸 Mis colecciones</h3>
         <button type="button" class="mp-fila mp-link" data-ir="criaturas"><span class="emo-g">🐾</span><div class="tx"><b>${nM} ${nM===1?'muñeco':'muñecos'}</b><span class="nota">Ver mis muñecos</span></div></button>
         <button type="button" class="mp-fila mp-link" data-ir="cromos"><span class="emo-g">🃏</span><div class="tx"><b>${nC} ${nC===1?'cromo':'cromos'}</b><span class="nota">Ver mi álbum</span></div></button>
+        ${typeof pegatinasDe==='function' && lecturasDia().length?(()=>{ const nP=Object.keys(pegatinasDe(p)).length; return `<button type="button" class="mp-fila mp-link" data-ir="pegatinas"><span class="emo-g">📅</span><div class="tx"><b>${nP} ${nP===1?'pegatina':'pegatinas'} del año</b><span class="nota">Ver mi Álbum del año</span></div></button>`; })():''}
         <button type="button" class="mp-fila mp-link" data-ir="juegos"><span class="emo-g">🎮</span><div class="tx"><b>${juegosAbiertos(p)} de ${nJ} juegos</b><span class="nota">Ir a los juegos</span></div></button></div>
     </div>`;
   decir(`Tienes ${est} estrellas. ${rec.length?'¡Y tienes premios para recoger! ':''}Mira lo que te falta para el próximo premio.`);

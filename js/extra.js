@@ -1,11 +1,11 @@
 /* LeeLEEJG · lecturas complementarias («lecturas extra»): un poco más largas, con 4 preguntas.
    Dan minutos de tele, ⭐⭐ (estrellas.js), su cromo en el álbum «Cromos de extras» y cuentan para el sobre del día. */
 'use strict';
-const COMPS = () => CONT.complementarias || [];
+const COMPS = () => (CONT.complementarias || []).filter(x=>!x.efemeride);   // las «lecturas del día» (diahoy.js) solo se proponen su día
 /* su nivel de lectura; si las 3 últimas extra de ese nivel las ha hecho con 3 de 4 preguntas bien o más, sube uno */
 function nivelExtra(p=perfil()){
   let n=Math.max(1, Math.min(5, nivelActualDe(p)));
-  for(let k=0;k<4 && n<5;k++){ const ult=sesDe(p.id).filter(s=>!s.incompleta && esComp(s.historiaId) && (historia(s.historiaId)||{}).nivel===n).slice(-3);
+  for(let k=0;k<4 && n<5;k++){ const ult=sesDe(p.id).filter(s=>!s.incompleta && esComp(s.historiaId) && !(historia(s.historiaId)||{}).efemeride && (historia(s.historiaId)||{}).nivel===n).slice(-3);
     if(ult.length===3 && ult.every(s=>(s.aciertos||0)>=3)) n++; else break; }
   return n;
 }
@@ -37,10 +37,15 @@ definir('extra', {nav:'historias', pintar(){
 function finExtraHTML(h, s){
   const p=perfil(), min=minutosDeSesion(p, s), t=teleDe(p);
   const saldo = (t.finde ? t.proximo : t.saldo) + (SES.some(x=>x.id===s.id && !x.incompleta) ? 0 : min);   // todavía no está guardada: se suma lo que acaba de ganar (el fin de semana, para el siguiente)
-  return `<div class="card cromo-g fin-extra" id="cromoCaja"><div class="carta"><div class="ft">${imgHTML(h.portada,true)}</div><div class="pie"><b>${esc(conNombre(h.titulo))}</b><span>${sesDe(p.id).some(x=>x.id!==s.id && !x.incompleta && x.historiaId===s.historiaId)?'📚 Lectura extra':'🃏 ¡Cromo nuevo para tu álbum de extras!'}</span></div></div>
+  const otraVez = sesDe(p.id).some(x=>x.id!==s.id && !x.incompleta && x.historiaId===s.historiaId);
+  const carta = h.efemeride && typeof pegatinaHTML==='function'
+    ? `<div class="pg-fin">${pegatinaHTML(h,{grande:true, quien:p.nombre, anio:new Date().getFullYear()})}<b>${otraVez?'📅 Ya la tienes en tu Álbum del año':'📅 ¡Pegatina nueva para tu Álbum del año!'}</b></div>`
+    : `<div class="carta"><div class="ft">${imgHTML(h.portada,true)}</div><div class="pie"><b>${esc(conNombre(h.titulo))}</b><span>${otraVez?'📚 Lectura extra':'🃏 ¡Cromo nuevo para tu álbum de extras!'}</span></div></div>`;
+  return `<div class="card cromo-g fin-extra" id="cromoCaja">${carta}
     <div class="tx"><h1>${min>0?`+${minTxt(min)} de tele`:'¡Muy bien!'}</h1><p class="sub">${min>0?`Ya tienes ${minTxt(saldo)} para el ${t.finde?'próximo ':''}fin de semana.`:'Has terminado la lectura extra.'}${min<teleCfg().extra && !sesDe(p.id).some(x=>x.id!==s.id && !x.incompleta && x.historiaId===s.historiaId)?` Fallaste ${(()=>{const f=fallosDe(s);return f===1?'1 vez':f+' veces';})()} y te ha restado ${minTxt(teleCfg().extra-min)}. ¡La próxima, despacito!`:''}</p>
       ${typeof esfuerzoHTML==='function'?esfuerzoHTML():''}<div class="res-mini">${typeof estrellasChipHTML==='function'?estrellasChipHTML(s):''}<span class="chip">Preguntas ${s.aciertos} de ${s.totalPreguntas}</span><span class="chip">${s.segundos<60?s.segundos+' segundos':mmss(s.segundos)+' min'}</span></div>
       ${audioBlob || s.audio ? `<button class="btn btn-verde btn-g btn-bloque" type="button" id="btnEscucharme">${ic('altavoz')} Escucharme</button>`:''}
+      ${h.efemeride?`<button class="btn btn-borde btn-g btn-bloque" type="button" data-ir="pegatinas">📅 Ver mi Álbum del año</button>`:''}
       <button class="btn btn-borde btn-g btn-bloque" type="button" data-ir="extra">📚 Otra lectura extra</button>
       <button class="btn btn-p btn-g btn-bloque" type="button" data-ir="inicio">${ic('casa')} Volver al inicio</button>
       <p class="nota" id="guardadoTxt"></p></div></div>`;
