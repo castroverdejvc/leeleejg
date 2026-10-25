@@ -15,6 +15,7 @@ function premiosPorRecoger(p){
   return r;
 }
 definir('mispremios', {nav:'inicio', pintar(){
+  try{ guardarLoYaVisto(perfil()); }catch(e){}
   const p=perfil(), cfg=premiosCfg(), est=estrellasDe(p), sem=estrellasEntre(p, sabadoDe(hoyTele()), diasDespues(sabadoDe(hoyTele()),7));
   const barra=(v,k,col)=>`<span class="barra-t"><i style="width:${Math.max(0,Math.min(100,Math.round(100*v/Math.max(1,k))))}%;background:${col}"></i></span>`;
   const falta=n=>n<=0?'¡Ya lo tienes!':n===1?'¡Te falta 1 ⭐!':`Te faltan ${n} ⭐`;
@@ -22,7 +23,7 @@ definir('mispremios', {nav:'inicio', pintar(){
   // próximos
   const kc=cadaK(cfg.estCriatura), kj=cadaK(cfg.estJuego); const nJ=typeof JUEGOS!=='undefined'?JUEGOS.length:0;
   const prox=[fila('🐾','Próximo muñeco', falta(kc-(est%kc)), barra(est%kc,kc,'#8B5CF6'))];
-  if(juegosHasta(p)<nJ) prox.push(fila('🎮','Próximo juego', falta(kj-(est%kj)), barra(est%kj,kj,'#F5A300')));
+  if(juegosAbiertos(p)<nJ) prox.push(fila('🎮','Próximo juego', falta(kj-(est%kj)), barra(est%kj,kj,'#F5A300')));
   if(typeof revistasDe==='function'){ const v=revistasDe(p); if(v.activo){ const r1=+cfg.revista1||0, r2=+cfg.revista2||0; const meta = sem<r1 ? r1 : sem<r2 ? r2 : null;
     prox.push(fila('📰', meta?`Revista ${meta===r1?'1':'2'} de esta semana`:'¡Las 2 revistas de esta semana!', meta?`${falta(meta-sem)} (llevas ${sem} esta semana)`:'¡Conseguidas!', meta?barra(sem,meta,'#0EA5B7'):'')); } }
   if(typeof cajasHitos==='function'){ const c=cajasHitos(p); if(c.activo && c.sig) prox.push(fila('🎁', `Cofre del tesoro: ${c.sig.tipo==='grande'?'caja grande':'caja pequeña'}`, falta(c.sig.v-est), barra(est,c.sig.v,'#E11D48'))); }
@@ -38,7 +39,7 @@ definir('mispremios', {nav:'inicio', pintar(){
   fin.push(fila('🍿', ps.completa?'¡Peli del sábado conseguida!':'Peli del sábado', ps.completa?(ps.vista?'Ya la has visto.':'¡El sábado!'):`${ps.hechas} de ${ps.total} lecturas extra`, ps.completa?'':barra(ps.hechas,ps.total,'#F59E0B')));
   // para recoger y colecciones
   const rec=premiosPorRecoger(p);
-  const nM=munecosHasta(p), nC=Object.keys(cromosDe(p)).length;
+  const nM=criaturasDe(p).length, nC=Object.keys(cromosDe(p)).length;
   $('#s-mispremios').innerHTML=`<button class="volver" type="button" data-ir="inicio">${ic('atras')} Inicio</button>
     <div class="card mp-cab"><span class="mp-est">⭐ ${est}</span><div><h1 class="tit">Mis premios</h1><p class="nota">Esta semana llevas <b>${sem} ⭐</b>. Cada lectura, ficha y juego de aprender te da estrellas.</p></div></div>
     ${rec.length?`<div class="card bloque mp-recoger"><h3>🙌 Para recoger</h3>${rec.map(x=>fila(x.emo, `Tienes ${x.t}`, 'Pídeselo a papá o a mamá.')).join('')}</div>`:''}
@@ -49,7 +50,7 @@ definir('mispremios', {nav:'inicio', pintar(){
       <div class="card bloque"><h3>🧸 Mis colecciones</h3>
         <button type="button" class="mp-fila mp-link" data-ir="criaturas"><span class="emo-g">🐾</span><div class="tx"><b>${nM} ${nM===1?'muñeco':'muñecos'}</b><span class="nota">Ver mis muñecos</span></div></button>
         <button type="button" class="mp-fila mp-link" data-ir="cromos"><span class="emo-g">🃏</span><div class="tx"><b>${nC} ${nC===1?'cromo':'cromos'}</b><span class="nota">Ver mi álbum</span></div></button>
-        <button type="button" class="mp-fila mp-link" data-ir="juegos"><span class="emo-g">🎮</span><div class="tx"><b>${juegosHasta(p)} de ${nJ} juegos</b><span class="nota">Ir a los juegos</span></div></button></div>
+        <button type="button" class="mp-fila mp-link" data-ir="juegos"><span class="emo-g">🎮</span><div class="tx"><b>${juegosAbiertos(p)} de ${nJ} juegos</b><span class="nota">Ir a los juegos</span></div></button></div>
     </div>`;
   decir(`Tienes ${est} estrellas. ${rec.length?'¡Y tienes premios para recoger! ':''}Mira lo que te falta para el próximo premio.`);
 }});

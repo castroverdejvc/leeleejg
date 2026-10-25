@@ -76,8 +76,30 @@ const criatura = id => (typeof criaturaForma==='function' ? criaturaForma(id) : 
 
 /* orden en que las gana cada niño: primero las comunes, al final las raras (barajadas) */
 function ordenCriaturas(p){ const s=semilla('criaturas-'+p.id); return [1,2,3].flatMap(r=>barajarCon(CRIATURAS.filter(c=>c.rareza===r), s+r)); }
+/* 25/10/2026: lo que ya salió en su álbum no se quita aunque cambien las reglas (p. ej. un iPad con una versión antigua
+   que dio muñecos con la regla vieja después del 24/10). Eso queda «de regalo» y los muñecos que gane después son nuevos. */
+const munecosRegalo = p => { const r=cfgDe(p).munecosRegalo; return Array.isArray(r) ? r.filter(id=>!!criatura(id)) : []; };
+function munecosPorRegla(p, n=munecosHasta(p)){
+  const reg=new Set(munecosRegalo(p)), ids=[];
+  for(const id of secuenciaMunecos(p)){ if(ids.length>=n) break; if(!reg.has(id)) ids.push(id); }
+  return ids;
+}
+const siguienteMuneco = p => { const reg=new Set(munecosRegalo(p)), ya=new Set(munecosPorRegla(p)); return secuenciaMunecos(p).find(id=>!ya.has(id) && !reg.has(id)) || null; };
+function guardarLoYaVisto(p=perfil()){
+  const cfg=cfgDe(p), v=cfg.premiosVistos; if(!v || p.prueba) return false;
+  let cambio=false;
+  if(Array.isArray(v.criaturas)){
+    const tengo=new Set(criaturasDe(p)), esp=new Set(especiales().map(c=>c.id));
+    const falta=v.criaturas.filter(id=>!tengo.has(id) && !esp.has(id) && !!criatura(id));
+    if(falta.length){ cfg.munecosRegalo=[...munecosRegalo(p), ...falta]; cambio=true; }
+  }
+  const nJ=typeof JUEGOS!=='undefined'?JUEGOS.length:0, faltaJ=Math.min(nJ,+v.juegos||0) - juegosAbiertos(p);
+  if(faltaJ>0){ cfg.juegosRegalo=(+cfg.juegosRegalo||0)+faltaJ; cambio=true; }
+  if(cambio) guardarAj();
+  return cambio;
+}
 function criaturasDe(p=perfil()){
-  const ids=secuenciaMunecos(p).slice(0, munecosHasta(p));
+  const ids=munecosPorRegla(p); munecosRegalo(p).forEach(id=>{ if(!ids.includes(id)) ids.push(id); });
   if(typeof temporadaGanada==='function') especiales().forEach(c=>{ if(temporadaGanada(c.temporada,p)) ids.push(c.id); });
   return ids;
 }
@@ -142,7 +164,7 @@ function criaturaSVG(c, {silueta=false, cls=''}={}){
 }
 
 /* ---------------- juegos que se abren ---------------- */
-const juegosAbiertos = (p=perfil()) => typeof JUEGOS==='undefined' ? 0 : juegosHasta(p);
+const juegosAbiertos = (p=perfil()) => typeof JUEGOS==='undefined' ? 0 : Math.min(JUEGOS.length, juegosHasta(p) + Math.max(0, +cfgDe(p).juegosRegalo||0));
 const faltanParaJuego = (p=perfil()) => { const k=Math.max(1,premiosCfg().estJuego); if(typeof JUEGOS!=='undefined' && juegosAbiertos(p)>=JUEGOS.length) return null; return k - (estrellasDe(p)%k); };
 
 /* ---------------- tareas atrasadas ---------------- */
@@ -175,6 +197,7 @@ function premiosHTML(){
 
 /* ---------------- celebrar lo nuevo ---------------- */
 function comprobarPremios(){
+  try{ guardarLoYaVisto(perfil()); }catch(e){}
   // las pruebas automáticas antiguas no esperan este aviso
   if((typeof EST!=='undefined' && EST && EST.sinPremiosAuto)){ return; } try{ if(localStorage.getItem('leeleejgSinPremios')) return; }catch(e){}
   const p=perfil(); const cfg=cfgDe(p); const vistos=cfg.premiosVistos || null;
@@ -204,6 +227,7 @@ function comprobarPremios(){
 
 /* ---------------- álbum de criaturas ---------------- */
 definir('criaturas', {nav:'cromos', pintar(){
+  try{ guardarLoYaVisto(perfil()); }catch(e){}
   const p=perfil(), tengo=new Set(criaturasDe(p)); const base=CRIATURAS.filter(c=>tengo.has(c.id)).length; const fc=faltanParaCriatura(p), kc=Math.max(1,+premiosCfg().estCriatura);
   const evos=[...tengo].filter(id=>/@[23]$/.test(id)).length;
   const formaDe = c => tengo.has(c.id+'@3')?3:tengo.has(c.id+'@2')?2:1;

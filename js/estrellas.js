@@ -139,7 +139,7 @@ function estrellasHTML(){
   const p=perfil(); if(p.prueba) return '';
   const cfg=premiosCfg(), est=estrellasDe(p), kc=cadaK(cfg.estCriatura), kj=cadaK(cfg.estJuego);
   const fc=kc-(est%kc), fj=juegosAbiertos(p)>=(typeof JUEGOS!=='undefined'?JUEGOS.length:0) ? null : kj-(est%kj);
-  const sd=sobreDelDia(p), seq=secuenciaMunecos(p), sig=seq[munecosHasta(p)] ? criaturaForma(seq[munecosHasta(p)]) : null;
+  const sd=sobreDelDia(p), sigId=typeof siguienteMuneco==='function' ? siguienteMuneco(p) : secuenciaMunecos(p)[munecosHasta(p)], sig=sigId ? criaturaForma(sigId) : null;
   const sigTxt = !sig ? '¡Los tienes todos!' : sig.forma>1 ? '¡Toca una evolución!' : 'Un muñeco nuevo';
   const barra=(v,k,col)=>`<span class="barra-t"><i style="width:${Math.round(100*v/k)}%;background:${col}"></i></span>`;
   const ok=b=>b?'✅':'⬜';
