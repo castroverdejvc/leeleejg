@@ -1,6 +1,6 @@
 /* LeeLEEJG · fiestas y estaciones (Samaín, Magosto, Navidad, Reyes, su cumpleaños, Entroido, Pascua, Día del Libro, Letras Galegas, San Xoán…)
    Cada fiesta tiene su semana cada año: salen sus historias en Inicio, los juegos se visten de fiesta y leyendo 3 se gana su criatura especial.
-   Fechas: «fecha» (la semana de lunes a domingo en la que cae), «desde/hasta», «pascua» (días desde el domingo de Pascua, cambia cada año)
+   Fechas: «fecha» (la semana de lunes a domingo en la que cae), «semanaTras» ([MM-DD, n]: la n-ésima semana después), «desde/hasta», «pascua» (días desde el domingo de Pascua, cambia cada año)
    o «cumple» (la semana del cumpleaños de cada lector). */
 'use strict';
 const TEMP_META = 3;
@@ -33,6 +33,9 @@ function rangoTemporada(t, anio, p){
   if(t.pascua){ const E=pascuaDe(anio); return [diaMas(E,t.pascua[0]), finDia(diaMas(E,t.pascua[1]))]; }
   if(t.cumple){ const pf=perfilTemp(p), nac=pf && /^\d{4}-\d\d-\d\d$/.test(pf.nac||'') ? pf.nac.slice(5) : null; return nac ? semanaDe(deMD(anio, nac)) : null; }
   if(t.fecha) return semanaDe(deMD(anio, t.fecha));
+  /* 25/10/2026: «semanaTras»: [MM-DD, n] = la n-ésima semana (de lunes a domingo) después de esa fecha
+     (el Magosto, la semana siguiente a Halloween; la matanza, la otra) */
+  if(t.semanaTras){ const [md,n]=t.semanaTras, base=deMD(anio, md); const aLunes=((1-base.getDay()+7)%7)||7; const lun=diaMas(base, aLunes+7*((+n||1)-1)); return [lun, finDia(diaMas(lun,6))]; }
   const ini=deMD(anio, t.desde); let fin=finDia(deMD(anio, t.hasta));
   if(fin<ini) fin=finDia(deMD(anio+1, t.hasta));   // cruza de año (Navidad)
   return [ini, fin];
