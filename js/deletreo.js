@@ -47,17 +47,22 @@ definir('deletreo', {nav:'repaso', pintar(){
   const letras=[...p.t.toLowerCase()];
   if(!it.fichas){ const extra = e.c>=2 ? barajar('abcdefghilmnoprstuy'.split('').filter(c=>!letras.includes(c))).slice(0,2) : [];
     it.fichas=barajar(letras.filter(c=>c!==' ').concat(extra).map((c,k)=>({c, k, x:0, y:0, r:0, puesta:false})));
-    const n=it.fichas.length, cols=Math.min(n, window.innerWidth<560?4:7), filas=Math.ceil(n/cols);
+    const n=it.fichas.length, cols=Math.min(n, window.innerWidth<560?4:7), filas=Math.ceil(n/cols); it.filas=filas;
     it.fichas.forEach((t,k)=>{ const col=k%cols, fila=Math.floor(k/cols); t.x=(col+.5)/cols*100 + (Math.random()-.5)*(60/cols); t.y=(fila+.5)/filas*100 + (Math.random()-.5)*(36/filas); t.r=Math.round((Math.random()-.5)*28); });
-    it.puestas=[]; it.err=0; it.errAqui=0; it.guia = e.c===0; }
+    it.puestas=[]; it.err=0; it.errAqui=0;
+    /* 27/10 (la familia: «todas las letras en gris es muy fácil»): solo algunas de ayuda.
+       1.ª vez: la primera, la del medio y la última (en palabras cortas, menos); 2.ª: solo la primera; después, ninguna. */
+    const nl=letras.filter(c=>c!==' ').length, ult=nl-1, medio=Math.floor(ult/2);
+    it.pistas = e.c===0 ? (nl<=3 ? [0] : nl===4 ? [0,ult] : [0,medio,ult]) : e.c===1 ? [0] : [];
+    it.guia = it.pistas.length>0; }
   const huecos=[]; let pos=0; letras.forEach(c=>{ if(c===' ') huecos.push({esp:true}); else { huecos.push({c, i:pos}); pos++; } });
   const sig = letras.filter(c=>c!==' ')[it.puestas.length];
   const lig = aj.letra==='ligada' ? ' ligada' : '';
   $('#s-deletreo').innerHTML = `<div class="card preg del-card"><div class="paso-cab"><span class="pill">🔤 ${esc(f.titulo)} · Spell it!</span><span class="der">${del.i+1} de ${del.items.length}<span class="barra-paso"><i style="width:${Math.round(100*(del.i+1)/del.items.length)}%"></i></span></span></div>
     <div class="del-arriba"><div class="del-dibujo">${dibujoDel(p,true)}</div><div class="del-es"><span class="nota">En castellano</span><b>${esc(p.es||'')}</b><button class="btn btn-p" type="button" id="delOir">${ic('altavoz')} ¿Cómo se dice en inglés?</button></div></div>
-    <div class="del-huecos${lig}" id="delHuecos">${huecos.map(h=>h.esp?'<span class="del-esp"></span>':`<span class="del-h${h.i<it.puestas.length?' lleno':''}${h.i===it.puestas.length&&!it.hecha?' ahora':''}">${h.i<it.puestas.length?esc(h.c):it.guia?`<i class="guia">${esc(h.c)}</i>`:''}</span>`).join('')}</div>
-    ${it.hecha ? `<div class="del-fin" id="delFin"></div>` : `<div class="del-zona${lig}" id="delZona">${it.fichas.map(t=>t.puesta?'':`<button type="button" class="del-f${it.errAqui>=2&&t.c===sig?' pista':''}" data-k="${t.k}" style="left:${t.x}%;top:${t.y}%;--r:${t.r}deg">${esc(t.c)}</button>`).join('')}</div>
-      <p class="nota centro">${it.guia?'Copia la palabra gris: toca las letras en orden.':'Toca (o arrastra) las letras en orden.'}${e.c>=2?' ¡Cuidado, hay letras que no van!':''}</p>`}</div>`;
+    <div class="del-huecos${lig}${Math.max(...p.t.split(' ').map(w=>w.length))>7?' largo':''}" id="delHuecos">${'<span class="del-pal">'+huecos.map(h=>h.esp?'</span><span class="del-pal">':`<span class="del-h${h.i<it.puestas.length?' lleno':''}${h.i===it.puestas.length&&!it.hecha?' ahora':''}">${h.i<it.puestas.length?esc(h.c):it.pistas.includes(h.i)?`<i class="guia">${esc(h.c)}</i>`:''}</span>`).join('')+'</span>'}</div>
+    ${it.hecha ? `<div class="del-fin" id="delFin"></div>` : `<div class="del-zona${lig}" id="delZona" style="height:${Math.max(170, (it.filas||2)*(window.innerWidth<560?66:78)+30)}px">${it.fichas.map(t=>t.puesta?'':`<button type="button" class="del-f${it.errAqui>=2&&t.c===sig?' pista':''}" data-k="${t.k}" style="left:${t.x}%;top:${t.y}%;--r:${t.r}deg">${esc(t.c)}</button>`).join('')}</div>
+      <p class="nota centro">${it.guia?'Las letras grises te ayudan; las demás, ¡piénsalas tú! Ponlas en orden.':'Toca (o arrastra) las letras en orden.'}${e.c>=2?' ¡Cuidado, hay letras que no van!':''}</p>`}</div>`;
   const oir=()=>decir(p.t, 'en');
   $('#delOir').onclick=oir;
   if(it.hecha){ pintarFinPalabra(); return; }
