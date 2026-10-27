@@ -23,7 +23,7 @@ async function cargarDatos(){
 }
 
 /* si alguna pieza no llegó a cargarse (el ordenador iba lento al abrir), se vuelve a cargar la página sin tocar los datos */
-const PIEZAS_ARRANQUE = ['confeti','activarInstalar','decirVarias','diceRespuesta','elegirDeGaleria','recargarContenido','libroSVG','guardarSesionActual','progresoFichasHTML','dictadosAdultoHTML','letrasAdultoHTML','activarPremiosAdulto','repesDe','activarTeleAdulto','activarTemporada','gustosAdultoHTML','puedeJugar','usarRecorte','sumar','activarNube','juegosAdultoHTML','finExtraHTML','actualizarFichasDeSerie','tarjetaTrabajosHTML','buzonHTML','anadirFichasNuevas','televisorHTML','estrellasHTML','aprenderHTML','retoPara','rachaHTML','deportesHTML','metasHTML','tarjetaDeletreoHTML'];
+const PIEZAS_ARRANQUE = ['confeti','activarInstalar','decirVarias','diceRespuesta','elegirDeGaleria','recargarContenido','libroSVG','guardarSesionActual','progresoFichasHTML','dictadosAdultoHTML','letrasAdultoHTML','activarPremiosAdulto','repesDe','activarTeleAdulto','activarTemporada','gustosAdultoHTML','puedeJugar','usarRecorte','sumar','activarNube','juegosAdultoHTML','finExtraHTML','actualizarFichasDeSerie','tarjetaTrabajosHTML','buzonHTML','anadirFichasNuevas','televisorHTML','estrellasHTML','aprenderHTML','retoPara','rachaHTML','deportesHTML','metasHTML','tarjetaDeletreoHTML','fichaColeHTML','premioChipHTML'];
 (async function arrancar(){
   const faltan = PIEZAS_ARRANQUE.filter(n=>typeof window[n]!=='function');
   if(faltan.length){ console.error('LeeLEEJG: faltan piezas '+faltan.join(', ')); if(window.leeReintentar) window.leeReintentar(); return; }

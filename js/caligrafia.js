@@ -34,6 +34,8 @@ function activarTarjetaCaligrafia(raiz){ $$('[data-cali]', raiz).forEach(b=>b.on
 
 definir('caligrafia', {nav:'repaso', pintar(tipo){
   if(tipo && CALI_TIPOS[tipo]) cali=caliRonda(tipo);
+  /* 28/10: una lista concreta (las fichas del cole: «lista:a,e,i,o,u», «lista:lana,sol,mono») */
+  else if(tipo && String(tipo).startsWith('lista:')){ const xs=String(tipo).slice(6).split(',').filter(Boolean); cali={tipo: xs.every(x=>x.length===1)?'letras':'palabras', lista:tipo, items:xs, i:0, res:[], intentos:0}; }
   if(!cali){ ir('repaso'); return; }
   const T=CALI_TIPOS[cali.tipo], item=cali.items[cali.i];
   if(item==null){ caliFin(); return; }
@@ -129,9 +131,10 @@ function caliSiguiente(ok){
 }
 function caliFin(){
   const r=cali.res, bien=r.filter(x=>x.bien).length, c=cfgDe(perfil());
+  const _ant=typeof fotoPremios==='function'?fotoPremios():null;
   c.caliLog=(c.caliLog||[]).concat([{f:new Date().toISOString(), tipo:cali.tipo, n:r.length, bien, items:r.map(x=>({t:x.t, ok:x.bien, int:x.int}))}]).slice(-1500); guardarAj();
-  const est = 1 + (r.length && bien/r.length>=0.8 ? 1 : 0); const tipo=cali.tipo; cali=null;
-  $('#s-caligrafia').innerHTML=`<div class="card buen-trabajo"><h1>¡Buen trabajo!</h1><p class="sub">Has escrito ${bien} de ${r.length} en ligada. ${'⭐'.repeat(est)} +${est}</p>
+  const est = 1 + (r.length && bien/r.length>=0.8 ? 1 : 0); const tipo=cali.lista||cali.tipo; cali=null;
+  $('#s-caligrafia').innerHTML=`<div class="card buen-trabajo"><h1>¡Buen trabajo!</h1><p class="sub">Has escrito ${bien} de ${r.length} en ligada.</p>${typeof premioChipHTML==='function'?premioChipHTML(_ant):''}
     <div class="cali-hechas">${r.map(x=>`<span class="${x.bien?'ok':'mal'}">${esc(x.t)}</span>`).join('')}</div>
     <div class="botones" style="max-width:640px;margin:14px auto 0"><button class="btn btn-p btn-g" type="button" id="caliOtra">✍️ Otra ronda</button><button class="btn btn-borde btn-g" type="button" data-ir="repaso">${ic('hoja')} Fichas</button><button class="btn btn-borde btn-g" type="button" data-ir="inicio">${ic('casa')} Inicio</button></div></div>`;
   $('#caliOtra').onclick=()=>ir('caligrafia', tipo);

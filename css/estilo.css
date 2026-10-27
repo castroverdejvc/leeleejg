@@ -1424,3 +1424,50 @@ small.verde{color:var(--green)}small.rojo{color:#DC2626}
 .spellit-c .del-mini img{width:100%;height:100%;object-fit:cover}
 .del-pal{display:inline-flex;gap:inherit;flex-wrap:nowrap;margin:0 8px}
 @media (max-width:560px){.del-huecos.largo .del-h{min-width:31px;height:44px;font-size:1.35rem;border-width:2px}.del-huecos.largo{gap:3px}}
+/* lo ganado al terminar (28/10) */
+.premio-chip{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:8px auto 4px}
+.premio-chip span{padding:8px 16px;border-radius:99px;background:#FEF3C7;color:#92400E;font-weight:900;font-size:1.15rem;animation:aparece .5s ease-out}
+.premio-chip span+span{background:#DBEAFE;color:#1E40AF}
+/* fichas de lengua del cole (28/10) */
+.ficha-cole-c{background:linear-gradient(90deg,#F0FDF4,#FEFCE8);border:2px solid #BBF7D0}
+.ficha-cole .trabajo-c.hecho{background:var(--green-soft);border-color:var(--green)}
+.cole-lig{font-family:var(--f-ligada)}
+.cole-une{display:grid;gap:26px;margin:10px 0}
+.cole-cajas{display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
+.cole-caja{position:relative;padding:14px 22px;border-radius:14px;background:#EEF2F7;border:2px solid var(--line);font-size:1.6rem}
+.cole-dibs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.cole-dib{display:grid;justify-items:center;gap:6px;padding:10px 6px;border-radius:16px;border:3px solid transparent;background:var(--surface);box-shadow:var(--shadow-s)}
+.cole-dib .ft{position:relative;width:100%;max-width:150px;aspect-ratio:4/3;border-radius:12px;overflow:hidden;display:grid;place-items:center;background:var(--bg-2)}
+.cole-dib .ft img{width:100%;height:100%;object-fit:cover}
+.cole-dib .ft .emo,.cole-cmp .ft .emo{font-size:3.4rem}
+.cole-dib b{font-size:1.3rem;font-weight:600}
+.cole-dib.sel{border-color:var(--primary)}
+.cole-dib.hecho{border-color:var(--green);background:var(--green-soft)}
+.cole-marca{position:absolute;top:4px;right:6px;background:var(--green);color:#fff;border-radius:99px;width:30px;height:30px;display:grid;place-items:center;font-weight:900}
+.cole-palabras{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin:16px 0}
+.cole-p{padding:12px 22px;border-radius:12px;border:2px solid var(--line);background:#fff;font-size:2rem;min-width:120px}
+.cole-palabras.subraya .cole-p{border-color:transparent;background:transparent}
+.cole-palabras.subraya .cole-p.marcada span{text-decoration:underline;text-decoration-color:#E5484D;text-decoration-thickness:5px;text-underline-offset:8px}
+.cole-palabras.colorea .cole-p.marcada{background:#FDE68A;border-color:#F59E0B}
+.cole-completa{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:10px 0}
+.cole-cmp{display:grid;justify-items:center;gap:6px;padding:10px 6px;border-radius:16px;border:3px solid transparent;background:var(--surface);box-shadow:var(--shadow-s)}
+.cole-cmp .ft{width:100%;max-width:150px;aspect-ratio:4/3;border-radius:12px;overflow:hidden;display:grid;place-items:center;background:var(--bg-2)}
+.cole-cmp .ft img{width:100%;height:100%;object-fit:cover}
+.cole-cmp.sel{border-color:var(--primary)}
+.cole-cmp.hecho{border-color:var(--green);background:var(--green-soft)}
+.cole-pauta{font-size:1.8rem;padding:0 6px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 30%,#CBD5E1 30%,#CBD5E1 31%,transparent 31%,transparent 70%,#CBD5E1 70%,#CBD5E1 71%,transparent 71%)}
+.hueco-c{color:#E5484D;font-weight:700}
+.cole-letras .btn{min-width:90px;font-size:2rem}
+@media (max-width:560px){.cole-dibs,.cole-completa{grid-template-columns:repeat(2,minmax(0,1fr))}.cole-p{font-size:1.5rem;min-width:90px;padding:8px 14px}.cole-caja{font-size:1.25rem}}
+/* arriba: tele, pelis y móvil juntos (28/10) */
+.premios-arriba{display:flex;align-items:center;gap:6px;margin-left:auto;flex:0 0 auto}
+.premios-arriba .tele-mini{margin-left:0}
+.premios-arriba + .yo-btn{margin-left:0}
+.premios-mini{display:flex;gap:4px;border:0;background:#F1F5F9;border-radius:14px;padding:4px 6px;cursor:pointer}
+.premios-mini .pm{display:flex;flex-direction:column;align-items:center;line-height:1;font-size:1.15rem;padding:2px 4px;border-radius:9px}
+.premios-mini .pm b{font-size:.72rem;font-weight:900;color:var(--ink-2);margin-top:2px}
+.premios-mini .pm.ok{background:#DCFCE7}
+.premios-mini .pm.ok b{color:#15803D}
+@media (max-width:1380px){ #navNino button span:not([data-icono]){font-size:.8rem} #navNino button{flex-direction:column;gap:2px;padding:6px 8px} }
+@media (max-width:560px){ .premios-mini{padding:2px 4px;gap:2px} .premios-mini .pm{font-size:1rem;padding:1px 2px} .premios-mini .pm b{font-size:.62rem} .premios-arriba{gap:3px} }
+@media (max-width:560px){ .top-in:has(#premiosMini:not([hidden])) .logo > span:last-child{display:none} .top-in:has(#premiosMini:not([hidden])) .yo-btn{padding:3px 8px 3px 3px;gap:4px} }

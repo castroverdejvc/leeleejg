@@ -81,6 +81,7 @@ definir('repaso', {nav:'repaso', pintar(){
   : `<div class="card bloque centro"><p class="sub">Todavía no hay fichas. Papá o mamá pueden añadirlas en <b>Familia y profesorado › Fichas de clase</b>.</p></div>`}
   ${typeof tarjetaDeletreoHTML==='function'?tarjetaDeletreoHTML():''}${tarjetaDictadoHTML()}${typeof tarjetaCaligrafiaHTML==='function'?tarjetaCaligrafiaHTML():''}${typeof tarjetaTrabajosHTML==='function'?tarjetaTrabajosHTML():''}`;
   $('#s-repaso .pag-cab').insertAdjacentHTML('afterend', tarjetaLetrasHTML()); $('#btnLetras').onclick=empezarLetras;
+  if(typeof fichaColeHTML==='function'){ $('#s-repaso .pag-cab').insertAdjacentHTML('afterend', fichaColeHTML()); activarFichaCole($('#s-repaso')); }
   if(typeof activarTarjetaTrabajos==='function') activarTarjetaTrabajos($('#s-repaso'));
   if(typeof activarTarjetaCaligrafia==='function') activarTarjetaCaligrafia($('#s-repaso'));
   activarTarjetaDictado($('#s-repaso'));
@@ -182,9 +183,10 @@ function resultado(ok){
 }
 definir('repasofin', {nav:'repaso', pintar(){
   const unicos=[...new Map(rep.res.map(r=>[r.p.id, r])).values()]; const bien=unicos.filter(r=>rep.res.filter(x=>x.p.id===r.p.id).every(x=>x.ok)).length;
+  const _ant=typeof fotoPremios==='function'?fotoPremios():null;
   aj.repasoLog=aj.repasoLog||[]; aj.repasoLog.push({f:new Date().toISOString(), n:unicos.length, bien, fichas:[...new Set(unicos.map(r=>r.f.id))]}); aj.repasoLog=aj.repasoLog.slice(-2000); guardarAj();
   const l=(rep.items[0]&&rep.items[0].f.idioma)||'es';
-  $('#s-repasofin').innerHTML = `<div class="card buen-trabajo"><h1>${l==='en'?'Great job!':l==='gl'?'Bo traballo!':'¡Buen trabajo!'}</h1><p class="sub">Has repasado ${unicos.length} ${unicos.length===1?'palabra':'palabras'} · ${bien} a la primera.</p>
+  $('#s-repasofin').innerHTML = `<div class="card buen-trabajo"><h1>${l==='en'?'Great job!':l==='gl'?'Bo traballo!':'¡Buen trabajo!'}</h1><p class="sub">Has repasado ${unicos.length} ${unicos.length===1?'palabra':'palabras'} · ${bien} a la primera.</p>${typeof premioChipHTML==='function'?premioChipHTML(_ant):''}
     <div class="tarjetas-pal">${unicos.map(r=>`<div class="tp"><span class="ft">${imgPalabra(r.p)}</span><b style="${rep.res.filter(x=>x.p.id===r.p.id).every(x=>x.ok)?'':'color:var(--coral)'}">${esc(r.p.t)} ${rep.res.filter(x=>x.p.id===r.p.id).every(x=>x.ok)?`<i>${ic('check')}</i>`:''}</b>${r.p.es?`<span class="nota">${esc(r.p.es)}</span>`:''}</div>`).join('')}</div>${libroSVG()}
     <div class="botones" style="max-width:640px;margin:0 auto"><button class="btn btn-p btn-g" type="button" data-ir="inicio">${ic('casa')} Volver al inicio</button><button class="btn btn-borde btn-g" type="button" data-ir="repaso">${ic('hoja')} Fichas</button></div></div>`;
   confeti($('#s-repasofin .buen-trabajo')); sonido('cromo');

@@ -32,10 +32,11 @@ const textoOrden = () => { const p=$('#s-trabajo .orden-t p'); if(!p) return '';
 
 definir('trabajo', {nav:'repaso', pintar(tipo){
   if(tipo) trab={tipo, a:0, e:0, fin:false};
-  if(!trab || !TRABAJOS.some(t=>t.id===trab.tipo)){ ir('repaso'); return; }
-  const T=TRABAJOS.find(t=>t.id===trab.tipo);
+  const TODOS = TRABAJOS.concat(typeof TRABAJOS_COLE!=='undefined' ? TRABAJOS_COLE : []);
+  if(!trab || !TODOS.some(t=>t.id===trab.tipo)){ ir('repaso'); return; }
+  const T=TODOS.find(t=>t.id===trab.tipo);
   $('#s-trabajo').innerHTML=`<div class="juego-cab"><button class="volver" type="button" data-ir="repaso">${ic('atras')} Fichas</button><h1 class="tit">${T.emo} ${esc(T.nombre)}</h1><span class="pill" id="trabMarca"></span></div><div class="card trabajo-zona" id="trabZona"></div>`;
-  ({puntos:tPuntos, numeros:tNumeros, relaciona:tRelaciona, camino:tCamino, dias:tDias})[trab.tipo]($('#trabZona'));
+  ({puntos:tPuntos, numeros:tNumeros, relaciona:tRelaciona, camino:tCamino, dias:tDias, ...(typeof tColeEmpieza==='function'?{cole_empieza:tColeEmpieza, cole_subraya:z=>tColeBusca(z,'subraya'), cole_colorea:z=>tColeBusca(z,'colorea'), cole_completa:tColeCompleta}:{})})[trab.tipo]($('#trabZona'));
   const o=$('#oirOrden'); if(o) o.onclick=()=>decir(textoOrden());
   marcaTrab(); setTimeout(()=>{ if(actual==='trabajo' && textoOrden()) decir(textoOrden()); }, 300);
 }});
@@ -43,10 +44,10 @@ function marcaTrab(){ const m=$('#trabMarca'); if(m) m.textContent=`✓ ${trab.a
 function bienT(){ trab.a++; sonido('bien'); marcaTrab(); }
 function malT(el, frase){ trab.e++; sonido('mal'); sacudir(el); marcaTrab(); if(frase) decir(frase); }
 function terminarTrabajo(){
-  if(trab.fin) return; trab.fin=true; apuntarTrabajo(trab.tipo, trab.a, trab.e);
+  if(trab.fin) return; trab.fin=true; const _ant=typeof fotoPremios==='function'?fotoPremios():null; apuntarTrabajo(trab.tipo, trab.a, trab.e);
   const z=$('#trabZona'); confeti(z); sonido('cromo');
   const m=minTrabajo(); decir(`¡Trabajo terminado!${m>0?' Has ganado '+minTxt(m)+' de tele.':''}`);
-  cartel(z, `<h2>¡Trabajo terminado! 🎉</h2><p class="nota">${trab.e?`Con ${trab.e} ${trab.e===1?'fallo':'fallos'}.`:'¡Sin ningún fallo!'}${m>0?` +${minTxt(m)} de tele.`:''}</p>`,
+  cartel(z, `<h2>¡Trabajo terminado! 🎉</h2><p class="nota">${trab.e?`Con ${trab.e} ${trab.e===1?'fallo':'fallos'}.`:'¡Sin ningún fallo!'}</p>${typeof premioChipHTML==='function'?premioChipHTML(_ant):(m>0?`<p class="nota">+${minTxt(m)} de tele.</p>`:'')}`,
     [['Otro igual', ()=>ir('trabajo', trab.tipo)], ['Volver a Fichas', ()=>ir('repaso'), 'btn']]);
 }
 

@@ -103,8 +103,9 @@ definir('letrasitem', {nav:'repaso', pintar(){
 }});
 definir('letrasfin', {nav:'repaso', pintar(){
   const bien=letr.res.filter(r=>r.ok).length; const ls=[...new Set(letr.res.map(r=>r.l))];
+  const _ant=typeof fotoPremios==='function'?fotoPremios():null;
   aj.letrasLog=aj.letrasLog||[]; aj.letrasLog.push({f:new Date().toISOString(), n:letr.res.length, bien, letras:ls, mal:[...new Set(letr.res.filter(r=>!r.ok).map(r=>r.l))]}); aj.letrasLog=aj.letrasLog.slice(-2000); guardarAj();
-  $('#s-letrasfin').innerHTML=`<div class="card buen-trabajo"><h1>Bo traballo!</h1><p class="sub">${bien} de ${letr.res.length} á primeira.</p>
+  $('#s-letrasfin').innerHTML=`<div class="card buen-trabajo"><h1>Bo traballo!</h1><p class="sub">${bien} de ${letr.res.length} á primeira.</p>${typeof premioChipHTML==='function'?premioChipHTML(_ant):''}
     <div class="letras-res">${ls.map(l=>{ const rs=letr.res.filter(r=>r.l===l); const ok=rs.every(r=>r.ok); return `<span class="letra-res ${ok?'ok':'medio'} ${claseTexto()}">${l}<small>${NOME_LETRA[l]}</small></span>`; }).join('')}</div>${libroSVG()}
     <div class="botones" style="max-width:640px;margin:0 auto"><button class="btn btn-p btn-g" type="button" data-ir="inicio">${ic('casa')} Volver ao inicio</button><button class="btn btn-borde btn-g" type="button" id="ltOutra">🔤 Outra rolda</button></div></div>`;
   $('#ltOutra').onclick=empezarLetras;

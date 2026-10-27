@@ -15,7 +15,7 @@
 const corteTele = () => (typeof CORTE_PREMIOS!=='undefined' ? CORTE_PREMIOS : new Date(2026,9,24));
 const teleCfg = (f) => { const c=premiosCfg(); const antes = f && +new Date(f) < +corteTele();
   return antes ? {propuesta:+c.tele||0, extra:+c.teleExtra||0, relee:+c.teleRelee||0, ficha:+c.teleFicha||0, trabajo:c.teleTrabajo==null?1:+c.teleTrabajo||0}
-               : {propuesta:+c.tDia||0, extra:+c.tExtra||0, relee:+c.tRelee||0, ficha:+c.tFicha||0, trabajo:+c.tTrabajo||0}; };   // valores por defecto en PREMIOS_DEF
+               : {propuesta:+c.tDia||0, extra:+c.tExtra||0, relee:+c.tRelee||0, ficha:+c.tFicha||0, trabajo:+c.tTrabajo||0, mini:c.tMini==null?1:+c.tMini||0}; };   // valores por defecto en PREMIOS_DEF
 const teleMaxDia = () => +premiosCfg().teleMaxDia||0, teleMaxSemana = () => +premiosCfg().teleMaxSemana||0;
 const teleActiva = () => { const t=teleCfg(); return t.propuesta>0 || t.extra>0 || t.relee>0 || t.ficha>0 || t.trabajo>0; };
 let fechaPruebaTele=null;   // solo para las pruebas
@@ -48,7 +48,7 @@ function esPropuesta(p, hid){
 }
 /* lo ganado por cada cosa hecha en una semana de la tele (de sábado a viernes) */
 function teleDetalle(p=perfil(), desde=semanaTele(), hasta=diasDespues(desde,7)){
-  const c=cfgDe(p); const vistas=new Set(); const det={propuesta:{n:0,min:0}, extra:{n:0,min:0}, relee:{n:0,min:0}, ficha:{n:0,min:0}, trabajo:{n:0,min:0}};
+  const c=cfgDe(p); const vistas=new Set(); const det={propuesta:{n:0,min:0}, extra:{n:0,min:0}, relee:{n:0,min:0}, ficha:{n:0,min:0}, trabajo:{n:0,min:0}, mini:{n:0,min:0}};
   sesDe(p.id).filter(s=>!s.incompleta).sort((a,b)=>a.fecha<b.fecha?-1:1).forEach(s=>{
     const primera=!vistas.has(s.historiaId); vistas.add(s.historiaId);
     if(new Date(s.fecha)<desde || (hasta && new Date(s.fecha)>=hasta)) return;
@@ -58,9 +58,11 @@ function teleDetalle(p=perfil(), desde=semanaTele(), hasta=diasDespues(desde,7))
   LOGS_FICHA.forEach(k=>(c[k]||[]).forEach(x=>{ if(new Date(x.f)<desde || (hasta && new Date(x.f)>=hasta)) return; const n=+x.n||0, b=+x.bien||0; det.ficha.n++; det.ficha.min+= n ? conResta(teleCfg(x.f).ficha, Math.max(0,n-b)) : 0; }));
   // trabajos del cole (unir puntos, leer y marcar…): un minuto cada uno terminado
   (c.trabajosLog||[]).forEach(x=>{ if(new Date(x.f)<desde || (hasta && new Date(x.f)>=hasta)) return; det.trabajo.n++; det.trabajo.min+=conResta(teleCfg(x.f).trabajo, +x.e||0); });
+  // 28/10: sorpresas de hoy y practicar: 1 minuto cada una (tMini)
+  LOGS_MINI.forEach(k=>(c[k]||[]).forEach(x=>{ if(!x.f || new Date(x.f)<desde || (hasta && new Date(x.f)>=hasta)) return; det.mini.n++; det.mini.min+=(teleCfg(x.f).mini||0); }));
   return det;
 }
-const sumaBruta = det => medio(det.propuesta.min+det.extra.min+det.relee.min+det.ficha.min+det.trabajo.min);
+const sumaBruta = det => medio(det.propuesta.min+det.extra.min+det.relee.min+det.ficha.min+det.trabajo.min+((det.mini&&det.mini.min)||0));
 /* desde el 24/10/2026, la semana da como mucho teleMaxSemana minutos (4 horas: 2 el sábado y 2 el domingo) */
 const sumaDet = (det, desde) => { const b=sumaBruta(det), m=teleMaxSemana(); return (m>0 && (!desde || +desde>=+corteTele())) ? Math.min(m, b) : b; };
 function teleDe(p=perfil()){
@@ -90,8 +92,11 @@ function avisarTele(p=perfil(), callado=false){
   if(!teleActiva() || p.prueba) return; const c=cfgDe(p); const sab=sabadoDe(), marca=claveDia(sab);
   const ganando=sumaDet(teleDetalle(p, sab, diasDespues(sab,7)), sab);   // lo que se gana ahora es siempre para la semana que empezó el sábado
   if(!c.teleAvisado || typeof c.teleAvisado!=='object' || c.teleAvisado.semana!==marca){ c.teleAvisado={semana:marca, min:0}; }
-  if(ganando>c.teleAvisado.min){ const mas=medio(ganando-c.teleAvisado.min); c.teleAvisado.min=ganando; guardarAj(); if(typeof teleVolar==='function') teleVolar(mas, {voz:!callado}); else if(!callado) aviso(`📺 +${minTxt(mas)} de tele para el ${esFinde()?'próximo ':''}fin de semana`); }
+  let mas=0;
+  if(ganando>c.teleAvisado.min){ mas=medio(ganando-c.teleAvisado.min); c.teleAvisado.min=ganando; guardarAj(); if(typeof teleVolar==='function') teleVolar(mas, {voz:false}); else aviso(`📺 +${minTxt(mas)} de tele para el ${esFinde()?'próximo ':''}fin de semana`); }
   else if(ganando<c.teleAvisado.min){ c.teleAvisado.min=ganando; guardarAj(); }
+  /* 28/10: lo ganado (tele, pelis y móvil) se le dice en voz, cada cosa en su idioma del día */
+  if(typeof anunciarPremios==='function') anunciarPremios(p, mas);
 }
 function apuntarTele(p, min, tipo, cuando=new Date()){ const c=cfgDe(p); c.teleLog=(c.teleLog||[]).concat([{f:cuando.toISOString(), min:Math.round(min*10)/10, tipo}]).slice(-1000); guardarAj(); }
 /* minutos que da una lectura concreta (para el final de la lectura) */
@@ -154,7 +159,7 @@ definir('tele', {nav:'inicio', pintar(){
     ${finde && t.hoyPuede>0?`<div class="botones"><button class="btn btn-p btn-xl" type="button" id="teleBtn">▶ Empezar</button></div>`:''}</div>
   <div class="tele-cols">
     <div class="card bloque"><h3>${finde?'Para este fin de semana ganaste':'Para el fin de semana llevas'}</h3><p class="nota" style="margin:-4px 0 8px">Del ${esc(fechaCortaTele(t.desde))} al ${esc(fechaCortaTele(diasDespues(t.desde,6)))}</p><table class="tele-tabla"><thead><tr><th></th><th>Hechas</th><th>Cada una</th><th>Total</th></tr></thead><tbody>
-      ${fila('📖','Lecturas del día',d.propuesta,minTxt(T.propuesta))}${fila('📚','Lecturas extra',d.extra,minTxt(T.extra))}${fila('🔁','Volver a leer',d.relee,minTxt(T.relee))}${fila('✏️','Fichas',d.ficha,`hasta ${minTxt(T.ficha)}`)}${T.trabajo>0||d.trabajo.n?fila('🖍️','Trabajos del cole',d.trabajo,minTxt(T.trabajo)):''}
+      ${fila('📖','Lecturas del día',d.propuesta,minTxt(T.propuesta))}${fila('📚','Lecturas extra',d.extra,minTxt(T.extra))}${fila('🔁','Volver a leer',d.relee,minTxt(T.relee))}${fila('✏️','Fichas',d.ficha,`hasta ${minTxt(T.ficha)}`)}${T.trabajo>0||d.trabajo.n?fila('🖍️','Trabajos del cole',d.trabajo,minTxt(T.trabajo)):''}${(T.mini>0||(d.mini&&d.mini.n))?fila('🎁','Sorpresas y practicar',d.mini||{n:0,min:0},minTxt(T.mini)):''}
       <tr class="tot"><td>Total</td><td></td><td></td><td><b>${minTxt(t.ganados)}</b></td></tr>${t.gastados>0?`<tr><td>Ya visto</td><td></td><td></td><td>−${minTxt(t.gastados)}</td></tr>`:''}</tbody></table>
       <p class="nota">${restaFallo()>0?`Cada pregunta fallada resta ${restaFallo()===0.5?'30 segundos':minTxt(restaFallo())} a lo que da ese ejercicio. ¡Lee despacio y piensa antes de tocar!`:'Las preguntas falladas no restan minutos.'}</p>
       ${(CONT.complementarias||[]).length?`<div class="botones"><button class="btn btn-p" type="button" data-ir="extra">📚 Lecturas extra (+${minTxt(T.extra)})</button></div>`:''}</div>
@@ -200,6 +205,7 @@ function teleAdultoHTML(p){
       <div class="campo"><label for="prTeleRelee">Volver a leer</label>${sel('prTeleRelee',[0,2,5,10],T.relee)}</div>
       <div class="campo"><label for="prTeleFicha">Ficha sin fallos</label>${sel('prTeleFicha',[0,2,5,10],T.ficha)}</div>
       <div class="campo"><label for="prTeleTrabajo">Trabajo del cole</label>${sel('prTeleTrabajo',[0,1,2,3,5],T.trabajo)}</div>
+      <div class="campo"><label for="prTeleMini">Sorpresas de hoy / Practicar</label>${sel('prTeleMini',[0,1,2,3],T.mini)}</div>
       <div class="campo"><label for="prTeleMaxDia">Como mucho cada día del fin de semana</label><select id="prTeleMaxDia">${[[0,'Sin límite'],[60,'1 hora'],[90,'1 hora y media'],[120,'2 horas'],[150,'2 horas y media'],[180,'3 horas']].map(([x,t])=>`<option value="${x}" ${x===teleMaxDia()?'selected':''}>${t}</option>`).join('')}</select></div>
       <div class="campo"><label for="prTeleMaxSem">Como mucho por fin de semana</label><select id="prTeleMaxSem">${[[0,'Sin límite'],[120,'2 horas'],[180,'3 horas'],[240,'4 horas'],[300,'5 horas']].map(([x,t])=>`<option value="${x}" ${x===teleMaxSemana()?'selected':''}>${t}</option>`).join('')}</select></div>
       <div class="campo"><label for="prRestaFallo">Cada fallo resta</label><select id="prRestaFallo">${[[0,'Nada'],[0.5,'30 segundos'],[1,'1 minuto']].map(([x,t])=>`<option value="${x}" ${x===restaFallo()?'selected':''}>${t}</option>`).join('')}</select></div>
@@ -211,7 +217,7 @@ function activarTeleAdulto(p){
   const n=()=>Math.max(1, Math.min(600, +$('#teleMin').value||0));
   $('#teleVisto').onclick=()=>{ apuntarTele(p, n(), 'visto'); aviso('Apuntado'); ir('evolucion','premios'); };
   $('#teleRegalo').onclick=()=>{ apuntarTele(p, -n(), 'regalo'); aviso('Regalados'); ir('evolucion','premios'); };
-  [['prTele','tDia'],['prTeleExtra','tExtra'],['prTeleRelee','tRelee'],['prTeleFicha','tFicha'],['prTeleTrabajo','tTrabajo'],['prRestaFallo','restaFallo'],['prPeliExtra','peliExtras'],['prTeleMaxDia','teleMaxDia'],['prTeleMaxSem','teleMaxSemana']].forEach(([id,k])=>{ const e=$('#'+id); if(e) e.onchange=()=>{ aj.premios={...(aj.premios||{}), [k]:+e.value}; guardarAj(); aviso('Guardado'); ir('evolucion','premios'); }; });
+  [['prTele','tDia'],['prTeleExtra','tExtra'],['prTeleRelee','tRelee'],['prTeleFicha','tFicha'],['prTeleTrabajo','tTrabajo'],['prTeleMini','tMini'],['prRestaFallo','restaFallo'],['prPeliExtra','peliExtras'],['prTeleMaxDia','teleMaxDia'],['prTeleMaxSem','teleMaxSemana']].forEach(([id,k])=>{ const e=$('#'+id); if(e) e.onchange=()=>{ aj.premios={...(aj.premios||{}), [k]:+e.value}; guardarAj(); aviso('Guardado'); ir('evolucion','premios'); }; });
 }
 
 /* ---------- la semana que acabó el viernes (de sábado a viernes): para el niño el fin de semana y para la familia ---------- */

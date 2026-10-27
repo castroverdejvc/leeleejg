@@ -41,6 +41,7 @@ function actualizarTeleMini(){
   b.hidden=!ver; if(!ver) return;
   if(b.dataset.animando) return;
   const g=teleGanando(p); b.innerHTML=teleSVG(g, true); b.title=`${minTxt(g)} de tele para el ${esFinde()?'próximo ':''}fin de semana`;
+  if(typeof actualizarPremiosMini==='function') actualizarPremiosMini();
 }
 
 /* ---------- la tele grande de Inicio ---------- */
@@ -82,7 +83,7 @@ function televisorInicio(){
   setTimeout(()=>{   // después de que la pantalla vuelva arriba: si la tele no se ve, se baja hasta ella
     const tv=document.getElementById('televisor'); if(!tv || actual!=='inicio') return; const r=tv.getBoundingClientRect();
     const fuera = r.top<0 || r.bottom>window.innerHeight; if(fuera) tv.scrollIntoView({behavior:'smooth', block:'center'});
-    setTimeout(()=>{ if(actual==='inicio') teleVolar(g-antes, {de:antes, a:g, destino, voz:true}); }, fuera?900:500);
+    setTimeout(()=>{ if(actual==='inicio') teleVolar(g-antes, {de:antes, a:g, destino, voz:false}); }, fuera?900:500);
   }, 80);
 }
 
@@ -113,4 +114,47 @@ function teleVolar(min, {de=null, a=null, destino=null, voz=true}={}){
   setTimeout(function sube(){ k++; const v=de+(a-de)*k/pasos; ponNum(v); caja.classList.add('tele-late'); setTimeout(()=>caja.classList.remove('tele-late'),160);
     if(k%2===1 || k===pasos) sonido('clin');
     if(k<pasos) setTimeout(sube, 90); else { if(mini) delete mini.dataset.animando; actualizarTeleMini(); } }, t0);
+}
+
+/* ---------- 28/10: arriba, junto a la tele, la peli del viernes, la del sábado y el móvil ---------- */
+function actualizarPremiosMini(){
+  const b=document.getElementById('premiosMini'); if(!b) return;
+  const p=aj && aj.perfiles && perfil(); const ver = p && !p.prueba && teleActiva() && PANT[actual] && PANT[actual].zona==='nino' && actual!=='quien';
+  b.hidden=!ver; if(!ver) return;
+  const sab=sabadoDe(), pv=peliculaDe(p, sab), ps=peliSabadoDe(p, sab), mv=typeof movilDe==='function'&&movilActivo()?movilDe(p, sab):null;
+  b.innerHTML = `<span class="pm${pv.completa?' ok':''}" title="Peli del viernes: ${pv.hechos} de ${pv.total} lecturas del día">🎬<b>${pv.completa?'✓':pv.hechos+'/'+pv.total}</b></span>`
+    + `<span class="pm${ps.completa?' ok':''}" title="Peli del sábado: ${ps.hechas} de ${ps.total} lecturas extra">🍿<b>${ps.completa?'✓':Math.min(ps.hechas,ps.total)+'/'+ps.total}</b></span>`
+    + (mv?`<span class="pm${mv.ganados>=mv.max?' ok':''}" title="Móvil: ${mv.ganados} de ${mv.max} minutos">📱<b>${mv.ganados}'</b></span>`:'');
+}
+
+/* ---------- 28/10: cuando gana algo, se lo dice; cada cosa en un idioma y los idiomas rotan cada día
+   (desde el 27/10: pelis en inglés, móvil en castellano, tele en gallego; día 2 y 3 se cambian; el 4.º se vuelve a empezar) ---------- */
+const IDIOMAS_ROTA = [{peli:'en', movil:'es', tele:'gl'}, {peli:'gl', movil:'en', tele:'es'}, {peli:'es', movil:'gl', tele:'en'}];
+const idiomasDeHoy = (d=new Date()) => { const n=Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(2026,9,27))/86400000); return IDIOMAS_ROTA[((n%3)+3)%3]; };
+function minIdioma(m, l){ m=Math.round(m*2)/2;
+  const W={es:['hora','horas','minuto','minutos','y','medio minuto'], gl:['hora','horas','minuto','minutos','e','medio minuto'], en:['hour','hours','minute','minutes','and','half a minute']}[l]||[];
+  if(m<1) return W[5]; const h=Math.floor(m/60), r=m-h*60;
+  const mm=x=>{ const e=Math.floor(x), med=x>e; if(l==='en') return med?`${e} and a half minutes`:`${e} ${e===1?W[2]:W[3]}`; return `${e} ${e===1&&!med?W[2]:W[3]}${med?` ${W[4]} medio`:''}`; };
+  return h ? `${h} ${h===1?W[0]:W[1]}${r?` ${W[4]} ${mm(r)}`:''}` : mm(m); }
+const FRASES_PREMIO = {
+  tele:{es:m=>`¡${minIdioma(m,'es')} más de tele!`, gl:m=>`¡${minIdioma(m,'gl')} máis de tele!`, en:m=>`Plus ${minIdioma(m,'en')} of TV!`},
+  movil:{es:m=>`¡${m===1?'Un minuto':minIdioma(m,'es')} más de móvil!`, gl:m=>`¡${m===1?'Un minuto':minIdioma(m,'gl')} máis de móbil!`, en:m=>`Plus ${m===1?'one minute':minIdioma(m,'en')} of phone games!`},
+  viernes:{es:(h,t)=>h>=t?'¡Peli del viernes conseguida!':`¡Llevas ${h} de ${t} para la peli del viernes!`, gl:(h,t)=>h>=t?'¡Peli do venres conseguida!':`¡Levas ${h} de ${t} para a peli do venres!`, en:(h,t)=>h>=t?'Friday movie unlocked!':`${h} of ${t} for the Friday movie!`},
+  sabado:{es:(h,t)=>h>=t?'¡Peli del sábado conseguida!':`¡Llevas ${h} de ${t} para la peli del sábado!`, gl:(h,t)=>h>=t?'¡Peli do sábado conseguida!':`¡Levas ${h} de ${t} para a peli do sábado!`, en:(h,t)=>h>=t?'Saturday movie unlocked!':`${h} of ${t} for the Saturday movie!`}
+};
+let colaAnuncio=null;
+function anunciarPremios(p=perfil(), minTele=0){
+  if(p.prueba) return; const c=cfgDe(p), sab=sabadoDe(), k=claveDia(sab);
+  const pv=peliculaDe(p, sab), ps=peliSabadoDe(p, sab), mv=typeof movilDe==='function'&&movilActivo()?movilDe(p, sab):{ganados:0};
+  const ant=(c.anuncioVisto && c.anuncioVisto.k===k) ? c.anuncioVisto : {k, pv:pv.hechos, ps:ps.hechas, mv:mv.ganados};
+  const L=idiomasDeHoy(), frases=[];
+  if(minTele>0) frases.push([FRASES_PREMIO.tele[L.tele](minTele), L.tele]);
+  if(pv.hechos>ant.pv) frases.push([FRASES_PREMIO.viernes[L.peli](pv.hechos, pv.total), L.peli]);
+  if(ps.hechas>ant.ps && ps.hechas<=ps.total) frases.push([FRASES_PREMIO.sabado[L.peli](Math.min(ps.hechas,ps.total), ps.total), L.peli]);
+  if(mv.ganados>ant.mv) frases.push([FRASES_PREMIO.movil[L.movil](mv.ganados-ant.mv), L.movil]);
+  c.anuncioVisto={k, pv:pv.hechos, ps:ps.hechas, mv:mv.ganados}; guardarAj(); actualizarPremiosMini();
+  if(!frases.length) return;
+  // se dice cuando el programa termine de hablar (como mucho espera 10 segundos)
+  clearTimeout(colaAnuncio); const t0=performance.now();
+  (function espera(){ colaAnuncio=setTimeout(()=>{ if(typeof programaHablando==='function' && programaHablando() && performance.now()-t0<10000) return espera(); decirVarias(frases); }, 700); })();
 }

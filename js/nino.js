@@ -45,6 +45,7 @@ definir('inicio', {nav:'inicio', pintar(){
   ${typeof metasHTML==='function' ? metasHTML() : ''}
   ${teleHTML()}
   ${extraHTML()}
+  ${typeof fichaColeHTML==='function' ? fichaColeHTML(true) : ''}
   ${typeof spellitInicioHTML==='function' ? spellitInicioHTML() : ''}
   ${typeof aprenderHTML==='function' ? aprenderHTML() : ''}
   ${typeof deportesHTML==='function' ? deportesHTML() : ''}
@@ -202,9 +203,9 @@ function listaPractica(){
   hs.forEach(h=>h.lineas.forEach(l=>{ for(const m of l.matchAll(/\[([^|\]]+)\|([^\]]+)\]/g)){ const p=m[1].toLowerCase(); if(!vistas.has(p) && p.length>2){ vistas.add(p); extra.push(p); } } }));
   return [...dif, ...barajar(extra)].slice(0,10);
 }
-let practLista=[], practI=0, practHechas=[];
+let practLista=[], practI=0, practHechas=[], practicaApuntada=false;
 definir('practicar', {nav:'practicar', pintar(reiniciar){
-  if(reiniciar!==false || !practLista.length){ practLista=listaPractica(); practI=0; practHechas=[]; }
+  if(reiniciar!==false || !practLista.length){ practLista=listaPractica(); practI=0; practHechas=[]; practicaApuntada=false; }
   const p=practLista[practI]; if(!p){ ir('practicafin'); return; }
   const k=claveDePalabra(p); const sil=silabear(p);
   $('#s-practicar').innerHTML = `<div class="pag-cab"><h1 class="tit">Practicar una palabra</h1><div style="text-align:center"><b>${practI+1} de ${practLista.length}</b><div class="prog-puntos">${practLista.map((_,i)=>`<i class="${i<practI?'ok':i===practI?'on':''}"></i>`).join('')}</div></div></div>
@@ -222,7 +223,10 @@ definir('practicar', {nav:'practicar', pintar(reiniciar){
 }, salir(){ callar(); }});
 definir('practicafin', {nav:'practicar', pintar(){
   const n=practHechas.length;
-  $('#s-practicafin').innerHTML = `<div class="card buen-trabajo"><h1>¡Buen trabajo!</h1><p class="sub">Has practicado ${n} ${n===1?'palabra':'palabras'}.</p>
+  /* 28/10: practicar también da premio (1 minuto de tele y ⭐) — una vez por ronda terminada */
+  const _ant=typeof fotoPremios==='function'?fotoPremios():null;
+  if(n && !practicaApuntada){ practicaApuntada=true; const c=cfgDe(perfil()); c.practicaLog=(c.practicaLog||[]).concat([{f:new Date().toISOString(), n, bien:n, palabras:practHechas.slice(-10)}]).slice(-1500); guardarAj(); }
+  $('#s-practicafin').innerHTML = `<div class="card buen-trabajo"><h1>¡Buen trabajo!</h1><p class="sub">Has practicado ${n} ${n===1?'palabra':'palabras'}.</p>${typeof premioChipHTML==='function'?premioChipHTML(_ant):''}
     <div class="tarjetas-pal">${practHechas.slice(-6).map(p=>{ const k=claveDePalabra(p); return `<div class="tp"><span class="ft">${k?imgHTML(k):'📖'}</span><b>${esc(p)} <i>${ic('check')}</i></b></div>`; }).join('')}</div>
     ${libroSVG()}
     <div class="botones" style="max-width:640px;margin:0 auto"><button class="btn btn-p btn-g" type="button" data-ir="inicio">${ic('casa')} Volver al inicio</button><button class="btn btn-borde btn-g" type="button" id="btnMasP">${ic('recargar')} Practicar más</button><button class="btn btn-borde btn-g" type="button" data-dic="lecturas">${ic('lapiz')} Hacer un dictado</button></div></div>`;

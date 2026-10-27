@@ -113,8 +113,9 @@ definir('deletreo', {nav:'repaso', pintar(){
 }, salir(){ pararEscucha(); callar(); }});
 definir('deletreofin', {nav:'repaso', pintar(){
   const bien=del.res.filter(r=>r.ok).length, dichas=del.items.filter(x=>x.dicha).length;
+  const _ant=typeof fotoPremios==='function'?fotoPremios():null;
   aj.deletreoLog=(aj.deletreoLog||[]).concat([{f:new Date().toISOString(), n:del.res.length, bien, ficha:del.f.id, dichas}]).slice(-2000); guardarAj();
-  $('#s-deletreofin').innerHTML = `<div class="card buen-trabajo"><h1>Great job!</h1><p class="sub">Has escrito ${del.res.length} ${del.res.length===1?'palabra':'palabras'} · ${bien} sin fallos${dichas?` · ${dichas} dichas en voz alta`:''}.</p>
+  $('#s-deletreofin').innerHTML = `<div class="card buen-trabajo"><h1>Great job!</h1><p class="sub">Has escrito ${del.res.length} ${del.res.length===1?'palabra':'palabras'} · ${bien} sin fallos${dichas?` · ${dichas} dichas en voz alta`:''}.</p>${typeof premioChipHTML==='function'?premioChipHTML(_ant):''}
     <div class="tarjetas-pal">${del.res.map(r=>`<button type="button" class="tp" data-oirp="${esc(r.p.t)}"><span class="ft">${dibujoDel(r.p)}</span><b style="${r.ok?'':'color:var(--coral)'}">${esc(r.p.t)} ${r.ok?`<i>${ic('check')}</i>`:''}</b>${r.p.es?`<span class="nota">${esc(r.p.es)}</span>`:''}</button>`).join('')}</div>
     <div class="botones" style="max-width:640px;margin:0 auto"><button class="btn btn-p btn-g" type="button" id="delOtraRonda">🔁 Otra ronda</button><button class="btn btn-borde btn-g" type="button" data-ir="repaso">${ic('hoja')} Fichas</button></div></div>`;
   $$('#s-deletreofin [data-oirp]').forEach(b=>b.onclick=()=>decir(b.dataset.oirp,'en'));

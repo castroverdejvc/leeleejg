@@ -101,6 +101,7 @@ definir('palabrasdia', {nav:'practicar', pintar(){
 function palDiaFin(){
   const p=perfil(), c=cfgDe(p), hoy=claveDia(new Date()), r=palDia.res.map(x=>({p:x.p, ok:x.err===0}));
   const bien=r.filter(x=>x.ok).length; const nuevas=[];
+  const _ant=typeof fotoPremios==='function'?fotoPremios():null;
   if(!palDia.extra){
     c.palDiaLog=(c.palDiaLog||[]).concat([{f:new Date().toISOString(), n:r.length, bien, palabras:r}]).slice(-800);
     const est={...(c.palDia||{})};
@@ -112,7 +113,7 @@ function palDiaFin(){
   guardarAj();
   const est = palDia.extra ? 0 : 1 + (bien/r.length>=0.8 ? 1 : 0);
   palDia={...palDia, hecho:true, i:0, paso:0, extra:false};
-  $('#s-palabrasdia').innerHTML=`<div class="card buen-trabajo"><h1>¡Buen trabajo!</h1><p class="sub">${bien} de ${r.length} a la primera.${est?` ${'⭐'.repeat(est)} +${est}`:''}</p>
+  $('#s-palabrasdia').innerHTML=`<div class="card buen-trabajo"><h1>¡Buen trabajo!</h1><p class="sub">${bien} de ${r.length} a la primera.</p>${typeof premioChipHTML==='function'?premioChipHTML(_ant):''}
     ${nuevas.length?`<p class="mejora-rel">🏅 ¡Ya dominas ${nuevas.map(w=>`<b>${esc(w)}</b>`).join(', ')}!</p>`:''}
     <div class="tarjetas-pal">${r.map(x=>{ const k=claveDePalabra(x.p); return `<div class="tp"><span class="ft">${k?imgHTML(k):'📖'}</span><b>${esc(x.p)} ${x.ok?`<i>${ic('check')}</i>`:''}</b></div>`; }).join('')}</div>
     <div class="botones" style="max-width:640px;margin:14px auto 0"><button class="btn btn-p btn-g" type="button" data-ir="inicio">${ic('casa')} Volver al inicio</button></div></div>`;

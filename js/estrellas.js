@@ -26,7 +26,7 @@ const pctBien = (bien, n) => n ? bien/n : 0;
 let _cacheEv={k:null, v:null};
 function estrellasEventos(p=perfil()){
   const c=cfgDe(p);
-  const k=[p.id, SES.length, SES.filter(s=>!s.incompleta).length, claveDia(new Date()), JSON.stringify(aj.premios||{}), ...[...LOGS_FICHA,'trabajosLog','eduLog','objManualLog','deporteLog'].map(x=>(c[x]||[]).length)].join('|');
+  const k=[p.id, SES.length, SES.filter(s=>!s.incompleta).length, claveDia(new Date()), JSON.stringify(aj.premios||{}), ...[...LOGS_FICHA,...LOGS_MINI,'trabajosLog','eduLog','objManualLog','deporteLog'].map(x=>(c[x]||[]).length)].join('|');
   if(_cacheEv.k===k) return _cacheEv.v;
   const ev=calcularEventos(p, c); _cacheEv={k, v:ev}; return ev;
 }
@@ -43,6 +43,7 @@ function calcularEventos(p, c){
   });
   LOGS_FICHA.forEach(k=>(c[k]||[]).forEach(x=>{ if(!x.f) return; const n=+x.n||0; ev.push({f:x.f, n: 1 + (n && pctBien(+x.bien||0, n)>=0.8 ? 1 : 0), tipo:'ficha'}); }));
   (c.trabajosLog||[]).forEach(x=>{ if(!x.f) return; const a=+x.a||0, e=+x.e||0; ev.push({f:x.f, n: 1 + ((a+e) && pctBien(a, a+e)>=0.8 ? 1 : 0), tipo:'trabajo'}); });
+  LOGS_MINI.forEach(k=>(c[k]||[]).forEach(x=>{ if(!x.f) return; const n=+x.n||0; ev.push({f:x.f, n: 1 + (n && pctBien(+x.bien||0, n)>=0.8 ? 1 : 0), tipo:'mini'}); }));
   // juegos de «Aprender jugando»: una ronda terminada ⭐ (⭐⭐ si casi todo bien), como mucho eduMax ⭐ al día
   const maxEdu=+premiosCfg().eduMax||0, porDia={};
   (c.eduLog||[]).filter(x=>x.f).sort((a,b)=>a.f<b.f?-1:1).forEach(x=>{ const k=claveDia(x.f), ya=porDia[k]||0, n=+x.n||0;
@@ -228,3 +229,13 @@ function avisarRecord(){
   const c=cfgDe(p), k=claveDia(m.cur.desde); if(c.recordAvisado===k) return; c.recordAvisado=k; guardarAj();
   (typeof cuandoLibre==='function' ? cuandoLibre : (fn,ms)=>setTimeout(()=>{ if(actual==='inicio') fn(); },ms))(()=>{ const d=dialogo({titulo:'🏅 ¡Nuevo récord!', html:`<p class="sub">Esta semana llevas <b>${m.cur.est} ⭐</b>: ¡más que en ninguna otra semana!</p>`, cls:'dlg-premio', botones:[{t:'¡Bien!', cls:'btn-p'}]}); sonido('cromo'); confeti(d.el.querySelector('.dialogo')||document.body); decir(`¡Nuevo récord, ${nombre()}! Esta semana llevas ${m.cur.est} estrellas.`); }, 2200);
 }
+
+/* ---------- 28/10: lo ganado se ve al terminar (fichas, dictado, Spell it!, practicar, sorpresas…) ---------- */
+function fotoPremios(p=perfil()){ try{ const s=sabadoDe(); return {est:estrellasDe(p), min:sumaBruta(teleDetalle(p, s, diasDespues(s,7)))}; }catch(e){ return {est:0, min:0}; } }
+function premioChipHTML(antes, p=perfil()){
+  if(p.prueba || !antes) return ''; const d=fotoPremios(p); const e=d.est-antes.est, m=Math.round((d.min-antes.min)*2)/2;
+  if(e<=0 && m<=0) return '';
+  setTimeout(()=>{ if(typeof avisarTele==='function') avisarTele(p, true); }, 600);
+  return `<div class="premio-chip">${e>0?`<span>${'⭐'.repeat(Math.min(3,e))} +${e}</span>`:''}${m>0?`<span>📺 +${minTxt(m)} de tele</span>`:''}</div>`;
+}
+const premioVoz = (antes, p=perfil()) => { if(p.prueba || !antes) return ''; const d=fotoPremios(p); const e=d.est-antes.est, m=Math.round((d.min-antes.min)*2)/2; return [e>0?`${e===1?'una estrella':e+' estrellas'}`:'', m>0?`${minTxt(m)} de tele`:''].filter(Boolean).join(' y '); };

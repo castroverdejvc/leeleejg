@@ -215,7 +215,11 @@ definir('adivinanzas', {nav:'inicio', pintar(op){
   const leer=()=>decir(a.q); $('#btnOirA').onclick=leer; leer();
   $$('#s-adivinanzas .op-d').forEach(b=>b.onclick=()=>{ const j=+b.dataset.j; intentos++;
     if(j===a.ok){ b.classList.add('bien'); sonido('bien'); $('#adivMsg').textContent='¡Muy bien!';
-      const cfg=aj; cfg.adivLog=(cfg.adivLog||[]); cfg.adivLog.push({f:new Date().toISOString(), id:a.id, intentos, ...(flujoAdiv.extra?{extra:true}:{})}); cfg.adivLog=cfg.adivLog.slice(-500); guardarAj();
+      const _ant=typeof fotoPremios==='function'?fotoPremios():null; const cfg=aj; cfg.adivLog=(cfg.adivLog||[]); cfg.adivLog.push({f:new Date().toISOString(), id:a.id, intentos, ...(flujoAdiv.extra?{extra:true}:{})}); cfg.adivLog=cfg.adivLog.slice(-500);
+      /* 28/10: las sorpresas de hoy dan premio (1 minuto de tele y ⭐; ⭐⭐ si la adivina a la primera), una vez al día */
+      if(!flujoAdiv.extra && !(cfg.sorpresaLog||[]).some(x=>claveDia(x.f)===claveDia(new Date()))){ const preg=(cfg.gustosLog||[]).filter(x=>claveDia(x.f)===claveDia(new Date())).length; cfg.sorpresaLog=(cfg.sorpresaLog||[]).concat([{f:new Date().toISOString(), n:1, bien:intentos===1?1:0, preg}]).slice(-800); }
+      guardarAj(); const _chip=typeof premioChipHTML==='function'?premioChipHTML(_ant):'';
+      if(_chip) $('#adivMsg').insertAdjacentHTML('afterend', _chip);
       decir('¡Muy bien! Es '+a.ops[a.ok][0]+'.'); $$('#s-adivinanzas .op-d').forEach(x=>x.disabled=true);
       setTimeout(()=>{ if(!flujoAdiv) return; flujoAdiv.i++; if(flujoAdiv.i>=flujoAdiv.lista.length && !flujoAdiv.temporada){ flujoAdiv=null; confeti($('#s-adivinanzas .card')||document.body); setTimeout(()=>{ if(actual==='adivinanzas') ir('inicio'); }, 1400); } else ir('adivinanzas'); }, 1800);
     } else { b.classList.add('mal'); b.disabled=true; sonido('mal'); $('#adivMsg').textContent='¡Casi! Prueba otra vez.'; decir('¡Casi! Prueba otra vez.'); }

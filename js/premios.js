@@ -6,7 +6,7 @@
 const PREMIOS_DEF = {criatura:2, juego:5, minutos:15, trasLeer:true, tele:10, teleExtra:15, teleRelee:5, teleFicha:5, teleTrabajo:1, sobre:15, restaFallo:0.5, peliExtra:9,
   estCriatura:8, estJuego:30, sobreDia:4, sorpresa:true, sorpresaExtras:2, movilCada:3, movilMax:30, eduMax:4,
   tDia:15, tExtra:10, tRelee:5, tFicha:5, tTrabajo:2, peliExtras:7, teleMaxDia:120, teleMaxSemana:240,
-  revista1:45, revista2:75, cajaPeq:500, cajaGrande:1000};
+  revista1:45, revista2:75, cajaPeq:500, cajaGrande:1000, tMini:1};
 const premiosCfg = () => ({...PREMIOS_DEF, ...(aj.premios||{})});
 
 /* actividades (ejercicios) = lecturas terminadas + dictados + repasos de fichas + rondas de «As letras» */
