@@ -125,3 +125,13 @@ function deletreoAdultoHTML(p){
     return `<tr><td><b>${esc(f.titulo)}</b></td><td>${xs.map(x=>`<span class="${x.e.c>=3?'nb bien':x.e.ko>x.e.ok?'nb medio':''}" style="margin:2px;display:inline-block">${esc(x.q.t)} ${x.e.ok}/${x.e.ok+x.e.ko}</span>`).join(' ')}</td></tr>`; }).join('');
   return `<div class="card bloque" style="margin-top:18px"><h3 style="margin-bottom:8px">🔤 Spell it! · ${esc(p.nombre)}</h3><p class="nota">${log.length} ${log.length===1?'ronda':'rondas'}; palabras escritas sin fallos / veces escritas (en verde, las que ya sabe).</p><div class="tabla-w"><table><tbody>${filas}</tbody></table></div></div>`;
 }
+/* 27/10: la familia no lo encontraba dentro de Fichas → también en Inicio y en «Aprender jugando», con su propia pantalla */
+definir('spellit', {nav:'repaso', pintar(){
+  $('#s-spellit').innerHTML = `<button class="volver" type="button" data-ir="inicio">${ic('atras')} Inicio</button>${tarjetaDeletreoHTML()}`;
+  activarTarjetaDeletreo($('#s-spellit')); decir('Spell it! Elige las palabras.');
+}});
+function spellitInicioHTML(){
+  const cs=conjuntosDeletreo(); const f=cs.find(x=>x.id==='school')||cs[0]; if(!f) return '';
+  const p=f.palabras.find(q=>!sabidaDel(f,q))||f.palabras[0];
+  return `<button class="acceso spellit-c" type="button" data-ir="spellit"><span class="del-mini">${dibujoDel(p)}</span><span><b>🔤 Spell it! · Escribe en inglés</b><span class="nota">Coloca las letras (p · e · n) y escucha cómo se dice: ${esc(cs.map(x=>x.titulo).join(', '))}.</span></span><span class="ir">${ic('dcha')}</span></button>`;
+}

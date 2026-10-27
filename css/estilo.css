@@ -1419,3 +1419,6 @@ small.verde{color:var(--green)}small.rojo{color:#DC2626}
 .del-bien{text-align:center;font-size:2.6rem;font-weight:900;color:var(--green);margin-top:6px}
 .del-decir{display:grid;justify-items:center;gap:8px;margin:10px 0}
 @media (max-width:560px){.del-dibujo{width:160px;height:120px}.del-es b{font-size:1.5rem}.del-h{min-width:38px;height:50px;font-size:1.6rem;border-radius:10px}.del-huecos{gap:5px}.del-f{width:52px;height:52px;font-size:1.8rem}.del-zona{height:230px}}
+.spellit-c{background:linear-gradient(90deg,#FFF1F2,#EFF6FF);border:2px solid #FBCFE8}
+.spellit-c .del-mini{display:block;width:84px;height:62px;border-radius:12px;overflow:hidden;background:#fff;flex:none}
+.spellit-c .del-mini img{width:100%;height:100%;object-fit:cover}

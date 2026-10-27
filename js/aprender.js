@@ -276,7 +276,7 @@ definir('aprender', {nav:'juegos', pintar(){
   const log=cfgDe(p).eduLog||[]; const jugado=id=>log.filter(x=>x.j===id).length;
   $('#s-aprender').innerHTML = `<button class="volver" type="button" data-ir="juegos">${ic('atras')} Juegos</button>
   <div class="album-cab"><div><h1 class="tit">🧩 Aprender jugando</h1><p class="sub">Juegos de leer, de números y de inglés. Cada ronda terminada te da ⭐${max?` (hoy llevas ${hoy} de ${max})`:''}.</p></div></div>
-  ${AREAS_EDU.map(([a,t,col])=>`<h2 class="sec-extra" style="color:${col}">${t}</h2><div class="juegos-grid edu-grid">${APRENDER.filter(j=>j.area===a).map(j=>`<button type="button" class="juego-c edu-c" data-e="${j.id}" style="--ec:${col}"><span class="emo-j">${j.emo}</span><b>${esc(j.nombre)}</b><span class="nota">${esc(j.desc)}</span>${jugado(j.id)?`<span class="pill">${jugado(j.id)} ${jugado(j.id)===1?'ronda':'rondas'}</span>`:''}</button>`).join('')}</div>`).join('')}`;
+  ${AREAS_EDU.map(([a,t,col])=>`<h2 class="sec-extra" style="color:${col}">${t}</h2>${a==='ingles' && typeof spellitInicioHTML==='function' ? spellitInicioHTML() : ''}<div class="juegos-grid edu-grid">${APRENDER.filter(j=>j.area===a).map(j=>`<button type="button" class="juego-c edu-c" data-e="${j.id}" style="--ec:${col}"><span class="emo-j">${j.emo}</span><b>${esc(j.nombre)}</b><span class="nota">${esc(j.desc)}</span>${jugado(j.id)?`<span class="pill">${jugado(j.id)} ${jugado(j.id)===1?'ronda':'rondas'}</span>`:''}</button>`).join('')}</div>`).join('')}`;
   $$('#s-aprender [data-e]').forEach(b=>b.onclick=()=>ir('aprende', b.dataset.e));
   decir('Aprender jugando. Elige un juego.');
 }});

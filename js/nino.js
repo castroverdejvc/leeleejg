@@ -45,6 +45,7 @@ definir('inicio', {nav:'inicio', pintar(){
   ${typeof metasHTML==='function' ? metasHTML() : ''}
   ${teleHTML()}
   ${extraHTML()}
+  ${typeof spellitInicioHTML==='function' ? spellitInicioHTML() : ''}
   ${typeof aprenderHTML==='function' ? aprenderHTML() : ''}
   ${typeof deportesHTML==='function' ? deportesHTML() : ''}
   ${typeof advientoHTML==='function' ? advientoHTML() : ''}
