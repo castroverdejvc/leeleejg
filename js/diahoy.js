@@ -25,16 +25,22 @@ function diaHoyHTML(){
     <div class="dh-cab"><span class="emo-g">📅</span><div><b class="dh-fecha">${esc(fecha)}</b>
       <span class="dh-linea">🎉 <b>Santo:</b> ${esc(h.santo)}</span>
       ${h.diaDe?`<span class="dh-linea">🌍 ${esc(h.diaDe)}</span>`:''}
+      ${fiestasHoyHTML()}
       ${casa.length?`<span class="dh-linea dh-casa">🎂 ¡Hoy es el santo de ${esc(casa.join(' y '))}!</span>`:''}</div></div>
     <button type="button" class="dh-leer${leida?' hecha':''}" data-dialeer="${esc(h.id)}"><span class="mini-fotos">${imgHTML(h.portada)}</span>
       <span class="tx"><b>${leida?'✓ ':''}Lectura del día: «${esc(conNombre(h.titulo))}»</b><span class="nota">${leida?'¡Ya la has leído hoy! Puedes leerla otra vez.':`Es una lectura extra, si quieres: ⭐⭐${teleCfg().extra>0?` y +${minTxt(teleCfg().extra)} de tele`:''}.${yaAntes?' (Ya la leíste otro año.)':''}`}</span></span>
       <span class="ir">${ic('dcha')}</span></button></div>`;
 }
+/* 27/10/2026: las fiestas de estos días (Samaín, Halloween, Día de Muertos…) también se ven aquí, como el santo */
+const fiestasHoy = () => (typeof temporadasActivas==='function' ? temporadasActivas(fechaTemp(), perfil()) : []).filter(t=>t.id!=='cumple').sort((a,b)=>(a.hermanas&&b.hermanas)?a.hermanas.indexOf(a.id)-a.hermanas.indexOf(b.id):0);
+const juntarY = xs => xs.length<2 ? (xs[0]||'') : xs.slice(0,-1).join(', ')+' y '+xs[xs.length-1];
+function fiestasHoyHTML(){ const fs=fiestasHoy(); if(!fs.length) return '';
+  return `<span class="dh-linea dh-fiestas"><b>${fs.length>1?'Fiestas':'Fiesta'}:</b> ${fs.map(t=>`<button type="button" class="dh-fiesta" data-temp="${esc(t.id)}" style="--tc:${t.color};--ts:${t.suave}">${t.emo} ${esc(t.nombre)}</button>`).join(' ')}</span>`; }
 /* lo que se dice al tocar la fecha */
 function decirDiaHoy(){
   const h=lecturaDelDia(); if(!h) return;
   const casa=santoDeCasa(h);
-  decir(`Hoy es ${fechaLarga(hoyDia())}. Es ${h.santo}.${h.diaNino?' '+h.diaNino:''}${casa.length?` ¡Felicidades, ${casa.join(' y ')}!`:''}`);
+  const fs=fiestasHoy(); decir(`Hoy es ${fechaLarga(hoyDia())}. Es ${h.santo}.${h.diaNino?' '+h.diaNino:''}${fs.length?` Es la semana de ${juntarY(fs.map(t=>t.nombre))}.`:''}${casa.length?` ¡Felicidades, ${casa.join(' y ')}!`:''}`);
 }
 document.addEventListener('click', ev=>{
   const b=ev.target.closest && ev.target.closest('[data-dialeer]');

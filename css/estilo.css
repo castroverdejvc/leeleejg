@@ -1471,3 +1471,7 @@ small.verde{color:var(--green)}small.rojo{color:#DC2626}
 @media (max-width:1380px){ #navNino button span:not([data-icono]){font-size:.8rem} #navNino button{flex-direction:column;gap:2px;padding:6px 8px} }
 @media (max-width:560px){ .premios-mini{padding:2px 4px;gap:2px} .premios-mini .pm{font-size:1rem;padding:1px 2px} .premios-mini .pm b{font-size:.62rem} .premios-arriba{gap:3px} }
 @media (max-width:560px){ .top-in:has(#premiosMini:not([hidden])) .logo > span:last-child{display:none} .top-in:has(#premiosMini:not([hidden])) .yo-btn{padding:3px 8px 3px 3px;gap:4px} }
+/* fiestas en la tarjeta del día (27/10) */
+.dh-fiestas{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.dh-fiesta{border:0;background:var(--ts);color:var(--tc);font-weight:800;border-radius:999px;padding:3px 10px;font-size:.95rem;cursor:pointer;filter:saturate(1.1)}
+.dh-fiesta:hover{outline:2px solid var(--tc)}
