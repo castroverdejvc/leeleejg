@@ -34,7 +34,7 @@ function jSudoku(el){
     const c=ev.target.closest('[data-i]'); if(c){ const i=+c.dataset.i; if(!fijo[i] && tab[i]==null){ sel=i; sonido('toc'); pinta(); } return; }
     const p=ev.target.closest('[data-v]'); if(!p || sel==null || tab[sel]!=null) return; const v=+p.dataset.v;
     if(v===sol[sel]){ tab[sel]=v; a++; sonido('bien'); decir(nombreFoto(sim[v]));
-      if(!tab.includes(null)){ pinta(); apuntarJuego('sudoku',{a, e, r:huecos+' huecos'}); confeti(el); sonido('cromo'); setTimeout(()=>cartel(el, `<h2>¡Sudoku resuelto! 🎉</h2><p class="nota">${e?`Con ${e} ${e===1?'fallo':'fallos'}.`:'¡Sin ningún fallo!'}</p>`, [['Otro sudoku', nueva]]), 500); return; }
+      if(!tab.includes(null)){ pinta(); apuntarJuego('sudoku',{a, e, r:huecos+' huecos', hecho:e, ideal:0, peor:Math.max(2,Math.ceil(a/2)), tRef:12*Math.max(1,a)}); confeti(el); sonido('cromo'); setTimeout(()=>cartel(el, `<h2>¡Sudoku resuelto! 🎉</h2><p class="nota">${e?`Con ${e} ${e===1?'fallo':'fallos'}.`:'¡Sin ningún fallo!'}</p>`, [['Otro sudoku', nueva]]), 500); return; }
       sel=tab.indexOf(null); pinta(); }
     else { e++; sonido('mal'); decir(choca(tab,sel,v)?'Ese ya está en la fila, la columna o el cuadrado.':'Ahí no va. Piénsalo otra vez.'); pinta(); sacudir(cont.querySelector(`[data-i="${sel}"]`)); }
   });
@@ -60,7 +60,7 @@ function jLaberinto(el){
     pon(`Lleva ${LAB[1]} hasta ${LAB[3]} · Pasos: ${pasos} · ✗ Choques: ${golpes}`); };
   const mover=d=>{ if(fin || d==='s' || !muros) return; const [r,c]=yo; if(muros[r][c][d]){ golpes++; sonido('mal'); dibuja(); return; }
     const [dc,dr]=DIRS[d]; yo=[r+dr,c+dc]; pasos++; sonido('toc'); dibuja();
-    if(yo[0]===meta[0] && yo[1]===meta[1]){ fin=true; apuntarJuego('laberinto',{a:1, e:golpes, pts:pasos, r:`${N}×${M}`}); sonido('cromo'); confeti(el); decir(`¡Has llegado a ${LAB[3]}!`); cartel(el, `<h2>¡Has llegado! ${LAB[2]}</h2><p class="nota">${pasos} pasos y ${golpes} ${golpes===1?'choque':'choques'}.</p>`, [['Otro laberinto', nueva]]); } };
+    if(yo[0]===meta[0] && yo[1]===meta[1]){ fin=true; apuntarJuego('laberinto',{a:1, e:golpes, pts:pasos, r:`${N}×${M}`, ...(()=>{ const L0=typeof caminoLab==='function'?caminoLab(muros,M,N):(N+M); return {hecho:pasos+golpes, ideal:L0, peor:2*L0, tRef:Math.ceil(1.2*L0)}; })()}); sonido('cromo'); confeti(el); decir(`¡Has llegado a ${LAB[3]}!`); cartel(el, `<h2>¡Has llegado! ${LAB[2]}</h2><p class="nota">${pasos} pasos y ${golpes} ${golpes===1?'choque':'choques'}.</p>`, [['Otro laberinto', nueva]]); } };
   const nueva=()=>{ const nv=nivelJ('laberinto'); N=5+nv; M=5+nv; crear(); yo=[0,0]; meta=[M-1,N-1]; golpes=0; pasos=0; fin=false;
     el.innerHTML=''; pon=marcador(el); L=lienzo(el,N,M,420); deslizar(L.cv, mover); flechas(el, mover); dibuja(); };
   const quitarT=teclas(mover);
@@ -92,7 +92,7 @@ function jSeries(el){
       <div class="ops-serie">${ops.map(o=>`<button type="button" class="btn btn-g os" data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
     pon(`Serie ${ronda+1} de ${R} · ✓ ${a} · ✗ ${e}`);
     $$('.os', zona).forEach(b=>b.onclick=()=>{ if(b.dataset.o===String(resp)){ $$('.os', zona).forEach(x=>x.disabled=true); if(!mal) a++; sonido('bien'); zona.querySelector('.hueco').textContent=resp; zona.querySelector('.hueco').classList.add('ok'); ronda++;
-        if(ronda>=R){ apuntarJuego('series',{a, e}); setTimeout(()=>{ sonido('cromo'); if(e===0) confeti(el); cartel(el, `<h2>${e===0?'¡Todas bien! 🎉':'¡Terminado!'}</h2><p class="nota">${a} de ${R} a la primera.</p>`, [['Otra vez', ()=>{ ronda=0; a=0; e=0; pide(); }]]); }, 600); }
+        if(ronda>=R){ apuntarJuego('series',{a, e, hecho:e, ideal:0, peor:Math.max(2,Math.ceil(R/2)), tRef:8*R, clave:R}); setTimeout(()=>{ sonido('cromo'); if(e===0) confeti(el); cartel(el, `<h2>${e===0?'¡Todas bien! 🎉':'¡Terminado!'}</h2><p class="nota">${a} de ${R} a la primera.</p>`, [['Otra vez', ()=>{ ronda=0; a=0; e=0; pide(); }]]); }, 600); }
         else setTimeout(pide, 700); }
       else { e++; mal=true; sonido('mal'); sacudir(b); b.disabled=true; pon(`Serie ${ronda+1} de ${R} · ✓ ${a} · ✗ ${e}`); } });
   };
@@ -128,7 +128,7 @@ function jOrdena(el){
     $$('.op', zona).forEach(b=>b.onclick=()=>{ const i=+b.dataset.i;
       if(frase.ws[i]===frase.ws[usadas.size]){ usadas.add(i); sonido('toc');
         if(usadas.size===frase.ws.length){ if(!mal) a++; ronda++; pinta(); sonido('bien'); decir(frase.t);
-          if(ronda>=R){ apuntarJuego('ordena',{a, e}); setTimeout(()=>{ sonido('cromo'); if(e===0) confeti(el); cartel(el, `<h2>${e===0?'¡Todas a la primera! 🎉':'¡Muy bien!'}</h2><p class="nota">${a} de ${R} frases sin fallar.</p>`, [['Otra vez', ()=>{ ronda=0; a=0; e=0; pide(); }]]); }, 1800); }
+          if(ronda>=R){ apuntarJuego('ordena',{a, e, hecho:e, ideal:0, peor:Math.max(2,Math.ceil(R/2)), tRef:10*R, clave:R}); setTimeout(()=>{ sonido('cromo'); if(e===0) confeti(el); cartel(el, `<h2>${e===0?'¡Todas a la primera! 🎉':'¡Muy bien!'}</h2><p class="nota">${a} de ${R} frases sin fallar.</p>`, [['Otra vez', ()=>{ ronda=0; a=0; e=0; pide(); }]]); }, 1800); }
           else setTimeout(pide, 2200); return; }
         pinta(); }
       else { e++; mal=true; sonido('mal'); sacudir(b); pon(`Frase ${ronda+1} de ${R} · ✓ ${a} · ✗ ${e}`); } });
@@ -170,7 +170,7 @@ function jSopa(el){
     const [r0,c0]=ini; ini=null;
     const p=pals.find(p=>!encontradas.has(p.p) && ((p.celdas[0][0]===r0&&p.celdas[0][1]===c0&&p.celdas.at(-1)[0]===r&&p.celdas.at(-1)[1]===c) || (p.celdas[0][0]===r&&p.celdas[0][1]===c&&p.celdas.at(-1)[0]===r0&&p.celdas.at(-1)[1]===c0)));
     if(p){ encontradas.add(p.p); a++; sonido('bien'); decir(p.w||p.p); pinta();
-      if(encontradas.size===pals.length){ apuntarJuego('sopa',{a, e, r:pals.length+' palabras'}); sonido('cromo'); confeti(el); setTimeout(()=>cartel(el, `<h2>¡Todas encontradas! 🎉</h2><p class="nota">${e?`Con ${e} ${e===1?'fallo':'fallos'}.`:'¡Sin fallos!'}</p>`, [['Otra sopa', nueva]]), 600); } }
+      if(encontradas.size===pals.length){ apuntarJuego('sopa',{a, e, r:pals.length+' palabras', hecho:e, ideal:0, peor:Math.max(2,Math.ceil(a/2)), tRef:25*Math.max(1,a)}); sonido('cromo'); confeti(el); setTimeout(()=>cartel(el, `<h2>¡Todas encontradas! 🎉</h2><p class="nota">${e?`Con ${e} ${e===1?'fallo':'fallos'}.`:'¡Sin fallos!'}</p>`, [['Otra sopa', nueva]]), 600); } }
     else if(r0===r && c0===c){ pinta(); }
     else { e++; sonido('mal'); pinta(); sacudir(zona.querySelector('.sopa')); }
   });
@@ -199,7 +199,7 @@ function jCuenta(el){
   };
   const responde=(ok, b, frase)=>{
     if(ok){ $$('.os,.gc', zona).forEach(x=>x.disabled=true); if(!mal) a++; ronda++; sonido('bien'); decir(frase);
-      if(ronda>=R){ apuntarJuego('cuenta',{a, e}); setTimeout(()=>{ sonido('cromo'); if(e===0) confeti(el); cartel(el, `<h2>${e===0?'¡Todas bien! 🎉':'¡Terminado!'}</h2><p class="nota">${a} de ${R} a la primera.</p>`, [['Otra vez', ()=>{ ronda=0; a=0; e=0; pide(); }]]); }, 700); }
+      if(ronda>=R){ apuntarJuego('cuenta',{a, e, hecho:e, ideal:0, peor:Math.max(2,Math.ceil(R/2)), tRef:8*R, clave:R}); setTimeout(()=>{ sonido('cromo'); if(e===0) confeti(el); cartel(el, `<h2>${e===0?'¡Todas bien! 🎉':'¡Terminado!'}</h2><p class="nota">${a} de ${R} a la primera.</p>`, [['Otra vez', ()=>{ ronda=0; a=0; e=0; pide(); }]]); }, 700); }
       else setTimeout(pide, 900); }
     else { e++; mal=true; sonido('mal'); sacudir(b); b.disabled=true; pon(`Ronda ${ronda+1} de ${R} · ✓ ${a} · ✗ ${e}`); }
   };
@@ -261,7 +261,7 @@ function juegoFiestaHTML(t){
   const f=fiestaJ(); if(!f || f.id!==t.id) return '';
   const pj=puedeJugar();
   return `<div class="card juego-fiesta" style="--tc:${t.color};--ts:${t.suave}"><span class="emo-g">${t.emo}🧺</span><div class="tx"><b>Juego ${esc(deTemporada(t))}: Atrapa la fiesta</b>
-    <span class="nota">${pj.ok?`Esta semana los juegos vienen ${esc(deTemporada(t))}. ¡Y hay uno especial!`:pj.por==='leer'?'Primero, la lectura de hoy. Luego podrás jugar.':'Hoy ya has jugado tus minutos. ¡Mañana más!'}</span></div>
+    <span class="nota">${pj.ok?`Esta semana los juegos vienen ${esc(deTemporada(t))}. ¡Y hay uno especial!`:pj.por==='leer'?'Primero, lo de hoy. Luego podrás jugar.':'Hoy ya has jugado tus minutos. ¡Mañana más!'}</span></div>
     <button class="btn btn-p" type="button" data-jfiesta ${pj.ok?'':'disabled'}>¡A jugar! ${ic('flecha')}</button></div>`;
 }
 function activarJuegoFiesta(raiz){ $$('[data-jfiesta]', raiz).forEach(b=>b.onclick=()=>ir('juego','fiesta')); }

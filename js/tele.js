@@ -60,9 +60,12 @@ function teleDetalle(p=perfil(), desde=semanaTele(), hasta=diasDespues(desde,7))
   (c.trabajosLog||[]).forEach(x=>{ if(new Date(x.f)<desde || (hasta && new Date(x.f)>=hasta)) return; det.trabajo.n++; det.trabajo.min+=conResta(teleCfg(x.f).trabajo, +x.e||0); });
   // 28/10: sorpresas de hoy y practicar: 1 minuto cada una (tMini)
   LOGS_MINI.forEach(k=>(c[k]||[]).forEach(x=>{ if(!x.f || new Date(x.f)<desde || (hasta && new Date(x.f)>=hasta)) return; det.mini.n++; det.mini.min+=(teleCfg(x.f).mini||0); }));
+  // 30/10: juegos de pensar: hasta 1 minuto por partida, según la medalla (x.pr = de 0 a 1; juegos3.js)
+  det.juego={n:0,min:0}; (c.juegoLog||[]).forEach(x=>{ if(!(x.pr>0) || !x.f || new Date(x.f)<desde || (hasta && new Date(x.f)>=hasta)) return; det.juego.n++; det.juego.min+=x.pr*tJuegoMin(); });
   return det;
 }
-const sumaBruta = det => medio(det.propuesta.min+det.extra.min+det.relee.min+det.ficha.min+det.trabajo.min+((det.mini&&det.mini.min)||0));
+const tJuegoMin = () => { const v=premiosCfg().tJuego; return v==null ? 1 : +v||0; };
+const sumaBruta = det => medio(det.propuesta.min+det.extra.min+det.relee.min+det.ficha.min+det.trabajo.min+((det.mini&&det.mini.min)||0)+((det.juego&&det.juego.min)||0));
 /* desde el 24/10/2026, la semana da como mucho teleMaxSemana minutos (4 horas: 2 el sábado y 2 el domingo) */
 const sumaDet = (det, desde) => { const b=sumaBruta(det), m=teleMaxSemana(); return (m>0 && (!desde || +desde>=+corteTele())) ? Math.min(m, b) : b; };
 function teleDe(p=perfil()){
@@ -159,7 +162,7 @@ definir('tele', {nav:'inicio', pintar(){
     ${finde && t.hoyPuede>0?`<div class="botones"><button class="btn btn-p btn-xl" type="button" id="teleBtn">▶ Empezar</button></div>`:''}</div>
   <div class="tele-cols">
     <div class="card bloque"><h3>${finde?'Para este fin de semana ganaste':'Para el fin de semana llevas'}</h3><p class="nota" style="margin:-4px 0 8px">Del ${esc(fechaCortaTele(t.desde))} al ${esc(fechaCortaTele(diasDespues(t.desde,6)))}</p><table class="tele-tabla"><thead><tr><th></th><th>Hechas</th><th>Cada una</th><th>Total</th></tr></thead><tbody>
-      ${fila('📖','Lecturas del día',d.propuesta,minTxt(T.propuesta))}${fila('📚','Lecturas extra',d.extra,minTxt(T.extra))}${fila('🔁','Volver a leer',d.relee,minTxt(T.relee))}${fila('✏️','Fichas',d.ficha,`hasta ${minTxt(T.ficha)}`)}${T.trabajo>0||d.trabajo.n?fila('🖍️','Trabajos del cole',d.trabajo,minTxt(T.trabajo)):''}${(T.mini>0||(d.mini&&d.mini.n))?fila('🎁','Sorpresas y practicar',d.mini||{n:0,min:0},minTxt(T.mini)):''}
+      ${fila('📖','Lecturas del día',d.propuesta,minTxt(T.propuesta))}${fila('📚','Lecturas extra',d.extra,minTxt(T.extra))}${fila('🔁','Volver a leer',d.relee,minTxt(T.relee))}${fila('✏️','Fichas',d.ficha,`hasta ${minTxt(T.ficha)}`)}${d.juego&&d.juego.n?fila('🧩','Juegos de pensar',d.juego,`hasta ${minTxt(tJuegoMin())}`):''}${T.trabajo>0||d.trabajo.n?fila('🖍️','Trabajos del cole',d.trabajo,minTxt(T.trabajo)):''}${(T.mini>0||(d.mini&&d.mini.n))?fila('🎁','Sorpresas y practicar',d.mini||{n:0,min:0},minTxt(T.mini)):''}
       <tr class="tot"><td>Total</td><td></td><td></td><td><b>${minTxt(t.ganados)}</b></td></tr>${t.gastados>0?`<tr><td>Ya visto</td><td></td><td></td><td>−${minTxt(t.gastados)}</td></tr>`:''}</tbody></table>
       <p class="nota">${restaFallo()>0?`Cada pregunta fallada resta ${restaFallo()===0.5?'30 segundos':minTxt(restaFallo())} a lo que da ese ejercicio. ¡Lee despacio y piensa antes de tocar!`:'Las preguntas falladas no restan minutos.'}</p>
       ${(CONT.complementarias||[]).length?`<div class="botones"><button class="btn btn-p" type="button" data-ir="extra">📚 Lecturas extra (+${minTxt(T.extra)})</button></div>`:''}</div>

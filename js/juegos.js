@@ -44,7 +44,7 @@ function jParejas(el){
     cartas.forEach((k,i)=>{ const b=document.createElement('button'); b.type='button'; b.className='carta-j'; b.innerHTML=`<span class="dorso">?</span><span class="cara">${imgHTML(k)}<b class="${claseTexto()}">${esc(nombreFoto(k))}</b></span>`; b.dataset.k=k;
       b.onclick=()=>{ if(bloq || b.classList.contains('abierta')) return; b.classList.add('abierta'); sonido('toc'); abiertas.push(b);
         if(abiertas.length===2){ intentos++; const [a,c]=abiertas; abiertas=[];
-          if(a.dataset.k===c.dataset.k){ hechas++; a.classList.add('hecha'); c.classList.add('hecha'); decir(nombreFoto(a.dataset.k)); if(hechas===n){ apuntarJuego('parejas',{a:n, e:intentos-n, r:n+' parejas'}); sonido('cromo'); confeti(el); setTimeout(()=>{ if(!parar) cartel(el, `<h2>¡Todas las parejas!</h2><p class="nota">Lo has hecho en ${intentos} intentos.</p>`, [['Otra vez',()=>{ n=Math.min(8,n+1); empezar(); }]]); }, 700); } }
+          if(a.dataset.k===c.dataset.k){ hechas++; a.classList.add('hecha'); c.classList.add('hecha'); decir(nombreFoto(a.dataset.k)); if(hechas===n){ apuntarJuego('parejas',{a:n, e:intentos-n, r:n+' parejas', hecho:intentos, ideal:Math.ceil(1.6*n), peor:Math.ceil(2.5*n), tRef:7*n}); sonido('cromo'); confeti(el); setTimeout(()=>{ if(!parar) cartel(el, `<h2>¡Todas las parejas!</h2><p class="nota">Lo has hecho en ${intentos} intentos.</p>`, [['Otra vez',()=>{ n=Math.min(8,n+1); empezar(); }]]); }, 700); } }
           else { bloq=true; setTimeout(()=>{ a.classList.remove('abierta'); c.classList.remove('abierta'); bloq=false; }, 900); } }
         pon(`Parejas: ${hechas} de ${n} · Intentos: ${intentos}`); };
       g.appendChild(b); });
@@ -152,7 +152,7 @@ function jTopos(el){
     if(b.dataset.p===objetivo.p){ aciertos++; sonido('bien'); b.hidden=true; nuevoObj(); } else { fallos++; b.classList.add('mal'); sonido('mal'); setTimeout(()=>{ b.hidden=true; }, 300); } });
   const empezar=()=>{ aciertos=0; fallos=0; tiempo=40; vivo=true; nuevoObj(); let ac=0; pararB && pararB();
     pararB=bucle(dt=>{ if(!vivo) return; tiempo-=dt; ac+=dt; if(ac>.75){ ac=0; sacar(); } pon(`Toca: <b class="${claseTexto()}">${esc(objetivo.p)}</b> ${imgHTML(objetivo.k,false,'mini-obj')} · ✓ ${aciertos} · ✗ ${fallos} · ⏱ ${Math.max(0,Math.ceil(tiempo))}`);
-      if(tiempo<=0){ vivo=false; apuntarJuego('topos',{a:aciertos, e:fallos}); g.querySelectorAll('.topo').forEach(b=>b.hidden=true); sonido('cromo'); cartel(el, `<h2>¡Tiempo!</h2><p class="nota">Has acertado ${aciertos} palabras${fallos?` y has fallado ${fallos}`:' sin fallar ninguna'}.</p>`, [['Otra vez', empezar]]); } }); };
+      if(tiempo<=0){ vivo=false; apuntarJuego('topos',{a:aciertos, e:fallos, hecho:fallos, ideal:0, peor:Math.max(2,Math.ceil(aciertos/2)), sinTiempo:true}); g.querySelectorAll('.topo').forEach(b=>b.hidden=true); sonido('cromo'); cartel(el, `<h2>¡Tiempo!</h2><p class="nota">Has acertado ${aciertos} palabras${fallos?` y has fallado ${fallos}`:' sin fallar ninguna'}.</p>`, [['Otra vez', empezar]]); } }); };
   cartel(el, `<h2>Topos lectores</h2><p class="nota">Salen topos con palabras. Toca solo los que tengan la palabra que te digo.</p>`, [['¡Empezar!', empezar]]);
   return {parar(){ vivo=false; pararB && pararB(); }};
 }
@@ -190,7 +190,7 @@ function jColores(el){
   const luz=k=>{ const b=g.children[k]; b.classList.add('on'); nota(C[k][1]); setTimeout(()=>b.classList.remove('on'), 380); };
   const mostrar=async()=>{ turno=false; pon(`Mira y escucha… · Serie: ${serie.length} · Récord: ${mejor}`); await pausa(700); for(const k of serie){ if(actual!=='juego') return; luz(k); await pausa(650); } turno=true; i=0; pon(`¡Tu turno! · Serie: ${serie.length} · Récord: ${mejor}`); };
   g.addEventListener('pointerdown', e=>{ const b=e.target.closest('[data-k]'); if(!b||!turno) return; const k=+b.dataset.k; luz(k);
-    if(k!==serie[i]){ turno=false; mejor=Math.max(mejor, serie.length-1); apuntarJuego('colores',{a:serie.length-1, e:1, r:'serie de '+(serie.length-1)}); sonido('mal'); cartel(el, `<h2>¡Casi!</h2><p class="nota">Has llegado a ${serie.length-1} colores.</p>`, [['Otra vez',()=>{ serie=[Math.floor(Math.random()*4)]; mostrar(); }]]); return; }
+    if(k!==serie[i]){ turno=false; mejor=Math.max(mejor, serie.length-1); apuntarJuego('colores',{a:serie.length-1, e:1, r:'serie de '+(serie.length-1), hecho:serie.length-1, ideal:6, peor:2, sinTiempo:true}); sonido('mal'); cartel(el, `<h2>¡Casi!</h2><p class="nota">Has llegado a ${serie.length-1} colores.</p>`, [['Otra vez',()=>{ serie=[Math.floor(Math.random()*4)]; mostrar(); }]]); return; }
     i++; if(i===serie.length){ turno=false; serie.push(Math.floor(Math.random()*4)); setTimeout(mostrar, 500); } });
   cartel(el, `<h2>Colores en orden</h2><p class="nota">Mira qué colores se encienden y tócalos en el mismo orden.</p>`, [['¡Empezar!',()=>{ serie=[Math.floor(Math.random()*4)]; mostrar(); }]]);
   return {parar(){ turno=false; }};
@@ -240,7 +240,7 @@ function jBurbujas(el){
 
 /* ============ 9 · Puzle deslizante ============ */
 function jPuzle(el){
-  el.innerHTML=''; const pon=marcador(el); const N=3; let pos, mov, k, malos=0;
+  el.innerHTML=''; const pon=marcador(el); const N=3; let pos, mov, k, malos=0, opt=20;
   const cont=document.createElement('div'); cont.className='puzle'; el.appendChild(cont);
   const pinta=()=>{ const src=fotoURL(k,true); cont.innerHTML=pos.map((v,i)=>v===N*N-1?`<div class="pz vacio"></div>`:`<button type="button" class="pz" data-i="${i}" style="background-image:url('${src}');background-position:${(v%N)*50}% ${Math.floor(v/N)*50}%"><span>${v+1}</span></button>`).join('');
     pon(`Movimientos: ${mov} · <span class="pz-mini" style="background-image:url('${src}')"></span> Así tiene que quedar`); };
@@ -248,9 +248,9 @@ function jPuzle(el){
   const nueva=()=>{ const ks=Object.keys(CONT.fotos).filter(q=>CONT.fotos[q]==='b' && !/^portada|lobitos/.test(q)); const kf=clavesFiesta().filter(q=>CONT.fotos[q]==='b');
     k = kf.length && Math.random()<.7 ? kf[Math.floor(Math.random()*kf.length)] : ks[Math.floor(Math.random()*ks.length)]; pos=[...Array(N*N).keys()]; mov=0; malos=0;
     let hueco=N*N-1, prev=-1; for(let s=0;s<80;s++){ const op=vecinos(hueco).filter(j=>j!==prev); const j=op[Math.floor(Math.random()*op.length)]; [pos[hueco],pos[j]]=[pos[j],pos[hueco]]; prev=hueco; hueco=j; }
-    if(pos.every((v,i)=>v===i)) return nueva(); pinta(); };
+    if(pos.every((v,i)=>v===i)) return nueva(); opt=typeof optimoPuzle==='function'?optimoPuzle(pos):20; pinta(); };
   cont.addEventListener('click', e=>{ const b=e.target.closest('[data-i]'); if(!b) return; const i=+b.dataset.i, h=pos.indexOf(N*N-1); if(!vecinos(i).includes(h)){ malos++; sonido('mal'); return; }
-    [pos[i],pos[h]]=[pos[h],pos[i]]; mov++; sonido('toc'); pinta(); if(pos.every((v,j)=>v===j)){ apuntarJuego('puzle',{a:1, e:malos, pts:mov, r:mov+' movimientos'}); sonido('cromo'); confeti(el); decir(nombreFoto(k)); cartel(el, `<h2>¡Puzle hecho! 🎉</h2><p class="nota">En ${mov} movimientos. Era: <b>${esc(nombreFoto(k))}</b>.</p>`, [['Otro puzle', nueva]]); } });
+    [pos[i],pos[h]]=[pos[h],pos[i]]; mov++; sonido('toc'); pinta(); if(pos.every((v,j)=>v===j)){ apuntarJuego('puzle',{a:1, e:malos, pts:mov, r:mov+' movimientos', hecho:mov+malos, ideal:opt, peor:3*opt, tRef:4*opt}); sonido('cromo'); confeti(el); decir(nombreFoto(k)); cartel(el, `<h2>¡Puzle hecho! 🎉</h2><p class="nota">En ${mov} movimientos. Era: <b>${esc(nombreFoto(k))}</b>.</p>`, [['Otro puzle', nueva]]); } });
   nueva(); return {parar(){}};
 }
 
@@ -265,7 +265,7 @@ function jTorres(el){
   cont.addEventListener('click', e=>{ const b=e.target.closest('[data-p]'); if(!b) return; const i=+b.dataset.p;
     if(sel==null){ if(t[i].length){ sel=i; sonido('toc'); } }
     else { const d=t[sel][t[sel].length-1], arriba=t[i][t[i].length-1]; if(i!==sel && (!arriba || arriba>d)){ t[i].push(t[sel].pop()); mov++; sonido('toc'); } else if(i!==sel){ malos++; sonido('mal'); } sel=null; }
-    pinta(); if(t[2].length===n){ apuntarJuego('torres',{a:1, e:malos, pts:mov, r:`${n} discos en ${mov} movimientos`+(mov===2**n-1?' (perfecto)':'')}); sonido('cromo'); confeti(el); cartel(el, `<h2>¡Torre terminada! 🎉</h2><p class="nota">${mov} movimientos.${mov===2**n-1?' ¡Perfecto!':''}</p>`, [[n<5?`Probar con ${n+1} discos`:'Otra vez',()=>{ n=Math.min(5,n+1); nueva(); }],['Repetir',nueva,'btn']]); } });
+    pinta(); if(t[2].length===n){ apuntarJuego('torres',{a:1, e:malos, pts:mov, r:`${n} discos en ${mov} movimientos`+(mov===2**n-1?' (perfecto)':''), hecho:mov+malos, ideal:2**n-1, peor:2*(2**n-1), tRef:3*(2**n-1)}); sonido('cromo'); confeti(el); cartel(el, `<h2>¡Torre terminada! 🎉</h2><p class="nota">${mov} movimientos.${mov===2**n-1?' ¡Perfecto!':''}</p>`, [[n<5?`Probar con ${n+1} discos`:'Otra vez',()=>{ n=Math.min(5,n+1); nueva(); }],['Repetir',nueva,'btn']]); } });
   nueva(); return {parar(){}};
 }
 
@@ -285,13 +285,17 @@ const JUEGOS = [
 /* ---------- tiempo de juego y permiso ---------- */
 function segJuegoHoy(p=perfil()){ return (cfgDe(p).juegoDias||{})[claveDia(new Date())] || 0; }
 const leidoHoy = (p=perfil()) => sesDe(p.id).some(s=>!s.incompleta && !esComp(s.historiaId) && claveDia(s.fecha)===claveDia(new Date()));
+/* 30/10/2026 (la familia): los juegos se abren cuando termina lo de hoy (lectura del día, repaso de fichas y ficha nueva del cole) */
 function puedeJugar(p=perfil()){
   if(p.prueba) return {ok:true};
   const c=premiosCfg();
-  if(c.trasLeer && !leidoHoy(p)) return {ok:false, por:'leer'};
+  if(typeof tareasHoy==='function'){ if(!tareasHoy(p).every(t=>t.hecha)) return {ok:false, por:'leer'}; }
+  else if(c.trasLeer && !leidoHoy(p)) return {ok:false, por:'leer'};
   if(c.minutos>0 && segJuegoHoy(p) >= c.minutos*60) return {ok:false, por:'tiempo'};
   return {ok:true};
 }
+/* los juegos de pensar están siempre abiertos (cuando acaba lo de hoy); los de divertirse se abren con estrellas */
+const juegoAbierto = (j, p=perfil()) => (typeof esPensar==='function' && esPensar(j.id)) || JUEGOS.indexOf(j)<juegosAbiertos(p);
 const quedaJuego = (p=perfil()) => Math.max(0, premiosCfg().minutos*60 - segJuegoHoy(p));
 
 definir('juegos', {nav:'juegos', pintar(){
@@ -318,7 +322,7 @@ definir('juego', {nav:'juegos', pintar(id){
     if(!d || !deporteAbierto(d,p) || !puedeJugar(p).ok){ ir('deportes'); return; } }
   const j = String(id).startsWith('dep:') ? (()=>{ const d=DEPORTES.find(x=>x.id===id.slice(4)); return {emo:d.emo, nombre:d.nombre, fn:z=>deporteJuego(z,d), volver:'deportes'}; })()
           : id==='fiesta' ? (typeof juegoFiestaDef==='function' ? juegoFiestaDef() : null) : JUEGOS.find(x=>x.id===id);
-  if(!j || (id!=='fiesta' && !j.volver && JUEGOS.indexOf(j)>=juegosAbiertos(p)) || !puedeJugar(p).ok){ ir('juegos'); return; }
+  if(!j || (id!=='fiesta' && !j.volver && !juegoAbierto(j,p)) || !puedeJugar(p).ok){ ir('juegos'); return; }
   $('#s-juego').innerHTML = `<div class="juego-cab"><button class="volver" type="button" data-ir="${j.volver||'juegos'}">${ic('atras')} Juegos</button><h1 class="tit">${j.emo} ${esc(j.nombre)}</h1><span class="pill" id="relojJuego"></span></div><div class="juego-zona" id="juegoZona"></div>`;
   const z=$('#juegoZona'); juegoVivo = j.fn(z);
   const limite=!p.prueba && premiosCfg().minutos>0;

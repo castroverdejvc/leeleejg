@@ -26,7 +26,7 @@ const pctBien = (bien, n) => n ? bien/n : 0;
 let _cacheEv={k:null, v:null};
 function estrellasEventos(p=perfil()){
   const c=cfgDe(p);
-  const k=[p.id, SES.length, SES.filter(s=>!s.incompleta).length, claveDia(new Date()), JSON.stringify(aj.premios||{}), ...[...LOGS_FICHA,...LOGS_MINI,'trabajosLog','eduLog','objManualLog','deporteLog'].map(x=>(c[x]||[]).length)].join('|');
+  const k=[p.id, SES.length, SES.filter(s=>!s.incompleta).length, claveDia(new Date()), JSON.stringify(aj.premios||{}), ...[...LOGS_FICHA,...LOGS_MINI,'trabajosLog','eduLog','objManualLog','deporteLog','juegoLog'].map(x=>(c[x]||[]).length)].join('|');
   if(_cacheEv.k===k) return _cacheEv.v;
   const ev=calcularEventos(p, c); _cacheEv={k, v:ev}; return ev;
 }
@@ -48,6 +48,8 @@ function calcularEventos(p, c){
   const maxEdu=+premiosCfg().eduMax||0, porDia={};
   (c.eduLog||[]).filter(x=>x.f).sort((a,b)=>a.f<b.f?-1:1).forEach(x=>{ const k=claveDia(x.f), ya=porDia[k]||0, n=+x.n||0;
     const d=Math.min(1 + (n && pctBien(+x.bien||0, n)>=0.8 ? 1 : 0), maxEdu-ya); if(d>0){ porDia[k]=ya+d; ev.push({f:x.f, n:d, tipo:'juego'}); } });
+  // 30/10: juegos de pensar: ⭐ con medalla de oro (en las partidas que cuentan, 3 por juego y día)
+  (c.juegoLog||[]).forEach(x=>{ if(x.f && x.pr>0 && x.med==='oro') ev.push({f:x.f, n:1, tipo:'juegop'}); });
   if(typeof eventosRacha==='function') ev.push(...eventosRacha(p));
   if(typeof eventosObjetivos==='function') ev.push(...eventosObjetivos(p, ev.slice().sort((a,b)=>+new Date(a.f)-+new Date(b.f))));
   return ev.sort((a,b)=>+new Date(a.f)-+new Date(b.f));
@@ -126,9 +128,12 @@ function diasConSobre(p=perfil(), hasta=null){
 }
 
 /* ---------- móvil del fin de semana ---------- */
+const movilJuegoMin = () => { const v=premiosCfg().movilJuego; return v==null ? 1 : +v||0; };
 function movilDe(p=perfil(), desde=semanaTele()){
   const cfg=premiosCfg(); const est=estrellasEntre(p, desde, diasDespues(desde,7));
-  const ganados=Math.min(+cfg.movilMax||0, Math.floor(est/cadaK(cfg.movilCada)));
+  // 30/10: los juegos de pensar dan también hasta 1 minuto de móvil por partida (x.pr de 0 a 1)
+  const hasta=diasDespues(desde,7), mJ=(cfgDe(p).juegoLog||[]).filter(x=>x.pr>0 && x.f && new Date(x.f)>=desde && new Date(x.f)<hasta).reduce((a,x)=>a+x.pr*movilJuegoMin(),0);
+  const ganados=Math.min(+cfg.movilMax||0, Math.round((Math.floor(est/cadaK(cfg.movilCada)) + mJ)*10)/10);
   const k=claveDia(desde); const jugados=(cfgDe(p).movilLog||[]).filter(x=>semanaDeGasto(x.f)===k).reduce((a,x)=>a+(+x.min||0),0);
   return {est, ganados, jugados, saldo:Math.max(0, Math.round((ganados-jugados)*10)/10), max:+cfg.movilMax||0, cada:cadaK(cfg.movilCada)};
 }

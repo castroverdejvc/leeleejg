@@ -25,14 +25,11 @@
   <header class="top" id="topNino">
     <div class="top-in">
       <button class="logo" type="button" data-ir="inicio" aria-label="LeeLEEJG, ir al inicio"><span data-icono="logo"></span><span>LeeLEE<b>JG</b></span></button>
-      <nav class="nav" id="navNino" aria-label="Secciones">
-        <button type="button" data-nav="inicio"><span data-icono="casa"></span><span>Inicio</span></button>
-        <button type="button" data-nav="historias"><span data-icono="libro"></span><span>Historias</span></button>
-        <button type="button" data-nav="calendario"><span data-icono="calendario"></span><span>Calendario</span></button>
-        <button type="button" data-nav="cromos"><span data-icono="album"></span><span>Álbum</span></button>
-        <button type="button" data-nav="practicar"><span data-icono="lapiz"></span><span>Practicar</span></button>
-        <button type="button" data-nav="repaso"><span data-icono="hoja"></span><span>Fichas</span></button>
-        <button type="button" data-nav="juegos"><span data-icono="juego"></span><span>Juegos</span></button>
+      <nav class="nav pestanas" id="navNino" aria-label="Pestañas">
+        <button type="button" class="pest pest-hoy" data-nav="inicio"><span data-icono="casa"></span><span>Hoy</span></button>
+        <button type="button" class="pest pest-leer" data-nav="leer"><span data-icono="libro"></span><span>Leer</span></button>
+        <button type="button" class="pest pest-act" data-nav="actividades"><span data-icono="lapiz"></span><span>Actividades</span></button>
+        <button type="button" class="pest pest-pre" data-nav="premios"><span data-icono="estrella"></span><span>Premios</span></button>
       </nav>
       <div class="premios-arriba"><button class="tele-mini" id="teleMini" type="button" data-ir="tele" hidden aria-label="Mis minutos de tele"></button><button class="premios-mini" id="premiosMini" type="button" data-ir="tele" hidden aria-label="Mis pelis y el móvil"></button></div>
       <button class="yo-btn" id="yoBtn" type="button" aria-haspopup="true" aria-expanded="false"><span class="av" id="yoAv"></span><span class="n" id="yoNom"></span><span class="pill-prueba" id="yoPrueba" hidden>Pruebas</span><span data-icono="abajo"></span></button>
@@ -48,6 +45,9 @@
   <main class="main" id="mainNino">
     <section id="s-quien" class="pantalla" hidden></section>
     <section id="s-inicio" class="pantalla" hidden></section>
+    <section id="s-leer" class="pantalla" hidden></section>
+    <section id="s-actividades" class="pantalla" hidden></section>
+    <section id="s-premios" class="pantalla" hidden></section>
     <section id="s-calendario" class="pantalla" hidden></section>
     <section id="s-historias" class="pantalla" hidden></section>
     <section id="s-asi" class="pantalla" hidden></section>
@@ -168,6 +168,7 @@ addEventListener('load', function(){ setTimeout(function(){ if(!window.leeArranc
 <script src="js/gustos.js"></script>
 <script src="js/juegos.js"></script>
 <script src="js/juegos2.js"></script>
+<script src="js/juegos3.js"></script>
 <script src="js/aprender.js"></script>
 <script src="js/fiestas2.js"></script>
 <script src="js/deportes.js"></script>
@@ -187,6 +188,7 @@ addEventListener('load', function(){ setTimeout(function(){ if(!window.leeArranc
 <script src="js/ia.js"></script>
 <script src="js/sincro.js"></script>
 <script src="js/nube.js"></script>
+<script src="js/pestanas.js"></script>
 <script src="js/arranque.js"></script>
 </body>
 </html>
