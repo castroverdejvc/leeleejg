@@ -295,11 +295,11 @@ definir('vozsonido', {zona:'adulto', pintar(guardado){
   <div class="card ajuste"><h3>${ic('altavoz')} Voz de lectura</h3><div class="fila-sel"><select id="vsVoz">${opciones.map(([v,t])=>`<option value="${esc(v)}" ${v===sel?'selected':''}>${esc(t)}</option>`).join('')}</select><button class="btn btn-borde btn-g" type="button" id="vsProbar">${ic('altavoz')} Probar voz</button></div></div>
   <div class="card ajuste"><h3>${ic('altavoz')} Volumen</h3><div class="vol"><span style="width:22px;display:inline-flex;color:var(--ink-3)">${ic('altavoz')}</span><input type="range" id="vsVol" min="0" max="1" step="0.05" value="${aj.volumen??.9}"><b id="vsVolT">${Math.round((aj.volumen??.9)*100)}%</b></div></div>
   <div class="card ajuste"><div class="interruptor"><div><h3 style="margin-bottom:4px"><span style="width:24px;height:24px;border-radius:50%;background:var(--primary);color:#fff;display:inline-grid;place-items:center;font-size:.9rem">?</span> Audio de preguntas</h3><p class="nota">Lee las preguntas en voz alta automáticamente.</p></div><button type="button" class="switch" id="vsPreg" role="switch" aria-checked="${aj.audioPreguntas!==false}"></button></div></div>
-  ${EST.oido==='vosk'?oidoModoHTML():''}
+  ${EST.oido==='vosk'?oidoModoHTML():oidoTabHTML()}
   ${typeof enLocal==='function' && enLocal()?'':'<div id="whisperCaja"></div>'}
   <div class="card ajuste"><h3>${ic('engranaje')} Estado del programa</h3><div class="estado-prog"><div>Versión <b>${esc(EST.version||'4')}</b></div>
     <div>Voz: ${EST.voz==='piper'?`<span class="ok">voz española del programa (${esc(EST.vozNombre)})</span>`:'<span class="no">voz del navegador</span>'}</div>
-    <div>Oído: ${EST.oido==='vosk' && aj.oidoModo==='internet'?'<span class="ok">el de Google (con internet); si no hay internet, el del programa</span>':EST.oido==='vosk'?'<span class="ok">reconocimiento sin internet (la voz del niño no sale del ordenador)</span>':'<span class="no">reconocimiento del navegador (necesita internet)</span>'}</div>${enLocal()?'<div>Datos: <span class="ok">guardados en este aparato</span></div>':''}</div></div>
+    <div>Oído: ${EST.oido!=='vosk' && typeof OIDOTAB!=='undefined' && aj.oidoTab!=='no' && OIDOTAB.estado==='listo'?(aj.oidoTab==='solo'?'<span class="ok">el de este aparato, sin internet (la voz del niño no sale del aparato)</span>':'<span class="ok">el de este aparato y, si hay internet, también el del navegador</span>'):EST.oido==='vosk' && aj.oidoModo==='internet'?'<span class="ok">el de Google (con internet); si no hay internet, el del programa</span>':EST.oido==='vosk'?'<span class="ok">reconocimiento sin internet (la voz del niño no sale del ordenador)</span>':'<span class="no">reconocimiento del navegador (necesita internet)</span>'}</div>${enLocal()?'<div>Datos: <span class="ok">guardados en este aparato</span></div>':''}</div></div>
   ${guardado?`<div class="guardado"><i>${ic('check')}</i><div><b>Cambios guardados</b><br><span class="nota">La voz y el sonido se han actualizado correctamente.</span></div></div>`:''}`;
   const hecho=()=>{ guardarAj(); const g=$('#s-vozsonido .guardado'); if(!g) $('#s-vozsonido').insertAdjacentHTML('beforeend', `<div class="guardado"><i>${ic('check')}</i><div><b>Cambios guardados</b><br><span class="nota">La voz y el sonido se han actualizado correctamente.</span></div></div>`); };
   $('#vsVoz').onchange=e=>{ const v=e.target.value; aj.vozPrograma = v===''; if(v) aj.voz=v; elegirVoz(); hecho(); decir(`Hola, ${nombre()}. Así sueno yo.`); };
@@ -308,6 +308,7 @@ definir('vozsonido', {zona:'adulto', pintar(guardado){
   $('#vsVol').oninput=e=>{ aj.volumen=+e.target.value; $('#vsVolT').textContent=Math.round(aj.volumen*100)+'%'; };
   $('#vsVol').onchange=()=>{ hecho(); sonido('bien'); };
   $$('#s-vozsonido [data-oido]').forEach(b=>b.onclick=()=>{ aj.oidoModo=b.dataset.oido; hecho(); ir('vozsonido', true); });
+  $$('#s-vozsonido [data-oidotab]').forEach(b=>b.onclick=()=>{ aj.oidoTab=b.dataset.oidotab; hecho(); if(aj.oidoTab!=='no' && typeof OIDOTAB!=='undefined') OIDOTAB.cargar().then(()=>{ if(actual==='vozsonido') ir('vozsonido', true); }); ir('vozsonido', true); });
   $('#vsPreg').onclick=e=>{ const v=e.currentTarget.getAttribute('aria-checked')!=='true'; e.currentTarget.setAttribute('aria-checked', String(v)); aj.audioPreguntas=v; hecho(); };
 }});
 
@@ -364,11 +365,27 @@ definir('informe', {zona:'adulto', nav:'evolucion', pintar(id){
 
 /* ---------- oído: el del programa (sin internet) o el de Google (con internet) ---------- */
 function oidoComparaHTML(){
-  const ms=SES.filter(s=>!s.incompleta && (s.palabras||[]).length && (s.oido==='vosk'||s.oido==='navegador')).slice(-40);
+  const ms=SES.filter(s=>!s.incompleta && (s.palabras||[]).length && (s.oido==='vosk'||s.oido==='navegador'||s.oido==='aparato')).slice(-40);
   const pct=m=>{ const x=ms.filter(s=>s.oido===m); if(!x.length) return null; const t=x.reduce((a,s)=>a+s.palabras.length,0), ok=x.reduce((a,s)=>a+s.palabras.filter(w=>w.e==='ok').length,0); return {n:x.length, p:Math.round(100*ok/Math.max(1,t))}; };
-  const v=pct('vosk'), n=pct('navegador');
-  if(!v && !n) return '';
-  return `<p class="nota" style="margin-top:8px">Palabras que siguió solo en las últimas lecturas: ${v?`programa <b>${v.p} %</b> (${v.n} ${v.n===1?'lectura':'lecturas'})`:'programa: sin datos'} · ${n?`Google <b>${n.p} %</b> (${n.n} ${n.n===1?'lectura':'lecturas'})`:'Google: sin datos todavía'}.</p>`;
+  const v=pct('vosk'), n=pct('navegador'), t=pct('aparato');
+  if(!v && !n && !t) return '';
+  const txt=(x,nom)=>`${nom} <b>${x.p} %</b> (${x.n} ${x.n===1?'lectura':'lecturas'})`;
+  return `<p class="nota" style="margin-top:8px">Palabras que siguió solo en las últimas lecturas: ${[v&&txt(v,'ordenador'), t&&txt(t,'este aparato'), n&&txt(n,'navegador')].filter(Boolean).join(' · ')}.</p>`;
+}
+/* 31/10/2026: en el iPad (sin el programa del ordenador), el oído de este aparato (oidotab.js) o el del navegador */
+function oidoTabHTML(){
+  if(typeof OIDOTAB==='undefined') return '';
+  const on=aj.oidoTab!=='no', e=OIDOTAB.estado;
+  const solo=aj.oidoTab==='solo';
+  const est = !on ? 'Solo el del navegador: necesita internet y no sabe qué historia lee (acierta menos).'
+    : e==='listo' ? (solo ? '✅ Listo. Solo busca las palabras de la historia y la voz no sale del aparato. Funciona sin internet.'
+                          : '✅ Listo. Escuchan los dos a la vez y vale lo que oiga cualquiera: el de este aparato (sin internet, solo busca las palabras de la historia) y, si hay internet, el del navegador (ese sí manda la voz a Apple o Google, como antes).')
+    : e==='cargando' ? '⏳ Preparándose… La primera vez baja unos 34 MB con internet (wifi); después funciona sin internet.'
+    : e==='error' ? '⚠️ No se ha podido preparar ('+esc(OIDOTAB.motivo)+'). Mientras, se usa el del navegador.'
+    : 'Se prepara al abrir el programa.';
+  return `<div class="card ajuste"><h3>${ic('mic')} Seguir la lectura (oído)</h3>
+    <div class="botones" style="margin-top:8px"><button class="btn ${on&&!solo?'btn-p':'btn-borde'}" type="button" data-oidotab="si">Los dos (acierta más)</button><button class="btn ${solo?'btn-p':'btn-borde'}" type="button" data-oidotab="solo">Solo este aparato (la voz no sale)</button><button class="btn ${!on?'btn-p':'btn-borde'}" type="button" data-oidotab="no">Solo el navegador</button></div>
+    <p class="nota" style="margin-top:6px">${est}</p>${typeof oidoComparaHTML==='function'?oidoComparaHTML():''}</div>`;
 }
 function oidoModoHTML(){
   const m=aj.oidoModo==='internet'?'internet':'programa';

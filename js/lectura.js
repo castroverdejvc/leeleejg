@@ -183,7 +183,7 @@ async function empezarLectura(){
     yo.grabando = await iniciarGrabacion(); if(lect!==yo){ pararGrabacion(yo); return; }
   }
   lect.activa=true; lect.t0=performance.now();
-  if(lect.grabando){ lect.oyendo = (EST.oido==='vosk' && aj.oidoModo!=='internet' && await iniciarOidoLocal()) || iniciarReconocimientoNavegador() || (EST.oido==='vosk' && aj.oidoModo==='internet' && await iniciarOidoLocal()); }
+  if(lect.grabando) await empezarOido(yo);
   if(lect!==yo) return;
   const desde=marcaLectura(hist); if(desde){ lect.inicio=desde; lect.forzado=desde; alinear(true); aviso('Seguimos donde lo dejaste'); } else pintarSeguimiento(0,0);
   pintarMic();
@@ -276,7 +276,7 @@ async function cerrarLectura(){
   await cerrarOido(l);
   l.ultAlinear=0; alinear(true);   // con todo lo oído hasta el final
   const blob=await pararGrabacion(l); if(lect===l) lect=null;
-  const oyo = l.oyendo && !l.srFallo && (l.oidoId ? l.finales.length>0 : (l.txtPrevio+' '+l.txtSesion).trim().length>0);
+  const oyo = l.oyendo && ((l.oidoId||l.oidoTab) ? l.finales.length>0 || !!l.parcial || (l.oidoTab && (l.txtPrevio+' '+l.txtSesion).trim().length>0) : !l.srFallo && (l.txtPrevio+' '+l.txtSesion).trim().length>0);
   // ritmo de este niño: un niño que lee sílaba a sílaba tarda 10-15 s por palabra y no por eso lo ha leído mal
   const tiempos = palabras.map((w,i)=>l.tOk[i]).filter(t=>t!=null);
   const huecos = tiempos.slice(1).map((t,i)=>t-tiempos[i]).filter(x=>x>0).sort((a,b)=>a-b);
@@ -302,9 +302,9 @@ async function cerrarLectura(){
     if(oida(a) && oida(b) && b-a<=4){ o.e='ok'; o.i=1; delete o.a; pendientes--; } });
   const p=perfil();
   sesion={ ...(typeof pruebaNivelEnCurso!=='undefined' && pruebaNivelEnCurso===hist.id ? {pruebaNivel:true} : {}), id:nuevoId(), v:4, fecha:new Date().toISOString(), lectorId:p.id, lector:p.nombre, prueba:!!p.prueba, historiaId:hist.id, dia:diaPersonal(hist)||hist.dia, titulo:conNombre(hist.titulo), mundo:hist.mundo, nivel:hist.nivel,
-    segundos:Math.round(seg), totalPalabras:palabras.length, ppm:Math.round(palabras.slice(ini).filter(w=>!w.adulto).length/(seg/60)), palabras:estados, ...(ini?{desdePalabra:ini}:{}), auto:oyo, oido:l.oidoId?'vosk':(l.sr?'navegador':'ninguno'),
+    segundos:Math.round(seg), totalPalabras:palabras.length, ppm:Math.round(palabras.slice(ini).filter(w=>!w.adulto).length/(seg/60)), palabras:estados, ...(ini?{desdePalabra:ini}:{}), auto:oyo, oido:l.oidoId?'vosk':l.oidoTab?'aparato':(l.sr?'navegador':'ninguno'),
     oidoStats: l.rt ? {peticiones:l.rt.n, msMedio:Math.round(l.rt.suma/l.rt.n), msMax:Math.round(l.rt.max), retrasoMedio: l.retrasos&&l.retrasos.length ? +media(l.retrasos).toFixed(2) : null, reconocidas:l.ok?l.ok.filter(Boolean).length:0} : null,
-    oidoTexto: (l.oidoId ? l.finales.map(f=>f.w).join(' ') : (l.txtPrevio+' '+l.txtSesion)).trim().slice(0,2000) || undefined, oidoLimite: oyo ? +limite.toFixed(1) : undefined,
+    oidoTexto: ((l.oidoId||l.oidoTab) ? l.finales.map(f=>f.w).join(' ') : (l.txtPrevio+' '+l.txtSesion)).trim().slice(0,2000) || undefined, ...(l.oidoTab && (l.txtPrevio||l.txtSesion) ? {oidoTextoNav:(l.txtPrevio+' '+l.txtSesion).trim().slice(0,2000)} : {}), oidoLimite: oyo ? +limite.toFixed(1) : undefined,
     ...(palabras.some(w=>w.adulto)?{juntos:aj.juntos}:{}), ...(l.modelo?{escuchada:true}:{}), ...(hist.pregIA?{pregIA:true}:{}), frasesEscuchadas:l.frases||0, letra:aj.letra, tam:aj.tam, imagenes:aj.img, preguntas:[], aciertos:0, totalPreguntas:hist.preguntas.length, calculo:null, revisada: pendientes===0, incompleta:true };
   if(sesion.oidoStats) registrar(`Oído ${sesion.oido}: ${sesion.oidoStats.reconocidas}/${palabras.length} palabras reconocidas, retraso medio ${sesion.oidoStats.retrasoMedio} s, petición media ${sesion.oidoStats.msMedio} ms (máx ${sesion.oidoStats.msMax})`);
   audioBlob=blob;

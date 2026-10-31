@@ -19,6 +19,7 @@ async function iniciarGrabacion(){
 }
 function pararGrabacion(l){
   if(l && l.proc){ try{ l.proc.disconnect(); }catch(e){} }
+  if(l && l.procTab){ try{ l.procTab.disconnect(); }catch(e){} }
   if(l && l.ctx16){ try{ l.ctx16.close(); }catch(e){} l.ctx16=null; }
   return new Promise(res=>{
     if(!l || !l.rec || l.rec.state==='inactive'){ if(l && l.stream) l.stream.getTracks().forEach(t=>t.stop()); res(null); return; }
@@ -69,8 +70,48 @@ async function enviarOido(){
   l.enviando=false;
 }
 async function cerrarOido(l){
+  if(l && l.oidoTab){ try{ const r=await l.oidoTab.cerrar(); l.finales=r.finales||l.finales; l.parcial=''; l.parcialT=null; }catch(e){} return; }
   if(!l || !l.oidoId) return;
   try{ while(l.enviando) await pausa(50); const r=await api('/api/oido/'+l.oidoId+'/fin',{method:'POST', body:new ArrayBuffer(0)}); l.finales=r.finales||l.finales; l.parcial=''; l.parcialT=null; }catch(e){}
+}
+/* --- 31/10/2026 · Oído del propio aparato sin internet (iPad): Vosk en el navegador con las palabras de la historia (oidotab.js) --- */
+async function iniciarOidoTab(){
+  const l=lect; if(!l || typeof OIDOTAB==='undefined' || aj.oidoTab==='no' || !l.src) return false;
+  if(OIDOTAB.estado!=='listo'){
+    if(OIDOTAB.estado==='error') return false;
+    const t=$('#micTxt'); if(t) t.textContent='Preparando el oído…';
+    await Promise.race([OIDOTAB.cargar(), pausa(OIDOTAB.estado==='cargando'?10000:15000)]);
+    if(OIDOTAB.estado!=='listo' || lect!==l) return false;
+  }
+  const gram=new Set(); palabras.forEach(w=>{ gram.add(w.p); (w.silRaw||[]).forEach(x=>{ if(x && x!==w.p){ gram.add(x); const n=normalizar(x); if(n) gram.add(n); } }); });
+  const a=ctxAudio(); try{ await a.resume(); }catch(e){}
+  const rec=OIDOTAB.nuevo([...gram], a.sampleRate, r=>{ if(lect!==l) return; l.finales=r.finales; l.parcial=r.parcial; l.parcialT=null; alinear(); });
+  if(!rec) return false;
+  l.oidoTab=rec; l.finales=[]; l.parcial=''; l.parcialT=null;
+  const proc=a.createScriptProcessor(4096,1,1); l.procTab=proc; l.src.connect(proc); const mudo=a.createGain(); mudo.gain.value=0; proc.connect(mudo).connect(a.destination);
+  proc.onaudioprocess=ev=>{ if(lect!==l || !l.activa || l.pausadoDesde) return; if(typeof programaHablando==='function' && programaHablando()) return; rec.enviar(ev.inputBuffer.getChannelData(0)); };
+  return true;
+}
+/* qué oído usa cada lectura (31/10/2026)
+   - Ordenador con el programa: el oído del programa (o el de Google si se eligió «con internet»).
+   - iPad / móvil: el oído del aparato (sin internet) y, a la vez, el del navegador si hay internet (vale lo que oiga
+     cualquiera). Si el oído del aparato aún se está preparando, empieza el del navegador y el otro se suma en cuanto
+     está listo, para que el niño no tenga que esperar. Con «Solo este aparato» no se usa nunca el del navegador. */
+async function empezarOido(l){
+  const tab = EST.oido!=='vosk' && typeof OIDOTAB!=='undefined' && aj.oidoTab!=='no';
+  const solo = tab && aj.oidoTab==='solo';
+  let oy=false;
+  if(EST.oido==='vosk' && aj.oidoModo!=='internet') oy=await iniciarOidoLocal();
+  else if(tab && (OIDOTAB.estado==='listo' || solo)) oy=await iniciarOidoTab();
+  if(lect!==l) return;
+  if(l.oidoTab && !solo) iniciarReconocimientoNavegador();
+  if(!oy && !solo) oy=iniciarReconocimientoNavegador();
+  if(!oy && EST.oido==='vosk' && aj.oidoModo==='internet' && lect===l) oy=await iniciarOidoLocal();
+  if(lect!==l) return;
+  l.oyendo=oy;
+  if(tab && !l.oidoTab && OIDOTAB.estado!=='error'){
+    OIDOTAB.cargar().then(async ok=>{ if(ok && lect===l && l.activa && !l.oidoTab && await iniciarOidoTab() && lect===l){ l.oyendo=true; l.srFallo=false; if(typeof pintarMic==='function') pintarMic(); } });
+  }
 }
 /* --- Oído del navegador (respaldo, necesita internet) --- */
 function iniciarReconocimientoNavegador(){
@@ -79,6 +120,7 @@ function iniciarReconocimientoNavegador(){
     const r = new SR(); r.lang='es-ES'; r.continuous=true; r.interimResults=true; r.maxAlternatives=1;
     r.onresult=e=>{ if(!lect) return; let t=[]; for(let i=0;i<e.results.length;i++) t.push(e.results[i][0].transcript); lect.txtSesion=t.join(' '); alinear(); };
     r.onerror=e=>{ if(!lect) return;
+      if(lect.oidoTab){ if(['not-allowed','service-not-allowed','audio-capture','network','language-not-supported'].includes(e.error)){ try{ r.onend=null; r.abort(); }catch(x){} if(lect.sr===r) lect.sr=null; } return; }   // acompaña al oído del aparato: si falla, sigue el del aparato solo
       if(e.error==='network' && typeof EST!=='undefined' && EST.oido==='vosk' && !lect.oidoId){ const l=lect; try{ r.onend=null; r.abort(); }catch(x){} l.sr=null; iniciarOidoLocal().then(ok=>{ if(ok && lect===l){ l.oyendo=true; l.srFallo=false; } else if(lect===l){ l.srFallo=true; l.oyendo=false; alinear(true); } }); return; }   // sin internet: pasa al oído del programa
       if(['not-allowed','service-not-allowed','audio-capture','network','language-not-supported'].includes(e.error)){ lect.srFallo=true; lect.oyendo=false; alinear(true); } };
     r.onend=()=>{ if(!lect) return; lect.txtPrevio += ' '+lect.txtSesion; lect.txtSesion=''; if(lect.activa && !lect.srFallo && !lect.pausadoDesde) setTimeout(()=>{ if(lect && lect.activa && !lect.pausadoDesde){ try{ r.start(); }catch(e){} } },120); };
@@ -91,20 +133,24 @@ function tokensNavegador(){ return (lect.txtPrevio+' '+lect.txtSesion).split(/\s
 /* 31/10/2026: lo oído se empareja con TODO el texto a la vez (alinea.js), por cómo suena y admitiendo sílabas sueltas,
    palabras que no se oyeron y cosas que no son de la historia. Antes se buscaba palabra a palabra y se atascaba. */
 function tokensOidos(l){
-  if(l.oidoId){
+  if(l.oidoId || l.oidoTab){
     const par = l.parcialT ? l.parcialT.map(p=>({w:p.w, s:p.s})) : (l.parcial||'').split(/\s+/).filter(Boolean).map(w=>({w, s:null}));
     return l.finales.map(f=>({w:f.w, s:f.s})).concat(par);
   }
-  return l.sr ? (l.txtPrevio+' '+l.txtSesion).split(/\s+/).filter(Boolean).map(w=>({w, s:null})) : [];
+  return tokensNav(l);
 }
+const tokensNav = l => l.sr || l.txtPrevio || l.txtSesion ? ((l.txtPrevio||'')+' '+(l.txtSesion||'')).split(/\s+/).filter(Boolean).map(w=>({w, s:null})) : [];
 function alinear(forzarPintado){
   const l=lect; if(!l || (!l.activa && !forzarPintado)) return;
   // como mucho unas 4 veces por segundo (con historias largas el cálculo tarda un poco en el iPad)
   const ahoraMs=performance.now();
   if(!forzarPintado && l.ultAlinear && ahoraMs-l.ultAlinear<250){ if(!l.alinearPend){ l.alinearPend=setTimeout(()=>{ l.alinearPend=null; if(lect===l) alinear(); }, 260); } return; }
   l.ultAlinear=ahoraMs;
+  const esp=palabras.map(w=>w.p);
   const toks=tokensOidos(l).filter(t=>ALINEA.fon(t.w));
-  const r=ALINEA.leidas(palabras.map(w=>w.p), toks.map(t=>t.w));
+  const r=ALINEA.leidas(esp, toks.map(t=>t.w));
+  // 31/10: en el iPad escuchan a la vez el oído del aparato y el del navegador; vale lo que oiga cualquiera de los dos
+  if(l.oidoTab){ const tn=tokensNav(l).filter(t=>ALINEA.fon(t.w)); if(tn.length){ const r2=ALINEA.leidas(esp, tn.map(t=>t.w)); r.ok=r.ok.map((v,i)=>v || r2.ok[i]); } }
   let ptr=Math.max(l.ptrMax||0, ALINEA.puntero(r.ok, l.ptrMax||0));
   if(l.forzado!=null && l.forzado>ptr) ptr=l.forzado;
   l.ptrMax=ptr;

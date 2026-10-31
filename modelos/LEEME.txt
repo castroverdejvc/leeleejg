@@ -1,0 +1,10 @@
+Oído del iPad sin internet (LeeLEEJG 8.3, 31/10/2026)
+
+- vosk-es.tar.gz: modelo pequeño de español de Vosk (vosk-model-small-es-0.3), de Alpha Cephei.
+  Licencia Apache 2.0. https://alphacephei.com/vosk/models
+- ../js/vosk-worker.js: «worker» de vosk-browser 0.0.x (Ciaran O'Reilly), Vosk compilado a WebAssembly.
+  Licencia Apache 2.0. https://github.com/ccoreilly/vosk-browser
+  Se ha copiado tal cual, sin cambios.
+
+El iPad baja el modelo una sola vez (unos 34 MB) y lo guarda en el propio aparato; después funciona sin internet.
+La voz del niño no sale del aparato.
