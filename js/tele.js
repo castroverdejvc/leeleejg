@@ -218,9 +218,9 @@ function teleAdultoHTML(p, sinAjustes=false){   // 31/10: los minutos de cada ta
 }
 function activarTeleAdulto(p){
   const n=()=>Math.max(1, Math.min(600, +$('#teleMin').value||0));
-  $('#teleVisto').onclick=()=>{ apuntarTele(p, n(), 'visto'); aviso('Apuntado'); ir('evolucion','premios'); };
-  $('#teleRegalo').onclick=()=>{ apuntarTele(p, -n(), 'regalo'); aviso('Regalados'); ir('evolucion','premios'); };
-  [['prTele','tDia'],['prTeleExtra','tExtra'],['prTeleRelee','tRelee'],['prTeleFicha','tFicha'],['prTeleTrabajo','tTrabajo'],['prTeleMini','tMini'],['prRestaFallo','restaFallo'],['prPeliExtra','peliExtras'],['prTeleMaxDia','teleMaxDia'],['prTeleMaxSem','teleMaxSemana']].forEach(([id,k])=>{ const e=$('#'+id); if(e) e.onchange=()=>{ guardarPremios({[k]:+e.value}); aviso('Guardado'); ir('evolucion','premios'); }; });
+  $('#teleVisto').onclick=()=>{ apuntarTele(p, n(), 'visto'); aviso('Apuntado'); irPremiosFam(); };
+  $('#teleRegalo').onclick=()=>{ apuntarTele(p, -n(), 'regalo'); aviso('Regalados'); irPremiosFam(); };
+  [['prTele','tDia'],['prTeleExtra','tExtra'],['prTeleRelee','tRelee'],['prTeleFicha','tFicha'],['prTeleTrabajo','tTrabajo'],['prTeleMini','tMini'],['prRestaFallo','restaFallo'],['prPeliExtra','peliExtras'],['prTeleMaxDia','teleMaxDia'],['prTeleMaxSem','teleMaxSemana']].forEach(([id,k])=>{ const e=$('#'+id); if(e) e.onchange=()=>{ guardarPremios({[k]:+e.value}); aviso('Guardado'); irPremiosFam(); }; });
 }
 
 /* ---------- la semana que acabó el viernes (de sábado a viernes): para el niño el fin de semana y para la familia ---------- */

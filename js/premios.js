@@ -302,13 +302,12 @@ function semanaHTML(p){
 function premiosAdultoHTML(p){
   // 31/10/2026: todo en «Premios» y «Qué da cada tarea» (premiosfamilia.js); debajo, la tele (apuntar a mano) y los objetivos
   if(typeof premiosFamiliaHTML==='function')
-    return premiosFamiliaHTML(p) + tareasFamiliaHTML(p) + teleAdultoHTML(p, true) + (typeof metasAdultoHTML==='function' ? metasAdultoHTML(p, true) : '') + `<p class="nota" style="margin-top:8px">El usuario de pruebas no tiene límite de tiempo.</p>`;
+    return `<div class="card bloque" style="margin-bottom:18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span class="emo-g">🏆</span><div style="flex:1;min-width:220px"><b>Los premios se cambian en Configuración › Premios</b><p class="nota">Lo que da cada lectura y actividad (⭐ y tele), los premios, sus límites y lo que hay por dar.</p></div><button type="button" class="btn btn-p" data-nava="cfgpremios">Ir a Premios</button></div>`;
   return teleAdultoHTML(p) + (typeof metasAdultoHTML==='function'?metasAdultoHTML(p):'');
 }
 function activarPremiosAdulto(){
-  const p=lectorVisto();
+  const p=lectorVisto(); if(typeof premiosFamiliaHTML==='function') return;   // ya no hay nada que activar aquí: está en Configuración › Premios
   activarTeleAdulto(p); if(typeof activarMetasAdulto==='function') activarMetasAdulto(p);
-  if(typeof activarPremiosFamilia==='function') activarPremiosFamilia(p);
 }
 
 /* ---------------- sobres de cartas (premio de verdad: la familia da un sobre de cartas) ---------------- */
@@ -336,8 +335,8 @@ function sobresAdultoHTML(p){
 /* 23/10: apuntar los sobres dados (uno o todos los que tiene por dar) */
 function darSobres(p, n=1){ const c=cfgDe(p); const ya=new Date().toISOString(); c.sobresLog=(c.sobresLog||[]).concat(Array.from({length:Math.max(1,n)},()=>({f:ya}))).slice(-500); guardarAj(); }
 function activarSobresAdulto(p){
-  const b=$('#sobreDado'); if(b) b.onclick=()=>{ darSobres(p, 1); aviso('Apuntado'); ir('evolucion','premios'); };
-  const t=$('#sobreDadoTodos'); if(t) t.onclick=()=>{ darSobres(p, sobresDe(p).pend); aviso('Apuntados'); ir('evolucion','premios'); };
+  const b=$('#sobreDado'); if(b) b.onclick=()=>{ darSobres(p, 1); aviso('Apuntado'); irPremiosFam(); };
+  const t=$('#sobreDadoTodos'); if(t) t.onclick=()=>{ darSobres(p, sobresDe(p).pend); aviso('Apuntados'); irPremiosFam(); };
 }
 /* la tarjeta de Inicio: papá o mamá la tocan cuando le dan el sobre (con el PIN, o con una multiplicación de mayores si no hay PIN) */
 function activarSobreInicio(){

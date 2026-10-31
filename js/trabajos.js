@@ -1,6 +1,6 @@
 /* LeeLEEJG · trabajos del cole: como las fichas que mandan en clase (unir puntos, leer y marcar números,
    relacionar dibujo y palabra, caminos con más o menos manzanas, hoy-ayer-mañana).
-   Cada trabajo terminado da 1 minuto de tele (Familia › Premios y gustos lo cambia) y se apunta en cfg.trabajosLog. */
+   Cada trabajo terminado da 1 minuto de tele (se cambia en Configuración › Premios) y se apunta en cfg.trabajosLog. */
 'use strict';
 const TRABAJOS = [
   {id:'puntos',   emo:'✏️', nombre:'Une los puntos',      desc:'Une los números en orden y descubre el dibujo.'},

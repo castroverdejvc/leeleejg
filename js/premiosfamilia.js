@@ -85,8 +85,8 @@ function tareasFamiliaHTML(p){
 }
 
 function activarPremiosFamilia(p){
-  const raiz=$('#s-evolucion')||document;
-  const volver=(txt='Guardado. Cuenta desde hoy.')=>{ const y=window.scrollY; aviso(txt); ir('evolucion','premios'); setTimeout(()=>window.scrollTo(0,y), 30); };
+  const raiz=document.querySelector('#s-cfgpremios:not([hidden])')||$('#s-evolucion')||document;
+  const volver=(txt='Guardado. Cuenta desde hoy.')=>{ const y=window.scrollY; aviso(txt); irPremiosFam(); setTimeout(()=>window.scrollTo(0,y), 30); };
   $$('[data-pk]', raiz).forEach(e=>e.onchange=()=>{ guardarPremios({[e.dataset.pk]: +e.value}); volver(); });
   $$('[data-pkb]', raiz).forEach(b=>b.onclick=()=>{ const v=b.getAttribute('aria-checked')!=='true'; guardarPremios({[b.dataset.pkb]: v}); volver(); });
   // premios nuevos
@@ -108,3 +108,20 @@ function activarPremiosFamilia(p){
   const caja=cual=>{ const cj=cajasHitos(p), t=cj.ganados[cj.dadas]; if(!t) return; const cf=cfgDe(p); cf.cajasLog=(cf.cajasLog||[]).concat([{f:new Date().toISOString(), tipo:t.tipo, v:t.v, cual}]).slice(-200); guardarAj(); volver('Apuntado'); };
   on('pfCajaOP', ()=>caja('One Piece')); on('pfCajaPK', ()=>caja('Pokémon'));
 }
+
+/* ---------- 31/10/2026: Configuración › Premios (la familia lo buscaba en Configuración) ---------- */
+let tabCfgPremios='tareas';
+/* volver a pintar la pantalla de premios en la que se esté */
+function irPremiosFam(){ if(actual==='cfgpremios') ir('cfgpremios'); else ir('evolucion','premios'); }
+definir('cfgpremios', {zona:'adulto', pintar(tab){
+  if(tab) tabCfgPremios=tab; const p=lectorVisto();
+  const TABS=[['tareas','✅ Lo que da cada lectura y actividad'],['premios','🏆 Premios y límites'],['tele','📺 Tele y objetivos']];
+  const cuerpo = tabCfgPremios==='premios' ? premiosFamiliaHTML(p)
+    : tabCfgPremios==='tele' ? teleAdultoHTML(p, true) + (typeof metasAdultoHTML==='function' ? metasAdultoHTML(p, true) : '')
+    : tareasFamiliaHTML(p);
+  $('#s-cfgpremios').innerHTML = `<div class="pag-cab"><div><h1>Premios</h1><p class="sub">Subid o bajad lo que da cada lectura y actividad, los premios y sus límites. Cada cambio cuenta desde hoy; lo ya ganado se queda.</p></div>${selLector('cfgpremios')}</div>
+    <div class="tabs" role="tablist">${TABS.map(([k,t])=>`<button type="button" role="tab" data-tabp="${k}" aria-selected="${k===tabCfgPremios}">${t}</button>`).join('')}</div>${cuerpo}`;
+  $$('#s-cfgpremios [data-tabp]').forEach(b=>b.onclick=()=>ir('cfgpremios', b.dataset.tabp));
+  if(tabCfgPremios==='tele'){ activarTeleAdulto(p); if(typeof activarMetasAdulto==='function') activarMetasAdulto(p); }
+  else activarPremiosFamilia(p);
+}});

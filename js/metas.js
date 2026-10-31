@@ -151,7 +151,7 @@ function metasAdultoHTML(p, soloObjetivos=false){   // 31/10: las revistas y el 
 }
 function activarMetasAdulto(p){
   const leer=()=>objetivosCfg().map(o=>({...o}));
-  const guardaObj=obj=>{ guardarPremios({objetivos:obj}); aviso('Guardado'); ir('evolucion','premios'); };
+  const guardaObj=obj=>{ guardarPremios({objetivos:obj}); aviso('Guardado'); irPremiosFam(); };
   $$('[data-objt]').forEach(s=>s.onchange=()=>{ const obj=leer(); const i=+s.dataset.objt; obj[i]={tipo:s.value, n:s.value==='dia'?7:s.value==='estrellas'?50:s.value==='dias'?5:3, ...(s.value==='manual'?{txt:''}:{})}; guardaObj(obj); });
   $$('[data-objn]').forEach(x=>x.onchange=()=>{ const obj=leer(); obj[+x.dataset.objn].n=Math.max(1,Math.min(200,+x.value||1)); guardaObj(obj); });
   $$('[data-objtxt]').forEach(x=>x.onchange=()=>{ const obj=leer(); obj[+x.dataset.objtxt].txt=x.value.trim().slice(0,80); guardaObj(obj); });
@@ -159,6 +159,6 @@ function activarMetasAdulto(p){
   const add=$('#objAdd'); if(add) add.onclick=()=>guardaObj(leer().concat([{tipo:'manual', txt:''}]));
   $('#objDef').onclick=()=>guardaObj(OBJ_DEF.map(o=>({...o})));
   $$('[data-objmarca]').forEach(b=>b.onclick=()=>{ const i=+b.dataset.objmarca, k=claveDia(sabadoDe(hoyTele())); const ya=!!marcasManual(p)[k+'|'+i]; const c=cfgDe(p);
-    c.objManualLog=(c.objManualLog||[]).concat([{f:new Date().toISOString(), semana:k, i, ...(ya?{quitar:true}:{})}]).slice(-500); guardarAj(); aviso(ya?'Quitado':'Marcado'); ir('evolucion','premios'); });
-  [['prRev1','revista1'],['prRev2','revista2'],['prCajaP','cajaPeq'],['prCajaG','cajaGrande']].forEach(([id,k])=>{ const e=$('#'+id); if(e) e.onchange=()=>{ guardarPremios({[k]:+e.value}); aviso('Guardado'); ir('evolucion','premios'); }; });
+    c.objManualLog=(c.objManualLog||[]).concat([{f:new Date().toISOString(), semana:k, i, ...(ya?{quitar:true}:{})}]).slice(-500); guardarAj(); aviso(ya?'Quitado':'Marcado'); irPremiosFam(); });
+  [['prRev1','revista1'],['prRev2','revista2'],['prCajaP','cajaPeq'],['prCajaG','cajaGrande']].forEach(([id,k])=>{ const e=$('#'+id); if(e) e.onchange=()=>{ guardarPremios({[k]:+e.value}); aviso('Guardado'); irPremiosFam(); }; });
 }

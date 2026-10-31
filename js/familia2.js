@@ -19,7 +19,7 @@ function avisosFamilia(p){
   // atrasadas
   const at=typeof atrasadasDe==='function'?atrasadasDe(p).length:0; if(at>=5) A.push({k:'atrasadas', tipo:'info', t:`Tiene <b>${at} historias atrasadas</b> del calendario.`});
   // premios por dar
-  const rec=typeof premiosPorRecoger==='function'?premiosPorRecoger(p):[]; if(rec.length) A.push({k:'premios', tipo:'info', t:`Tiene premios por dar: ${rec.map(x=>x.emo+' '+x.t).join(', ')}. Se apuntan en Premios y gustos o tocando su tarjeta en Inicio.`});
+  const rec=typeof premiosPorRecoger==='function'?premiosPorRecoger(p):[]; if(rec.length) A.push({k:'premios', tipo:'info', t:`Tiene premios por dar: ${rec.map(x=>x.emo+' '+x.t).join(', ')}. Se apuntan en Configuración › Premios o tocando su tarjeta en la pestaña Premios del niño.`});
   // buzón: ha pedido historias
   const des=(c.deseosLog||[]).filter(x=>x.q==='historias' || x.q==='voz').slice(-3).filter(x=>Date.now()-new Date(x.f)<14*DIA_MS);
   if(des.length && typeof iaEnlaceHistorias==='function') A.push({k:'buzon', tipo:'info', t:`En su buzón ha pedido: ${des.map(x=>'«'+esc(x.r)+'»').join(', ')}.`, btn:`<button class="btn btn-mini btn-p" type="button" data-iaidea="${esc(des[des.length-1].r)}">✨ Hacer historias con esto</button>`});
