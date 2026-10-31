@@ -17,8 +17,9 @@ const OBJ_TIPOS = {
   deporte:{emo:'🏆', t:n=>`Superar ${n} ${n===1?'fase':'fases'} de deportes`},
   manual:{emo:'🏠', t:(n,o)=>o.txt||'Objetivo de la familia'}
 };
-const OBJ_BONUS = 10;
-const objetivosCfg = () => { const o=premiosCfg().objetivos; return Array.isArray(o) && o.length ? o : OBJ_DEF; };
+const OBJ_BONUS = 10;   // de serie; desde el 31/10/2026 se cambia en Premios (eObjetivos)
+const objBonus = (f) => { const v=premiosCfg(f).eObjetivos; return v==null ? OBJ_BONUS : +v||0; };
+const objetivosCfg = (f) => { const o=premiosCfg(f).objetivos; return Array.isArray(o) && o.length ? o : OBJ_DEF; };
 const semanaK = d => claveDia(sabadoDe(new Date(d)));
 
 /* marcas a mano de los objetivos de la familia: la última de cada (semana, objetivo) manda */
@@ -32,7 +33,7 @@ function objetivosSemana(p, desde, base){
   const dep=(c.deporteLog||[]).filter(y=>y.gano && en(y.f)).map(y=>({f:y.f}));
   const man=marcasManual(p);
   /* para cada objetivo: lista de momentos que cuentan (ordenados) → hecho y cuándo se cumplió */
-  const lista=objetivosCfg().map((o,i)=>{ const n=Math.max(1,+o.n||1); let momentos=[];
+  const lista=objetivosCfg(fechaReglaSemana(desde)).map((o,i)=>{ const n=Math.max(1,+o.n||1); let momentos=[];
     if(o.tipo==='dia') momentos=ev.filter(e=>e.tipo==='dia').map(e=>e.f);
     else if(o.tipo==='extra') momentos=ev.filter(e=>e.tipo==='extra').map(e=>e.f);
     else if(o.tipo==='fichas') momentos=logs.map(x=>x.f);
@@ -51,41 +52,47 @@ function objetivosSemana(p, desde, base){
 function eventosObjetivos(p, base){
   const out=[]; if(!base.length) return out;
   const primero=sabadoDe(new Date(Math.max(+CORTE_PREMIOS, +new Date(base[0].f)))); const hoy=sabadoDe(hoyTele());
-  for(let d=new Date(primero); +d<=+hoy; d=diasDespues(d,7)){ const s=objetivosSemana(p, d, base); if(s.todos && s.fecha && despuesCorte(s.fecha)) out.push({f:s.fecha, n:OBJ_BONUS, tipo:'objetivos'}); }
+  for(let d=new Date(primero); +d<=+hoy; d=diasDespues(d,7)){ const s=objetivosSemana(p, d, base); if(s.todos && s.fecha && despuesCorte(s.fecha) && objBonus(s.fecha)>0) out.push({f:s.fecha, n:objBonus(s.fecha), tipo:'objetivos'}); }
   return out;
 }
 
 /* ---------- revistas ---------- */
-function revistasSemana(p, desde){ const cfg=premiosCfg(), est=estrellasEntre(p, desde, diasDespues(desde,7)); const r1=+cfg.revista1||0, r2=+cfg.revista2||0;
+function revistasSemana(p, desde){ const cfg=premiosCfg(fechaReglaSemana(desde)), est=estrellasEntre(p, desde, diasDespues(desde,7)); const r1=+cfg.revista1||0, r2=+cfg.revista2||0;
   return {est, r1, r2, n: (r1 && est>=r1 ? 1 : 0) + (r2 && est>=r2 ? 1 : 0)}; }
 function revistasDe(p=perfil()){
-  const cfg=premiosCfg(); if(p.prueba || !(+cfg.revista1>0)) return {activo:false, ganadas:0, dadas:0, pend:0};
+  const cfg=premiosCfg(); const hubo=(Array.isArray(aj.premiosHist)?aj.premiosHist:[]).some(e=>+((e.v||{}).revista1==null?PREMIOS_DEF.revista1:e.v.revista1)>0);
+  if(p.prueba || !(+cfg.revista1>0 || hubo)) return {activo:false, ganadas:0, dadas:0, pend:0};
   let ganadas=0; for(let d=new Date(sabadoDe(CORTE_PREMIOS)); +d<=+sabadoDe(hoyTele()); d=diasDespues(d,7)) ganadas+=revistasSemana(p, d).n;
   const dadas=(cfgDe(p).revistasLog||[]).length; return {activo:true, ganadas, dadas, pend:Math.max(0, ganadas-dadas), sem:revistasSemana(p, sabadoDe(hoyTele()))};
 }
 function revistasHasta(p, t){ let n=0; for(let d=new Date(sabadoDe(CORTE_PREMIOS)); +diasDespues(d,7)<=+new Date(t); d=diasDespues(d,7)) n+=revistasSemana(p, d).n; return n; }
 
 /* ---------- cofre del tesoro: cajas ---------- */
+/* 31/10/2026: con reglas que pueden cambiar (hitosEstrellas). Si una pequeña y una grande caen en las mismas estrellas,
+   solo cuenta la grande (como antes: a los 1000 ⭐, la grande). El cofre se ve cuando falta el 20 % (cajaVerPct). */
 function cajasHitos(p=perfil()){
   const cfg=premiosCfg(), peq=+cfg.cajaPeq||0, gr=+cfg.cajaGrande||0, est=estrellasDe(p);
-  const hitos=[]; const tope=Math.max(est, 0)+Math.max(peq,gr)*2;
-  const vals=new Set(); if(peq) for(let v=peq; v<=tope; v+=peq) vals.add(v); if(gr) for(let v=gr; v<=tope; v+=gr) vals.add(v);
-  [...vals].sort((a,b)=>a-b).forEach(v=>hitos.push({v, tipo: gr && v%gr===0 ? 'grande' : 'pequena'}));
-  const ganados=hitos.filter(h=>h.v<=est), sig=hitos.find(h=>h.v>est)||null;
+  const hp=hitosEstrellas(p, 'cajaPeq', R=>R.cajaPeq), hg=hitosEstrellas(p, 'cajaGrande', R=>R.cajaGrande);
+  const vG=new Set(hg.lista.map(h=>h.v));
+  const ganados=[...hp.lista.filter(h=>!vG.has(h.v)).map(h=>({...h, tipo:'pequena'})), ...hg.lista.map(h=>({...h, tipo:'grande'}))].sort((a,b)=>a.v-b.v || +new Date(a.f)-+new Date(b.f));
+  let sP=hp.sig, sG=hg.sig; if(sP!=null && sG!=null && sP===sG) sP=null;
+  const sig = sP==null && sG==null ? null : (sG!=null && (sP==null || sG<=sP)) ? {v:sG, tipo:'grande', n:hg.n} : {v:sP, tipo:'pequena', n:hp.n};
+  const ant = sig ? sig.v - sig.n : 0;   // desde dónde se cuenta la barra del siguiente
+  const pct=+cfg.cajaVerPct; const ver = !sig ? false : !(pct>0) || pct>=100 || (sig.v-est) <= Math.ceil(sig.n*pct/100);
   const dadas=(cfgDe(p).cajasLog||[]).length;
-  return {est, peq, gr, ganados, sig, dadas, pend:Math.max(0, ganados.length-dadas), activo:!p.prueba && (peq>0||gr>0)};
+  return {est, peq, gr, ganados, sig, ant, ver, dadas, pend:Math.max(0, ganados.length-dadas), activo:!p.prueba && (peq>0||gr>0||ganados.length>dadas)};
 }
 const nombreCaja = t => t==='grande' ? 'una caja grande (One Piece o Pokémon)' : 'una caja pequeña de Pokémon';
 
 /* ---------- tarjetas de Inicio ---------- */
-function metasHTML(){
+function metasHTML(soloObjetivos=false){   // 31/10: en la pestaña Premios las revistas y el cofre van en «Premios de casa»
   const p=perfil(); if(p.prueba) return '';
   const s=objetivosSemana(p, sabadoDe(hoyTele())), r=revistasDe(p), c=cajasHitos(p);
   const obj=`<div class="obj-lista">${s.lista.map(x=>`<div class="obj${x.ok?' ok':''}"><span class="obj-m">${x.ok?'✅':x.emo}</span><span class="obj-t">${esc(x.txt)}</span>${x.o.tipo==='manual'?'':`<span class="obj-n">${x.hecho} de ${x.n}</span>`}</div>`).join('')}</div>`;
-  const rev = r.activo ? `<div class="rev-barra"><span>📰 Revistas de la semana</span><span class="barra-t doble"><i style="width:${Math.min(100,Math.round(100*r.sem.est/Math.max(1,r.sem.r2||r.sem.r1)))}%"></i>${r.sem.r2?`<b class="hito" style="left:${Math.round(100*r.sem.r1/r.sem.r2)}%">📰</b><b class="hito" style="left:100%">📰</b>`:''}</span><span class="nota">${r.sem.n>=2?'¡Ya tienes las 2 revistas de esta semana!':r.sem.n===1?`¡1.ª revista conseguida! Con ${r.sem.r2-r.sem.est} ⭐ más, la 2.ª.`:`${r.sem.est} de ${r.sem.r1} ⭐ para la 1.ª revista.`}</span></div>` : '';
-  const caja = c.activo ? (()=>{ const ant=c.ganados.length?c.ganados[c.ganados.length-1].v:0, sig=c.sig; const pc=sig?Math.round(100*(c.est-ant)/(sig.v-ant)):100;
+  const rev = !soloObjetivos && r.activo ? `<div class="rev-barra"><span>📰 Revistas de la semana</span><span class="barra-t doble"><i style="width:${Math.min(100,Math.round(100*r.sem.est/Math.max(1,r.sem.r2||r.sem.r1)))}%"></i>${r.sem.r2?`<b class="hito" style="left:${Math.round(100*r.sem.r1/r.sem.r2)}%">📰</b><b class="hito" style="left:100%">📰</b>`:''}</span><span class="nota">${r.sem.n>=2?'¡Ya tienes las 2 revistas de esta semana!':r.sem.n===1?`¡1.ª revista conseguida! Con ${r.sem.r2-r.sem.est} ⭐ más, la 2.ª.`:`${r.sem.est} de ${r.sem.r1} ⭐ para la 1.ª revista.`}</span></div>` : '';
+  const caja = !soloObjetivos && c.activo && c.sig && c.ver ? (()=>{ const ant=c.ant, sig=c.sig; const pc=Math.max(0,Math.min(100,Math.round(100*(c.est-ant)/Math.max(1,sig.v-ant))));
     return `<div class="cofre"><span class="cofre-emo">${pc>=90?'🎁':'🧰'}</span><div class="tx"><b>Cofre del tesoro</b><span class="nota">${sig?`Te faltan <b>${sig.v-c.est} ⭐</b> para ${nombreCaja(sig.tipo)}.`:''} Llevas ${c.est} ⭐.</span><span class="barra-t"><i style="width:${pc}%;background:linear-gradient(90deg,#F59E0B,#E11D48)"></i></span></div></div>`; })() : '';
-  return `<div class="card metas"><div class="metas-cab"><b>🎯 Objetivos de la semana</b><span class="nota">${s.todos?`¡Todos conseguidos! +${OBJ_BONUS} ⭐ 🎉`:`Si los cumples todos: +${OBJ_BONUS} ⭐`}</span></div>${obj}${rev}${caja}</div>`;
+  return `<div class="card metas"><div class="metas-cab"><b>🎯 Objetivos de la semana</b><span class="nota">${!objBonus()?'':s.todos?`¡Todos conseguidos! +${objBonus()} ⭐ 🎉`:`Si los cumples todos: +${objBonus()} ⭐`}</span></div>${obj}${rev}${caja}</div>`;
 }
 /* premios de verdad que hay que dar (revista o caja): tarjeta grande y, al tocarla, papá o mamá lo apuntan */
 function premiosRealesHTML(){
@@ -107,7 +114,7 @@ function activarPremiosReales(raiz){
         const cf=cfgDe(p), f=new Date().toISOString();
         if(tipo==='revista') cf.revistasLog=(cf.revistasLog||[]).concat([{f}]).slice(-500);
         else { const cual=caja.tipo==='grande' ? (($$('input[name=cualCaja]',d.el).find(x=>x.checked)||{}).value||'') : 'Pokémon'; cf.cajasLog=(cf.cajasLog||[]).concat([{f, tipo:caja.tipo, v:caja.v, cual}]).slice(-200); }
-        guardarAj(); d.cerrar(); sonido('cromo'); aviso('Apuntado'); ir('inicio'); }}, {t:'Todavía no', cls:'btn'}]});
+        guardarAj(); d.cerrar(); sonido('cromo'); aviso('Apuntado'); ir(actual==='premios'?'premios':'inicio'); }}, {t:'Todavía no', cls:'btn'}]});
     setTimeout(()=>{ const i=$('#darRes',d.el); if(i) i.focus(); },100); });
 }
 /* espera a que no haya otro aviso abierto (muñecos, récord…) para no amontonarlos */
@@ -126,25 +133,25 @@ function avisarMetas(){
 }
 
 /* ---------- familia ---------- */
-function metasAdultoHTML(p){
+function metasAdultoHTML(p, soloObjetivos=false){   // 31/10: las revistas y el cofre se cambian ahora en Premios
   const c=premiosCfg(), obj=objetivosCfg(), s=objetivosSemana(p, sabadoDe(hoyTele())), r=revistasDe(p), cj=cajasHitos(p);
   const selTipo=(i,t)=>`<select data-objt="${i}">${Object.keys(OBJ_TIPOS).map(k=>`<option value="${k}" ${k===t?'selected':''}>${OBJ_TIPOS[k].emo} ${{dia:'Historia del día',extra:'Lecturas extra',fichas:'Fichas, trabajos o rondas',dias:'Días leyendo',estrellas:'Estrellas',deporte:'Fases de deportes',manual:'Lo marcáis vosotros'}[k]}</option>`).join('')}</select>`;
   const logC=(cfgDe(p).cajasLog||[]);
-  return `<div class="card bloque" style="margin-bottom:18px"><h3 style="margin-bottom:6px">🎯 Objetivos, revistas y gran premio</h3>
-    <p class="nota" style="margin-bottom:10px">Objetivos de la semana (de sábado a viernes). Si los cumple todos, +${OBJ_BONUS} ⭐. Esta semana: ${s.lista.filter(x=>x.ok).length} de ${s.lista.length}.</p>
+  return `<div class="card bloque" style="margin-bottom:18px"><h3 style="margin-bottom:6px">${soloObjetivos?'🎯 Objetivos de la semana':'🎯 Objetivos, revistas y gran premio'}</h3>
+    <p class="nota" style="margin-bottom:10px">Objetivos de la semana (de sábado a viernes). Si los cumple todos, +${objBonus()} ⭐ (se cambia en «Qué da cada tarea»). Esta semana: ${s.lista.filter(x=>x.ok).length} de ${s.lista.length}.</p>
     <div class="obj-edit">${obj.map((o,i)=>`<div class="obj-fila">${selTipo(i,o.tipo)}${o.tipo==='manual'?`<input data-objtxt="${i}" value="${esc(o.txt||'')}" placeholder="Ej.: ordenar la habitación" style="flex:1;min-width:150px"><button type="button" class="btn btn-mini ${s.lista[i]&&s.lista[i].ok?'btn-verde':''}" data-objmarca="${i}">${s.lista[i]&&s.lista[i].ok?'✓ Hecho esta semana (quitar)':'Marcar hecho esta semana'}</button>`:`<input type="number" min="1" max="200" data-objn="${i}" value="${+o.n||1}" style="width:80px">`}<button type="button" class="btn btn-mini" data-objdel="${i}" aria-label="Quitar">✕</button></div>`).join('')}</div>
     <div class="botones" style="margin:8px 0 14px">${obj.length<5?'<button type="button" class="btn btn-mini" id="objAdd">+ Añadir objetivo</button>':''}<button type="button" class="btn btn-mini" id="objDef">Volver a los de serie</button></div>
-    <div class="fam-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px">
+    ${soloObjetivos?'</div>':`<div class="fam-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px">
       <div class="campo"><label for="prRev1">📰 1.ª revista de la semana con</label><select id="prRev1">${[0,30,40,45,50,60].map(x=>`<option value="${x}" ${x===+c.revista1?'selected':''}>${x?x+' ⭐':'Sin revistas'}</option>`).join('')}</select></div>
       <div class="campo"><label for="prRev2">📰 2.ª revista con</label><select id="prRev2">${[0,60,70,75,80,90,100].map(x=>`<option value="${x}" ${x===+c.revista2?'selected':''}>${x?x+' ⭐':'Solo una'}</option>`).join('')}</select></div>
       <div class="campo"><label for="prCajaP">🎁 Caja pequeña de Pokémon cada</label><select id="prCajaP">${[0,300,400,500,600,750].map(x=>`<option value="${x}" ${x===+c.cajaPeq?'selected':''}>${x?x+' ⭐':'Sin cajas pequeñas'}</option>`).join('')}</select></div>
       <div class="campo"><label for="prCajaG">🎁 Caja grande (One Piece o Pokémon) cada</label><select id="prCajaG">${[0,800,1000,1200,1500,2000].map(x=>`<option value="${x}" ${x===+c.cajaGrande?'selected':''}>${x?x+' ⭐':'Sin cajas grandes'}</option>`).join('')}</select></div></div>
     <p class="nota" style="margin-top:10px">📰 Revistas: ${r.activo?`ganadas ${r.ganadas}, dadas ${r.dadas}${r.pend?` · <b>${r.pend} por dar</b>`:''}. Esta semana lleva ${r.sem.est} ⭐.`:'desactivadas.'}<br>
-      🎁 Cofre: ${cj.est} ⭐ desde el 24 de octubre. ${cj.sig?`Próxima: ${esc(nombreCaja(cj.sig.tipo))} a los ${cj.sig.v} ⭐ (faltan ${cj.sig.v-cj.est}).`:''} ${cj.pend?`<b>${cj.pend} por dar.</b>`:''}${logC.length?` Dadas: ${logC.map(x=>`${x.tipo==='grande'?'grande':'pequeña'} ${esc(x.cual||'')} (${esc(fechaCorta(x.f))})`).join(', ')}.`:''}</p></div>`;
+      🎁 Cofre: ${cj.est} ⭐ desde el 24 de octubre. ${cj.sig?`Próxima: ${esc(nombreCaja(cj.sig.tipo))} a los ${cj.sig.v} ⭐ (faltan ${cj.sig.v-cj.est}).`:''} ${cj.pend?`<b>${cj.pend} por dar.</b>`:''}${logC.length?` Dadas: ${logC.map(x=>`${x.tipo==='grande'?'grande':'pequeña'} ${esc(x.cual||'')} (${esc(fechaCorta(x.f))})`).join(', ')}.`:''}</p></div>`}`;
 }
 function activarMetasAdulto(p){
   const leer=()=>objetivosCfg().map(o=>({...o}));
-  const guardaObj=obj=>{ aj.premios={...(aj.premios||{}), objetivos:obj}; guardarAj(); aviso('Guardado'); ir('evolucion','premios'); };
+  const guardaObj=obj=>{ guardarPremios({objetivos:obj}); aviso('Guardado'); ir('evolucion','premios'); };
   $$('[data-objt]').forEach(s=>s.onchange=()=>{ const obj=leer(); const i=+s.dataset.objt; obj[i]={tipo:s.value, n:s.value==='dia'?7:s.value==='estrellas'?50:s.value==='dias'?5:3, ...(s.value==='manual'?{txt:''}:{})}; guardaObj(obj); });
   $$('[data-objn]').forEach(x=>x.onchange=()=>{ const obj=leer(); obj[+x.dataset.objn].n=Math.max(1,Math.min(200,+x.value||1)); guardaObj(obj); });
   $$('[data-objtxt]').forEach(x=>x.onchange=()=>{ const obj=leer(); obj[+x.dataset.objtxt].txt=x.value.trim().slice(0,80); guardaObj(obj); });
@@ -153,5 +160,5 @@ function activarMetasAdulto(p){
   $('#objDef').onclick=()=>guardaObj(OBJ_DEF.map(o=>({...o})));
   $$('[data-objmarca]').forEach(b=>b.onclick=()=>{ const i=+b.dataset.objmarca, k=claveDia(sabadoDe(hoyTele())); const ya=!!marcasManual(p)[k+'|'+i]; const c=cfgDe(p);
     c.objManualLog=(c.objManualLog||[]).concat([{f:new Date().toISOString(), semana:k, i, ...(ya?{quitar:true}:{})}]).slice(-500); guardarAj(); aviso(ya?'Quitado':'Marcado'); ir('evolucion','premios'); });
-  [['prRev1','revista1'],['prRev2','revista2'],['prCajaP','cajaPeq'],['prCajaG','cajaGrande']].forEach(([id,k])=>{ const e=$('#'+id); if(e) e.onchange=()=>{ aj.premios={...(aj.premios||{}), [k]:+e.value}; guardarAj(); aviso('Guardado'); ir('evolucion','premios'); }; });
+  [['prRev1','revista1'],['prRev2','revista2'],['prCajaP','cajaPeq'],['prCajaG','cajaGrande']].forEach(([id,k])=>{ const e=$('#'+id); if(e) e.onchange=()=>{ guardarPremios({[k]:+e.value}); aviso('Guardado'); ir('evolucion','premios'); }; });
 }

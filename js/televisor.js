@@ -124,7 +124,20 @@ function actualizarPremiosMini(){
   const sab=sabadoDe(), pv=peliculaDe(p, sab), ps=peliSabadoDe(p, sab), mv=typeof movilDe==='function'&&movilActivo()?movilDe(p, sab):null;
   b.innerHTML = `<span class="pm${pv.completa?' ok':''}" title="Peli del viernes: ${pv.hechos} de ${pv.total} lecturas del día">🎬<b>${pv.completa?'✓':pv.hechos+'/'+pv.total}</b></span>`
     + `<span class="pm${ps.completa?' ok':''}" title="Peli del sábado: ${ps.hechas} de ${ps.total} lecturas extra">🍿<b>${ps.completa?'✓':Math.min(ps.hechas,ps.total)+'/'+ps.total}</b></span>`
-    + (mv?`<span class="pm${mv.ganados>=mv.max?' ok':''}" title="Móvil: ${mv.ganados} de ${mv.max} minutos">📱<b>${mv.ganados}'</b></span>`:'');
+    + (mv?`<span class="pm${mv.ganados>=mv.max?' ok':''}" title="Móvil: ${mv.ganados} de ${mv.max} minutos">📱<b>${mv.ganados}'</b></span>`:'')
+    + premiosCasaMini(p);
+}
+/* 31/10/2026: arriba también los premios de casa de esta semana: sobres de cartas, revistas y el cofre cuando está cerca */
+function premiosCasaMini(p){
+  let h=''; try{
+    const s=typeof sobresDe==='function'?sobresDe(p):null;
+    if(s && s.activo && s.hoy && s.hoy.semana.tope){ const n=s.hoy.semana.n, t=s.hoy.semana.tope; h+=`<span class="pm${n>=t?' ok':''}${s.pend?' pide':''}" title="Sobres de cartas de esta semana: ${n} de ${t}">🎴<b>${n}/${t}</b></span>`; }
+    const r=typeof revistasDe==='function'?revistasDe(p):null;
+    if(r && r.activo && r.sem && r.sem.r1){ const max=r.sem.r2?2:1; h+=`<span class="pm${r.sem.n>=max?' ok':''}${r.pend?' pide':''}" title="Revistas de esta semana: ${r.sem.n} de ${max}">📰<b>${r.sem.n}/${max}</b></span>`; }
+    const c=typeof cajasHitos==='function'?cajasHitos(p):null;
+    if(c && c.activo && ((c.sig && c.ver) || c.pend)) h+=`<span class="pm cofre${c.pend?' ok pide':''}" title="${c.pend?'¡Tienes una caja del cofre!':`Cofre del tesoro: faltan ${c.sig.v-c.est} ⭐`}">🎁<b>${c.pend?'¡ya!':(c.sig.v-c.est)+'⭐'}</b></span>`;
+  }catch(e){ console.error(e); }
+  return h;
 }
 
 /* ---------- 28/10: cuando gana algo, se lo dice; cada cosa en un idioma y los idiomas rotan cada día

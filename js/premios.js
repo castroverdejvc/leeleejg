@@ -6,8 +6,29 @@
 const PREMIOS_DEF = {criatura:2, juego:5, minutos:15, trasLeer:true, tele:10, teleExtra:15, teleRelee:5, teleFicha:5, teleTrabajo:1, sobre:15, restaFallo:0.5, peliExtra:9,
   estCriatura:8, estJuego:30, sobreDia:4, sorpresa:true, sorpresaExtras:2, movilCada:3, movilMax:30, eduMax:4,
   tDia:15, tExtra:10, tRelee:5, tFicha:5, tTrabajo:2, peliExtras:7, teleMaxDia:120, teleMaxSemana:240,
-  revista1:45, revista2:75, cajaPeq:500, cajaGrande:1000, tMini:1};
-const premiosCfg = () => ({...PREMIOS_DEF, ...(aj.premios||{})});
+  revista1:45, revista2:75, cajaPeq:500, cajaGrande:1000, tMini:1,
+  /* 31/10/2026 (la familia): como mucho 4 sobres de cartas por semana; el cofre se ve cuando falta el 20 %;
+     las estrellas de cada tarea se pueden cambiar; premios nuevos de la familia (nuevos: [{id, emo, nombre, cada, maxSemana, ver, activo}]) */
+  sobresSemana:4, cajaVerPct:20, tJuego:1, movilJuego:1, eDia:3, eNueva:2, eExtra:2, eRelee:1, eFicha:1, eFichaBien:2, eJuegoOro:1, eObjetivos:10, nuevos:[]};
+/* 31/10/2026: las reglas tienen historia (aj.premiosHist = [{d, v}]): cada cambio cuenta desde el día en que se hace
+   y lo de antes se calcula con las reglas que había entonces. premiosCfg() son las de ahora; premiosCfg(fecha), las de ese día. */
+function premiosEn(f){
+  const h=aj.premiosHist; if(f==null || !Array.isArray(h) || !h.length) return aj.premios||{};
+  const t=+new Date(f); let i=0; for(let j=0;j<h.length;j++){ if(+h[j].d<=t) i=j; else break; }
+  // el último tramo son siempre las reglas de ahora (aj.premios), por si se cambiaron sin apuntarlo en la historia (versión anterior en otro aparato)
+  return i===h.length-1 ? (aj.premios||{}) : (h[i].v||{});
+}
+const premiosCfg = (f) => ({...PREMIOS_DEF, ...premiosEn(f)});
+/* la fecha con la que se miran las reglas de una semana (de sábado a viernes): su último momento, o ahora si está en marcha */
+const fechaReglaSemana = desde => new Date(Math.min(+hoyTele(), +diasDespues(desde,7)-1));
+/* guardar un cambio de reglas: se apunta en la historia desde hoy a las 00:00 */
+function guardarPremios(cambios, quitar=[]){
+  const antes=JSON.parse(JSON.stringify(aj.premios||{})), nuevo={...antes, ...cambios}; quitar.forEach(k=>delete nuevo[k]);
+  let h=Array.isArray(aj.premiosHist) ? aj.premiosHist.slice() : []; if(!h.length) h.push({d:0, v:antes});
+  const hoy=new Date(); hoy.setHours(0,0,0,0); const d=+hoy;
+  const i=h.findIndex(e=>+e.d===d); if(i>=0) h[i]={d, v:nuevo}; else h.push({d, v:nuevo});
+  h.sort((a,b)=>+a.d-+b.d); aj.premios=nuevo; aj.premiosHist=h.slice(-300); guardarAj();
+}
 
 /* actividades (ejercicios) = lecturas terminadas + dictados + repasos de fichas + rondas de «As letras» */
 function actividadesDe(p=perfil()){
@@ -103,7 +124,7 @@ function criaturasDe(p=perfil()){
   if(typeof temporadaGanada==='function') especiales().forEach(c=>{ if(temporadaGanada(c.temporada,p)) ids.push(c.id); });
   return ids;
 }
-const faltanParaCriatura = (p=perfil()) => { const k=Math.max(1,premiosCfg().estCriatura); return k - (estrellasDe(p)%k); };
+const faltanParaCriatura = (p=perfil()) => progresoCada(p, 'estCriatura').falta;
 
 /* dibujo de cada criatura (SVG hecho por el programa a partir de su nombre) */
 function criaturaSVG(c, {silueta=false, cls=''}={}){
@@ -165,7 +186,7 @@ function criaturaSVG(c, {silueta=false, cls=''}={}){
 
 /* ---------------- juegos que se abren ---------------- */
 const juegosAbiertos = (p=perfil()) => typeof JUEGOS==='undefined' ? 0 : Math.min(JUEGOS.length, juegosHasta(p) + Math.max(0, +cfgDe(p).juegosRegalo||0));
-const faltanParaJuego = (p=perfil()) => { const k=Math.max(1,premiosCfg().estJuego); if(typeof JUEGOS!=='undefined' && juegosAbiertos(p)>=JUEGOS.length) return null; return k - (estrellasDe(p)%k); };
+const faltanParaJuego = (p=perfil()) => { if(typeof JUEGOS!=='undefined' && juegosAbiertos(p)>=JUEGOS.length) return null; return progresoCada(p, 'estJuego').falta; };
 
 /* ---------------- tareas atrasadas ---------------- */
 function atrasadasDe(p=perfil()){
@@ -279,27 +300,15 @@ function semanaHTML(p){
       <li>${adi.length?`${adi.length} adivinanzas (${adi.filter(x=>x.intentos===1).length} a la primera).`:'Ninguna adivinanza esta semana.'}</li></ul></div></div>`;
 }
 function premiosAdultoHTML(p){
-  const c=premiosCfg(), sel=(id,vals,v,suf)=>`<select id="${id}">${vals.map(x=>`<option value="${x}" ${x===v?'selected':''}>${x===0?'Sin límite':x+suf}</option>`).join('')}</select>`;
-  return teleAdultoHTML(p) + `<div class="card bloque" style="margin-bottom:18px"><h3 style="margin-bottom:6px">Premios y juegos</h3><p class="nota" style="margin-bottom:12px">Para toda la familia. Desde el 24 de octubre todo suma estrellas: lectura del día ⭐⭐⭐, lectura extra nueva o historia nueva ⭐⭐, volver a leer ⭐, ficha, dictado, «As letras» o trabajo ⭐ (⭐⭐ con un 80 % bien o más) y cada ronda de «Aprender jugando» ⭐ (con tope al día). ${esc(p.nombre)} lleva <b>${estrellasDe(p)} ⭐</b>: ${criaturasDe(p).length} muñecos (con evoluciones y especiales) y ${juegosAbiertos(p)} juegos. Lo ganado antes del 24 de octubre se queda.</p>
-    <div class="fam-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
-      <div class="campo"><label for="prMin">Minutos de juego al día</label>${sel('prMin',[5,10,15,20,30,45,60,0],c.minutos,' minutos')}</div>
-      <div class="campo"><b>Antes de jugar</b><div class="interruptor"><span>Tiene que leer la historia del día</span><button type="button" class="switch" id="prLeer" role="switch" aria-checked="${!!c.trasLeer}"></button></div></div>
-      <div class="campo"><label for="prSobreDia">🎴 Sobre del día: lectura del día y</label><select id="prSobreDia">${[0,2,3,4,5,6].map(x=>`<option value="${x}" ${x===+c.sobreDia?'selected':''}>${x?x+' lecturas extra':'Sin sobre del día'}</option>`).join('')}</select></div>
-      <div class="campo"><b>🎁 Días sorpresa (1 o 2 por semana)</b><div class="interruptor"><span>Con ${c.sorpresaExtras} extras, sobre</span><button type="button" class="switch" id="prSorpresa" role="switch" aria-checked="${!!c.sorpresa}"></button></div></div>
-      <div class="campo"><label for="prEstCri">🐾 Un muñeco cada</label>${sel('prEstCri',[5,6,8,10,12],+c.estCriatura,' ⭐')}</div>
-      <div class="campo"><label for="prEstJue">🎮 Un juego nuevo cada</label>${sel('prEstJue',[15,20,30,40,50],+c.estJuego,' ⭐')}</div>
-      <div class="campo"><label for="prMovil">📱 Móvil: 1 minuto cada</label>${sel('prMovil',[2,3,4,5],+c.movilCada,' ⭐')}</div>
-      <div class="campo"><label for="prMovilMax">📱 Móvil como mucho (fin de semana)</label><select id="prMovilMax">${[0,15,20,30,45,60].map(x=>`<option value="${x}" ${x===+c.movilMax?'selected':''}>${x?x+' minutos':'Sin móvil'}</option>`).join('')}</select></div>
-      <div class="campo"><label for="prEduMax">🧩 «Aprender jugando»: como mucho al día</label>${sel('prEduMax',[0,2,4,6,8],+c.eduMax,' ⭐').replace('>Sin límite<','>No dan ⭐<')}</div></div>
-    ${sobresAdultoHTML(p)}</div>${typeof metasAdultoHTML==='function'?metasAdultoHTML(p):''}<div>
-    <p class="nota" style="margin-top:8px">El usuario de pruebas no tiene límite de tiempo.</p></div>`;
+  // 31/10/2026: todo en «Premios» y «Qué da cada tarea» (premiosfamilia.js); debajo, la tele (apuntar a mano) y los objetivos
+  if(typeof premiosFamiliaHTML==='function')
+    return premiosFamiliaHTML(p) + tareasFamiliaHTML(p) + teleAdultoHTML(p, true) + (typeof metasAdultoHTML==='function' ? metasAdultoHTML(p, true) : '') + `<p class="nota" style="margin-top:8px">El usuario de pruebas no tiene límite de tiempo.</p>`;
+  return teleAdultoHTML(p) + (typeof metasAdultoHTML==='function'?metasAdultoHTML(p):'');
 }
 function activarPremiosAdulto(){
-  const sw=id=>$(id).getAttribute('aria-checked')==='true';
-  const guarda=()=>{ aj.premios={...(aj.premios||{}), minutos:+$('#prMin').value, trasLeer:sw('#prLeer'), sobreDia:+$('#prSobreDia').value, sorpresa:sw('#prSorpresa'), estCriatura:+$('#prEstCri').value, estJuego:+$('#prEstJue').value, movilCada:+$('#prMovil').value, movilMax:+$('#prMovilMax').value, eduMax:+$('#prEduMax').value}; delete aj.premios.teleGuarda; guardarAj(); aviso('Guardado'); };
-  ['#prMin','#prSobreDia','#prEstCri','#prEstJue','#prMovil','#prMovilMax','#prEduMax'].forEach(s=>$(s).onchange=guarda);
-  ['#prLeer','#prSorpresa'].forEach(id=>$(id).onclick=()=>{ const b=$(id); b.setAttribute('aria-checked', String(b.getAttribute('aria-checked')!=='true')); guarda(); });
-  activarTeleAdulto(lectorVisto()); activarSobresAdulto(lectorVisto()); if(typeof activarMetasAdulto==='function') activarMetasAdulto(lectorVisto());
+  const p=lectorVisto();
+  activarTeleAdulto(p); if(typeof activarMetasAdulto==='function') activarMetasAdulto(p);
+  if(typeof activarPremiosFamilia==='function') activarPremiosFamilia(p);
 }
 
 /* ---------------- sobres de cartas (premio de verdad: la familia da un sobre de cartas) ---------------- */
@@ -341,6 +350,6 @@ function activarSobreInicio(){
       botones:[{t:'Ya le hemos dado 1 sobre',cls:'btn-p', mantener:true, fn:()=>dar(1)}].concat(s.pend>1?[{t:`Ya le hemos dado los ${s.pend}`,cls:'btn-verde', mantener:true, fn:()=>dar(s.pend)}]:[]).concat([{t:'Todavía no',cls:'btn'}])});
     function dar(n){ const v=($('#sobreRes',d.el).value||'').trim(); const bien = conPin ? v===aj.pin : +v===a*m;
       if(!bien){ $('#sobreMsg',d.el).textContent = conPin?'PIN incorrecto':'No es correcto'; return; }
-      darSobres(p, n); d.cerrar(); sonido('cromo'); aviso(n===1?'Sobre apuntado':'Sobres apuntados'); ir('inicio'); }
+      darSobres(p, n); d.cerrar(); sonido('cromo'); aviso(n===1?'Sobre apuntado':'Sobres apuntados'); ir(actual==='premios'?'premios':'inicio'); }
     setTimeout(()=>{ const i=$('#sobreRes',d.el); if(i) i.focus(); },100); };
 }

@@ -12,6 +12,7 @@ function premiosPorRecoger(p){
   try{ const s=sobresDe(p); if(s.pend) r.push({emo:'🎴', t:s.pend===1?'un sobre de cartas':`${s.pend} sobres de cartas`, n:s.pend}); }catch(_){}
   try{ if(typeof revistasDe==='function'){ const v=revistasDe(p); if(v.pend) r.push({emo:'📰', t:v.pend===1?'una revista':`${v.pend} revistas`, n:v.pend}); } }catch(_){}
   try{ if(typeof cajasHitos==='function'){ const c=cajasHitos(p); if(c.activo && c.pend) r.push({emo:'🎁', t:c.pend===1?'una caja del cofre':`${c.pend} cajas del cofre`, n:c.pend}); } }catch(_){}
+  try{ if(typeof pendientesNuevos==='function') pendientesNuevos(p).forEach(x=>r.push({emo:x.emo||'🎁', t:x.pend===1?(x.nombre||'un premio'):`${x.pend}: ${x.nombre||'premios'}`, n:x.pend})); }catch(_){}
   return r;
 }
 definir('mispremios', {nav:'inicio', pintar(){
@@ -21,15 +22,17 @@ definir('mispremios', {nav:'inicio', pintar(){
   const falta=n=>n<=0?'¡Ya lo tienes!':n===1?'¡Te falta 1 ⭐!':`Te faltan ${n} ⭐`;
   const fila=(emo,t,nota,b='')=>`<div class="mp-fila"><span class="emo-g">${emo}</span><div class="tx"><b>${t}</b><span class="nota">${nota}</span>${b}</div></div>`;
   // próximos
-  const kc=cadaK(cfg.estCriatura), kj=cadaK(cfg.estJuego); const nJ=typeof JUEGOS!=='undefined'?JUEGOS.length:0;
-  const prox=[fila('🐾','Próximo muñeco', falta(kc-(est%kc)), barra(est%kc,kc,'#8B5CF6'))];
-  if(juegosAbiertos(p)<nJ) prox.push(fila('🎮','Próximo juego', falta(kj-(est%kj)), barra(est%kj,kj,'#F5A300')));
-  if(typeof revistasDe==='function'){ const v=revistasDe(p); if(v.activo){ const r1=+cfg.revista1||0, r2=+cfg.revista2||0; const meta = sem<r1 ? r1 : sem<r2 ? r2 : null;
-    prox.push(fila('📰', meta?`Revista ${meta===r1?'1':'2'} de esta semana`:'¡Las 2 revistas de esta semana!', meta?`${falta(meta-sem)} (llevas ${sem} esta semana)`:'¡Conseguidas!', meta?barra(sem,meta,'#0EA5B7'):'')); } }
-  if(typeof cajasHitos==='function'){ const c=cajasHitos(p); if(c.activo && c.sig) prox.push(fila('🎁', `Cofre del tesoro: ${c.sig.tipo==='grande'?'caja grande':'caja pequeña'}`, falta(c.sig.v-est), barra(est,c.sig.v,'#E11D48'))); }
+  const pc=progresoCada(p,'estCriatura'), pj=progresoCada(p,'estJuego'); const nJ=typeof JUEGOS!=='undefined'?JUEGOS.length:0;
+  const prox=[fila('🐾','Próximo muñeco', falta(pc.falta), barra(pc.hecho,pc.k,'#8B5CF6'))];
+  if(juegosAbiertos(p)<nJ) prox.push(fila('🎮','Próximo juego', falta(pj.falta), barra(pj.hecho,pj.k,'#F5A300')));
+  if(typeof revistasDe==='function'){ const v=revistasDe(p); if(v.activo && v.sem && v.sem.r1){ const w=v.sem, r1=w.r1, r2=w.r2; const meta = sem<r1 ? r1 : (r2 && sem<r2) ? r2 : null;
+    prox.push(fila('📰', meta?`Revista ${meta===r1?'1':'2'} de esta semana`:(r2?'¡Las 2 revistas de esta semana!':'¡La revista de esta semana!'), meta?`${falta(meta-sem)} (llevas ${sem} esta semana)`:'¡Conseguidas!', meta?barra(sem,meta,'#0EA5B7'):'')); } }
+  if(typeof cajasHitos==='function'){ const c=cajasHitos(p); if(c.activo && c.sig && c.ver) prox.push(fila('🎁', `¡Cofre del tesoro: ${c.sig.tipo==='grande'?'caja grande':'caja pequeña'}!`, falta(c.sig.v-est), barra(c.est-c.ant,c.sig.v-c.ant,'#E11D48'))); }
+  if(typeof nuevosDe==='function') nuevosDe(p).filter(x=>x.ver && !x.lleno).forEach(x=>prox.push(fila(esc(x.emo||'🎁'), esc(x.nombre||'Premio'), falta(x.falta), barra(x.hecho,x.k,'#7C3AED'))));
   // hoy
   const sd=typeof sobreDelDia==='function'?sobreDelDia(p):null; const ok=b=>b?'✅':'⬜';
-  const hoy = sd && sd.activo ? fila(sd.sorpresa?'🎁':'🎴', sd.ganado?'¡Sobre de hoy conseguido!':sd.sorpresa?'¡Hoy es día sorpresa!':'Sobre de cartas de hoy', sd.ganado?'Pídeselo a papá o a mamá.':`${ok(sd.dia)} La historia de hoy · ${ok(sd.extras>=sd.meta)} ${Math.min(sd.extras,sd.meta)} de ${sd.meta} lecturas extra`, sd.ganado?'':barra((sd.dia?1:0)+Math.min(sd.extras,sd.meta), sd.meta+1, '#E11D48')) : '';
+  const semS = sd && sd.semana && sd.semana.tope ? ` · Esta semana: ${sd.semana.n} de ${sd.semana.tope}` : '';
+  const hoy = sd && sd.activo ? fila(sd.sorpresa?'🎁':'🎴', sd.ganado?'¡Sobre de hoy conseguido!':sd.lleno?`¡Ya tienes los ${sd.semana.tope} sobres de esta semana!`:sd.sorpresa?'¡Hoy es día sorpresa!':'Sobre de cartas de hoy', (sd.ganado?'Pídeselo a papá o a mamá.':sd.lleno?'El sábado empiezan otros.':`${ok(sd.dia)} La historia de hoy · ${ok(sd.extras>=sd.meta)} ${Math.min(sd.extras,sd.meta)} de ${sd.meta} lecturas extra`)+semS, sd.ganado||sd.lleno?'':barra((sd.dia?1:0)+Math.min(sd.extras,sd.meta), sd.meta+1, '#E11D48')) : '';
   // fin de semana
   const fin=[];
   if(teleActiva()){ const t=teleDe(p); const g=t.finde?t.saldo:t.saldo; fin.push(fila('📺', t.finde?`Tele de hoy: ${minTxt(g)}`:`Tele del fin de semana: ${minTxt(g)}`, t.finde?'Para el sábado y el domingo.':'La ves el sábado y el domingo.')); }

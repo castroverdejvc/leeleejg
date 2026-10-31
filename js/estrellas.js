@@ -26,7 +26,7 @@ const pctBien = (bien, n) => n ? bien/n : 0;
 let _cacheEv={k:null, v:null};
 function estrellasEventos(p=perfil()){
   const c=cfgDe(p);
-  const k=[p.id, SES.length, SES.filter(s=>!s.incompleta).length, claveDia(new Date()), JSON.stringify(aj.premios||{}), ...[...LOGS_FICHA,...LOGS_MINI,'trabajosLog','eduLog','objManualLog','deporteLog','juegoLog'].map(x=>(c[x]||[]).length)].join('|');
+  const k=[p.id, SES.length, SES.filter(s=>!s.incompleta).length, claveDia(new Date()), JSON.stringify(aj.premios||{}), (aj.premiosHist||[]).length, ...[...LOGS_FICHA,...LOGS_MINI,'trabajosLog','eduLog','objManualLog','deporteLog','juegoLog'].map(x=>(c[x]||[]).length)].join('|');
   if(_cacheEv.k===k) return _cacheEv.v;
   const ev=calcularEventos(p, c); _cacheEv={k, v:ev}; return ev;
 }
@@ -34,22 +34,23 @@ function calcularEventos(p, c){
   const ev=[], vistas=new Set();
   sesDe(p.id).filter(s=>!s.incompleta && s.fecha).sort((a,b)=>a.fecha<b.fecha?-1:1).forEach(s=>{
     const primera=!vistas.has(s.historiaId); vistas.add(s.historiaId);
-    let tipo, n;
-    if(esComp(s.historiaId)){ tipo=primera?'extra':'relee'; n=primera?2:1; }
-    else if(primera && esPropuesta(p, s.historiaId)){ tipo='dia'; n=3; }
-    else if(primera){ tipo='nueva'; n=2; }
-    else { tipo='relee'; n=1; }
+    let tipo, n; const R=premiosCfg(s.fecha);   // 31/10: las estrellas de cada tarea se pueden cambiar (cuentan desde ese día)
+    if(esComp(s.historiaId)){ tipo=primera?'extra':'relee'; n=primera?+R.eExtra||0:+R.eRelee||0; }
+    else if(primera && esPropuesta(p, s.historiaId)){ tipo='dia'; n=+R.eDia||0; }
+    else if(primera){ tipo='nueva'; n=+R.eNueva||0; }
+    else { tipo='relee'; n=+R.eRelee||0; }
     ev.push({f:s.fecha, n, tipo, hid:s.historiaId, sid:s.id});
   });
-  LOGS_FICHA.forEach(k=>(c[k]||[]).forEach(x=>{ if(!x.f) return; const n=+x.n||0; ev.push({f:x.f, n: 1 + (n && pctBien(+x.bien||0, n)>=0.8 ? 1 : 0), tipo:'ficha'}); }));
-  (c.trabajosLog||[]).forEach(x=>{ if(!x.f) return; const a=+x.a||0, e=+x.e||0; ev.push({f:x.f, n: 1 + ((a+e) && pctBien(a, a+e)>=0.8 ? 1 : 0), tipo:'trabajo'}); });
-  LOGS_MINI.forEach(k=>(c[k]||[]).forEach(x=>{ if(!x.f) return; const n=+x.n||0; ev.push({f:x.f, n: 1 + (n && pctBien(+x.bien||0, n)>=0.8 ? 1 : 0), tipo:'mini'}); }));
+  const estFicha = (f, bien) => { const R=premiosCfg(f); return bien ? +R.eFichaBien||0 : +R.eFicha||0; };   // ⭐ (⭐⭐ con un 80 % bien o más)
+  LOGS_FICHA.forEach(k=>(c[k]||[]).forEach(x=>{ if(!x.f) return; const n=+x.n||0; ev.push({f:x.f, n: estFicha(x.f, n && pctBien(+x.bien||0, n)>=0.8), tipo:'ficha'}); }));
+  (c.trabajosLog||[]).forEach(x=>{ if(!x.f) return; const a=+x.a||0, e=+x.e||0; ev.push({f:x.f, n: estFicha(x.f, (a+e) && pctBien(a, a+e)>=0.8), tipo:'trabajo'}); });
+  LOGS_MINI.forEach(k=>(c[k]||[]).forEach(x=>{ if(!x.f) return; const n=+x.n||0; ev.push({f:x.f, n: estFicha(x.f, n && pctBien(+x.bien||0, n)>=0.8), tipo:'mini'}); }));
   // juegos de «Aprender jugando»: una ronda terminada ⭐ (⭐⭐ si casi todo bien), como mucho eduMax ⭐ al día
-  const maxEdu=+premiosCfg().eduMax||0, porDia={};
-  (c.eduLog||[]).filter(x=>x.f).sort((a,b)=>a.f<b.f?-1:1).forEach(x=>{ const k=claveDia(x.f), ya=porDia[k]||0, n=+x.n||0;
+  const porDia={};
+  (c.eduLog||[]).filter(x=>x.f).sort((a,b)=>a.f<b.f?-1:1).forEach(x=>{ const k=claveDia(x.f), ya=porDia[k]||0, n=+x.n||0, maxEdu=+premiosCfg(x.f).eduMax||0;
     const d=Math.min(1 + (n && pctBien(+x.bien||0, n)>=0.8 ? 1 : 0), maxEdu-ya); if(d>0){ porDia[k]=ya+d; ev.push({f:x.f, n:d, tipo:'juego'}); } });
   // 30/10: juegos de pensar: ⭐ con medalla de oro (en las partidas que cuentan, 3 por juego y día)
-  (c.juegoLog||[]).forEach(x=>{ if(x.f && x.pr>0 && x.med==='oro') ev.push({f:x.f, n:1, tipo:'juegop'}); });
+  (c.juegoLog||[]).forEach(x=>{ if(x.f && x.pr>0 && x.med==='oro') ev.push({f:x.f, n:+premiosCfg(x.f).eJuegoOro||0, tipo:'juegop'}); });
   if(typeof eventosRacha==='function') ev.push(...eventosRacha(p));
   if(typeof eventosObjetivos==='function') ev.push(...eventosObjetivos(p, ev.slice().sort((a,b)=>+new Date(a.f)-+new Date(b.f))));
   return ev.sort((a,b)=>+new Date(a.f)-+new Date(b.f));
@@ -62,11 +63,35 @@ function estrellasEntre(p=perfil(), desde=CORTE_PREMIOS, hasta=null){
 const estrellasDe = (p=perfil()) => estrellasEntre(p);
 /* estrellas que da una lectura concreta (para el final de la lectura) */
 function estrellasDeSesion(p, s){
-  const antes=sesDe(p.id).some(x=>x.id!==s.id && !x.incompleta && x.historiaId===s.historiaId && x.fecha<s.fecha);
-  if(esComp(s.historiaId)) return antes?1:2;
-  return antes ? 1 : esPropuesta(p, s.historiaId) ? 3 : 2;
+  const antes=sesDe(p.id).some(x=>x.id!==s.id && !x.incompleta && x.historiaId===s.historiaId && x.fecha<s.fecha), R=premiosCfg(s.fecha);
+  if(esComp(s.historiaId)) return antes ? +R.eRelee||0 : +R.eExtra||0;
+  return antes ? +R.eRelee||0 : esPropuesta(p, s.historiaId) ? +R.eDia||0 : +R.eNueva||0;
 }
-function estrellasChipHTML(s){ const p=perfil(); if(p.prueba) return ''; const n=estrellasDeSesion(p, s); return `<span class="chip chip-estrella">${'⭐'.repeat(Math.min(3,n))} +${n}</span>`; }
+function estrellasChipHTML(s){ const p=perfil(); if(p.prueba) return ''; const n=estrellasDeSesion(p, s); if(!n) return ''; return `<span class="chip chip-estrella">${'⭐'.repeat(Math.min(3,n))} +${n}</span>`; }
+
+/* ---------- 31/10/2026: premios «cada N ⭐» con reglas que pueden cambiar ----------
+   Lo ganado se queda. Si la familia cambia N, el siguiente se cuenta con el N nuevo desde el último ganado; si con el N
+   nuevo ya se ha pasado, se gana uno en ese momento (nunca varios de golpe). Si el premio se apaga (N = 0), al volver a
+   encenderlo se empieza a contar desde ese día. Con «maxSemana», lo que pase del tope se da la semana siguiente. */
+let _cacheHitos={};
+function hitosEstrellas(p, clave, nDe, maxDe=null){
+  const ev=estrellasEventos(p), k=clave+'|'+p.id+'|'+_cacheEv.k; if(_cacheHitos[k]) return _cacheHitos[k];
+  if(Object.keys(_cacheHitos).length>60) _cacheHitos={};
+  const d0=+CORTE_PREMIOS; let est=0, base=0, nAnt=null; const lista=[], porSem={};
+  const cabe = (f, R) => { const m=maxDe ? +maxDe(R)||0 : 0; if(m<=0) return true; return (porSem[claveDia(sabadoDe(new Date(f)))]||0) < m; };
+  const gana = (v, f) => { lista.push({v, f}); const w=claveDia(sabadoDe(new Date(f))); porSem[w]=(porSem[w]||0)+1; };
+  for(const e of ev){ if(+new Date(e.f)<d0) continue; est+=e.n; const R=premiosCfg(e.f), n=Math.max(0, +nDe(R)||0);
+    if(!n){ base=est; nAnt=0; continue; }
+    if(nAnt===0){ base=est-e.n; }   // se acaba de encender: cuenta desde aquí
+    if(nAnt && n!==nAnt && est-base>=n){ if(cabe(e.f, R)){ gana(est, e.f); base=est; } }
+    while(est-base>=n && cabe(e.f, R)){ base+=n; gana(base, e.f); }
+    nAnt=n; }
+  const R=premiosCfg(), n=Math.max(0, +nDe(R)||0);
+  return (_cacheHitos[k]={lista, est, base, n, sig: n ? (nAnt===0 ? est+n : base+n) : null});
+}
+const hitosCada = (p, clave) => hitosEstrellas(p, clave, R=>cadaK(R[clave]));   // muñecos y juegos (siempre encendidos)
+/* cuánto le falta para el siguiente «cada N ⭐»: {falta, hecho, k} */
+function progresoCada(p, clave){ const h=hitosCada(p, clave), k=Math.max(1,h.n||1), falta=Math.max(1, (h.sig==null?h.est+k:h.sig)-h.est); return {falta, hecho:Math.max(0,k-falta), k}; }
 
 /* ---------- muñecos: criaturas nuevas y sus evoluciones ---------- */
 const FORMAS = {2:{pre:'Súper', n:'Súper'}, 3:{pre:'Mega', n:'Mega'}};
@@ -95,14 +120,14 @@ function secuenciaMunecos(p){
 }
 /* cuántos muñecos tiene ganados en una fecha */
 function munecosHasta(p, t=new Date()){
-  const lim=+new Date(t), k=cadaK(premiosCfg().estCriatura);
+  const lim=+new Date(t);
   const antes=Math.floor(actividadesHasta(p, Math.min(lim, +CORTE_PREMIOS))/cadaK(premiosCfg().criatura));
-  return antes + (lim>+CORTE_PREMIOS ? Math.floor(estrellasEntre(p, CORTE_PREMIOS, lim)/k) : 0);
+  return antes + (lim>+CORTE_PREMIOS ? hitosCada(p, 'estCriatura').lista.filter(h=>+new Date(h.f)<lim).length : 0);
 }
 function juegosHasta(p, t=new Date()){
   const lim=+new Date(t), nJ=typeof JUEGOS!=='undefined'?JUEGOS.length:0;
   const antes=Math.floor(actividadesHasta(p, Math.min(lim, +CORTE_PREMIOS))/cadaK(premiosCfg().juego));
-  const despues=lim>+CORTE_PREMIOS ? Math.floor(estrellasEntre(p, CORTE_PREMIOS, lim)/cadaK(premiosCfg().estJuego)) : 0;
+  const despues=lim>+CORTE_PREMIOS ? hitosCada(p, 'estJuego').lista.filter(h=>+new Date(h.f)<lim).length : 0;
   return Math.min(nJ, 1+antes+despues);
 }
 
@@ -113,26 +138,41 @@ function diasSorpresa(p, sab){
   const dias=barajarCon([0,1,2,3,4,5,6], Math.floor(r()*1e9)).slice(0,n);
   return dias.map(i=>claveDia(diasDespues(sab,i)));
 }
-function esDiaSorpresa(p=perfil(), f=hoyTele()){ const cfg=premiosCfg(); if(!cfg.sorpresa || !despuesCorte(f) || p.prueba) return false; return diasSorpresa(p, sabadoDe(f)).includes(claveDia(f)); }
-/* cómo va un día: lectura del día hecha y extras nuevas */
-function sobreDelDia(p=perfil(), f=hoyTele()){
-  const k=claveDia(f), cfg=premiosCfg(); const ev=estrellasEventos(p).filter(e=>claveDia(e.f)===k);
+function esDiaSorpresa(p=perfil(), f=hoyTele()){ const cfg=premiosCfg(f); if(!cfg.sorpresa || !despuesCorte(f) || p.prueba) return false; return diasSorpresa(p, sabadoDe(f)).includes(claveDia(f)); }
+/* cómo va un día: lectura del día hecha y extras nuevas (sin mirar el tope de la semana) */
+function sobreCumple(p, f){
+  const k=claveDia(f), cfg=premiosCfg(f); const ev=estrellasEventos(p).filter(e=>claveDia(e.f)===k);
   const dia=ev.some(e=>e.tipo==='dia'), extras=ev.filter(e=>e.tipo==='extra').length, sorpresa=esDiaSorpresa(p, f);
   const meta = sorpresa ? cadaK(cfg.sorpresaExtras) : (+cfg.sobreDia||0);
-  return {dia, extras, meta, sorpresa, activo: meta>0 && despuesCorte(f), ganado: meta>0 && despuesCorte(f) && dia && extras>=meta};
+  return {dia, extras, meta, sorpresa, activo: meta>0 && despuesCorte(f), cumple: meta>0 && despuesCorte(f) && dia && extras>=meta};
 }
-/* días con sobre ganado (desde el 24/10/2026) */
+/* 31/10/2026: como mucho «sobresSemana» sobres (4) de sábado a viernes; cuentan los primeros días que lo consiguen */
+function sobresSemanaDe(p, sab){
+  const dias=[], ganados=[]; let tope=0;
+  for(let i=0;i<7;i++){ const d=diasDespues(sab,i); d.setHours(12,0,0,0); if(+d>+hoyTele() && claveDia(d)!==claveDia(hoyTele())) break;
+    const c=sobreCumple(p, d); tope=+premiosCfg(d).sobresSemana||0; dias.push({k:claveDia(d), ...c});
+    if(c.cumple && (!tope || ganados.length<tope)) ganados.push(claveDia(d)); }
+  return {ganados, tope: +premiosCfg(fechaReglaSemana(sab)).sobresSemana||0, dias};
+}
+function sobreDelDia(p=perfil(), f=hoyTele()){
+  const c=sobreCumple(p, f), k=claveDia(f), sem=sobresSemanaDe(p, sabadoDe(f));
+  const ganado=c.cumple && sem.ganados.includes(k), antes=sem.ganados.filter(x=>x<k).length;
+  const lleno=!ganado && sem.tope>0 && antes>=sem.tope;   // ya tiene los de esta semana
+  return {...c, ganado, lleno, semana:{n:sem.ganados.length, tope:sem.tope}};
+}
+/* días con sobre ganado (desde el 24/10/2026), con el tope de cada semana */
 function diasConSobre(p=perfil(), hasta=null){
-  const dias=new Set(estrellasEventos(p).filter(e=>despuesCorte(e.f) && (!hasta || +new Date(e.f)<+new Date(hasta))).map(e=>claveDia(e.f)));
-  return [...dias].filter(k=>sobreDelDia(p, new Date(k+'T12:00')).ganado);
+  const out=[]; const fin=hasta ? Math.min(+new Date(hasta), +hoyTele()+1) : +hoyTele()+1;
+  for(let sab=sabadoDe(CORTE_PREMIOS); +sab<fin; sab=diasDespues(sab,7)) out.push(...sobresSemanaDe(p, sab).ganados);
+  return hasta ? out.filter(k=>+new Date(k+'T00:00')<+new Date(hasta)) : out;
 }
 
 /* ---------- móvil del fin de semana ---------- */
-const movilJuegoMin = () => { const v=premiosCfg().movilJuego; return v==null ? 1 : +v||0; };
+const movilJuegoMin = (f) => { const v=premiosCfg(f).movilJuego; return v==null ? 1 : +v||0; };
 function movilDe(p=perfil(), desde=semanaTele()){
-  const cfg=premiosCfg(); const est=estrellasEntre(p, desde, diasDespues(desde,7));
+  const cfg=premiosCfg(fechaReglaSemana(desde)); const est=estrellasEntre(p, desde, diasDespues(desde,7));
   // 30/10: los juegos de pensar dan también hasta 1 minuto de móvil por partida (x.pr de 0 a 1)
-  const hasta=diasDespues(desde,7), mJ=(cfgDe(p).juegoLog||[]).filter(x=>x.pr>0 && x.f && new Date(x.f)>=desde && new Date(x.f)<hasta).reduce((a,x)=>a+x.pr*movilJuegoMin(),0);
+  const hasta=diasDespues(desde,7), mJ=(cfgDe(p).juegoLog||[]).filter(x=>x.pr>0 && x.f && new Date(x.f)>=desde && new Date(x.f)<hasta).reduce((a,x)=>a+x.pr*movilJuegoMin(x.f),0);
   const ganados=Math.min(+cfg.movilMax||0, Math.round((Math.floor(est/cadaK(cfg.movilCada)) + mJ)*10)/10);
   const k=claveDia(desde); const jugados=(cfgDe(p).movilLog||[]).filter(x=>semanaDeGasto(x.f)===k).reduce((a,x)=>a+(+x.min||0),0);
   return {est, ganados, jugados, saldo:Math.max(0, Math.round((ganados-jugados)*10)/10), max:+cfg.movilMax||0, cada:cadaK(cfg.movilCada)};
@@ -141,16 +181,16 @@ function apuntarMovil(p, min, cuando=new Date()){ const c=cfgDe(p); c.movilLog=(
 const movilActivo = () => (+premiosCfg().movilMax||0) > 0;
 
 /* ---------- tarjeta de Inicio: estrellas, muñeco, juego y sobre de hoy ---------- */
-function estrellasHTML(){
+function estrellasHTML(conSobre=true){   // 31/10: en la pestaña Premios el sobre va en «Premios de casa»
   const p=perfil(); if(p.prueba) return '';
   const cfg=premiosCfg(), est=estrellasDe(p), kc=cadaK(cfg.estCriatura), kj=cadaK(cfg.estJuego);
-  const fc=kc-(est%kc), fj=juegosAbiertos(p)>=(typeof JUEGOS!=='undefined'?JUEGOS.length:0) ? null : kj-(est%kj);
+  const fc=progresoCada(p,'estCriatura').falta, fj=juegosAbiertos(p)>=(typeof JUEGOS!=='undefined'?JUEGOS.length:0) ? null : progresoCada(p,'estJuego').falta;
   const sd=sobreDelDia(p), sigId=typeof siguienteMuneco==='function' ? siguienteMuneco(p) : secuenciaMunecos(p)[munecosHasta(p)], sig=sigId ? criaturaForma(sigId) : null;
   const sigTxt = !sig ? '¡Los tienes todos!' : sig.forma>1 ? '¡Toca una evolución!' : 'Un muñeco nuevo';
   const barra=(v,k,col)=>`<span class="barra-t"><i style="width:${Math.round(100*v/k)}%;background:${col}"></i></span>`;
   const ok=b=>b?'✅':'⬜';
-  const sobre = sd.activo ? `<div class="premio sobre-dia${sd.sorpresa?' sorpresa':''}${sd.ganado?' gana':''}"><span class="emo-g">${sd.sorpresa?'🎁':'🎴'}</span><div class="tx"><b>${sd.ganado?'¡Sobre de hoy conseguido!':sd.sorpresa?'¡Hoy es día sorpresa!':'Sobre de cartas de hoy'}</b>
-      <span class="nota">${sd.ganado?'Pídeselo a papá o a mamá.':`${ok(sd.dia)} La historia de hoy · ${ok(sd.extras>=sd.meta)} ${Math.min(sd.extras,sd.meta)} de ${sd.meta} lecturas extra`}</span>${sd.ganado?'':barra(Math.min(sd.meta+1,(sd.dia?1:0)+Math.min(sd.extras,sd.meta)), sd.meta+1, '#E11D48')}</div></div>` : '';
+  const sobre = conSobre && sd.activo ? `<div class="premio sobre-dia${sd.sorpresa?' sorpresa':''}${sd.ganado?' gana':''}"><span class="emo-g">${sd.sorpresa?'🎁':'🎴'}</span><div class="tx"><b>${sd.ganado?'¡Sobre de hoy conseguido!':sd.lleno?`¡Ya tienes los ${sd.semana.tope} sobres de esta semana!`:sd.sorpresa?'¡Hoy es día sorpresa!':'Sobre de cartas de hoy'}</b>
+      <span class="nota">${sd.ganado?'Pídeselo a papá o a mamá.':sd.lleno?'El sábado empiezan otros.':`${ok(sd.dia)} La historia de hoy · ${ok(sd.extras>=sd.meta)} ${Math.min(sd.extras,sd.meta)} de ${sd.meta} lecturas extra`}</span>${sd.ganado||sd.lleno?'':barra(Math.min(sd.meta+1,(sd.dia?1:0)+Math.min(sd.extras,sd.meta)), sd.meta+1, '#E11D48')}</div></div>` : '';
   return `<div class="card premios estrellas-card"><div class="estrellas-cab"><span class="est-n">⭐ ${est}</span><span class="nota">estrellas desde el 24 de octubre</span>${typeof rachaHTML==='function'?rachaHTML():''}</div>
     <div class="premio" data-ir="criaturas"><span class="emo-g">🐾</span><div class="tx"><b>Próximo muñeco · ${esc(sigTxt)}</b><span class="nota">${fc===1?'¡Te falta 1 ⭐!':'Te faltan '+fc+' ⭐'}</span>${barra(kc-fc,kc,'#8B5CF6')}</div></div>
     <div class="premio" data-ir="juegos"><span class="emo-g">🎮</span><div class="tx"><b>${fj==null?'¡Tienes todos los juegos!':'Próximo juego'}</b><span class="nota">${fj==null?'Juega un ratito cuando acabes.':fj===1?'¡Te falta 1 ⭐!':'Te faltan '+fj+' ⭐'}</span>${fj==null?'':barra(kj-fj,kj,'#F5A300')}</div></div>

@@ -101,7 +101,7 @@ definir('inicio', {nav:'inicio', pintar(){
       <div class="card cuando-acabes"><h3>Cuando acabes</h3>
         ${comp ? accesoHTML('extra','📚','Lecturas extra',`+${minTxt(teleCfg().extra)} de tele cada una`) : ''}
         ${accesoHTML('juegos','🧠','Juegos de pensar', puedeJugar(yo).ok ? 'Con oro: +1 min de tele, +1 de móvil y ⭐' : '🔒 Cuando acabes lo de hoy')}
-        ${accesoHTML('premios','🏆','Mis premios','Tele, pelis, móvil, estrellas y sobres')}
+        ${accesoHTML('premios','🏆','Mis premios','Tele, pelis, móvil, sobres de cartas y revistas')}
       </div>
     </div>
   </div>`;
@@ -112,6 +112,7 @@ definir('inicio', {nav:'inicio', pintar(){
   if(typeof avisarSorpresa==='function') avisarSorpresa();
   if(typeof avisarRecord==='function') avisarRecord();
   if(typeof avisarMetas==='function') avisarMetas();
+  if(typeof avisarNuevos==='function') avisarNuevos();
   avisarAtrasadasHoy();
 }});
 /* recordatorio en voz de las historias atrasadas (antes lo hacía Inicio) */
@@ -158,17 +159,17 @@ definir('premios', {nav:'', pintar(){
   const fotosCromos = (ult.length?ult:CONT.historias.slice(0,3)).slice(0,3).map(x=>imgHTML(x.portada)).join('');
   $('#s-premios').innerHTML = `<div class="pag-cab"><div><h1 class="tit">🏆 Premios</h1><p class="sub">Todo lo que vas ganando.</p></div></div>
   ${f_('teleHTML')}
-  ${f_('premiosHTML')}
-  ${f_('premiosRealesHTML')}
+  ${typeof premiosCasaHTML==='function' ? f_('premiosCasaHTML') : f_('premiosRealesHTML')}
+  ${typeof estrellasHTML==='function' ? f_('estrellasHTML', false) : f_('premiosHTML')}
   ${seccion('Mis colecciones', [f_('misPremiosBotonHTML'),
       `<button class="acceso verde" type="button" data-ir="cromos"><span class="mini-fotos">${fotosCromos}</span><span><b>Mis cromos</b><span class="nota">${Object.keys(cromosDe(p)).length} de ${CONT.historias.length} conseguidos.</span></span><span class="ir">${ic('dcha')}</span></button>`,
       accesoHTML('criaturas','🐾','Mis muñecos','El álbum de muñecos que vas ganando')].join(''))}
   ${f_('motivacionHTML')}
-  ${f_('metasHTML')}`;
+  ${f_('metasHTML', true)}`;
   const s=$('#s-premios');
   if(typeof televisorInicio==='function') televisorInicio();
-  if(typeof activarSobreInicio==='function') activarSobreInicio();
-  if(typeof activarPremiosReales==='function') activarPremiosReales(s);
+  if(typeof activarPremiosCasa==='function') activarPremiosCasa(s);
+  else { if(typeof activarSobreInicio==='function') activarSobreInicio(); if(typeof activarPremiosReales==='function') activarPremiosReales(s); }
 }});
 
 /* ---------- barra de arriba: cuatro pestañas; el programa dice su nombre al tocarla ---------- */
