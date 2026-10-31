@@ -86,54 +86,34 @@ function iniciarReconocimientoNavegador(){
   }catch(e){ return false; }
 }
 
-/* --- Seguimiento: palabra entera o sílaba a sílaba («vol-cán»), sin volver atrás --- */
-const nuevoEstadoAl = () => ({ptr:0, sp:0, acc:'', ok:{}, tw:{}});
-function pasoAl(st, t){
-  const N=palabras.length; if(st.ptr>=N || !t.w) return;
-  const cerrar=i=>{ st.ok[i]=true; st.tw[i]=t.s; st.ptr=i+1; st.sp=0; st.acc=''; st.rep=0; };
-  const w=palabras[st.ptr], sil=w.sil||[];
-  // 1) la palabra que toca (entera o parecida)
-  if(coincide(t.w, w.norm)){ cerrar(st.ptr); return; }
-  // 2) la siguiente, si ya se ha empezado la que toca o es corta
-  if(st.ptr+1<N && (t.w.length>=3 || st.sp>0) && coincide(t.w, palabras[st.ptr+1].norm)){ cerrar(st.ptr+1); return; }
-  // 3) sílaba a sílaba de la que toca: se admite saltarse una sílaba y repetir la última
-  if(sil.length>1){
-    let j=-1; for(let x=Math.max(0,st.sp-1); x<Math.min(sil.length, st.sp+2); x++){ if(t.w===sil[x] || (sil[x].length>=3 && coincide(t.w, sil[x]))){ j=x; break; } }
-    if(j<0 && st.sp>0 && coincide(st.acc+t.w, w.norm)) j=sil.length-1;
-    if(j<0 && st.sp>0 && w.norm.startsWith(t.w) && t.w.length>=3) j=Math.max(st.sp, Math.min(sil.length-1, j));
-    if(j>=0){ if(j+1>st.sp){ st.sp=j+1; st.acc+=t.w; } if(st.sp>=sil.length || coincide(st.acc, w.norm) || (sil.length>=3 && st.sp>=sil.length-1)) cerrar(st.ptr); return; }
-  }
-  // 4) se ha ido más adelante: una palabra clara (4 letras o más) hasta 8 palabras después, o de 3 letras hasta 3 después
-  for(let k=2; k<9 && st.ptr+k<N; k++){
-    const v=palabras[st.ptr+k].norm;
-    if((t.w.length>=4 && v.length>=4 && coincide(t.w, v)) || (k<4 && t.w.length===3 && t.w===v)){ cerrar(st.ptr+k); return; }
-  }
-  // 5) empieza la siguiente palabra sílaba a sílaba cuando la que toca ya iba por la mitad
-  const sig=palabras[st.ptr+1];
-  if(sig && sil.length>1 && st.sp*2>=sil.length && (sig.sil||[]).length>1 && t.w===sig.sil[0] && t.w.length>=2){ st.ok[st.ptr]=true; st.tw[st.ptr]=t.s; st.ptr++; st.sp=1; st.acc=t.w; return; }
-}
+/* --- Seguimiento de la lectura --- */
 function tokensNavegador(){ return (lect.txtPrevio+' '+lect.txtSesion).split(/\s+/).map(normalizar).filter(Boolean).map(w=>({w, s:null})); }
+/* 31/10/2026: lo oído se empareja con TODO el texto a la vez (alinea.js), por cómo suena y admitiendo sílabas sueltas,
+   palabras que no se oyeron y cosas que no son de la historia. Antes se buscaba palabra a palabra y se atascaba. */
+function tokensOidos(l){
+  if(l.oidoId){
+    const par = l.parcialT ? l.parcialT.map(p=>({w:p.w, s:p.s})) : (l.parcial||'').split(/\s+/).filter(Boolean).map(w=>({w, s:null}));
+    return l.finales.map(f=>({w:f.w, s:f.s})).concat(par);
+  }
+  return l.sr ? (l.txtPrevio+' '+l.txtSesion).split(/\s+/).filter(Boolean).map(w=>({w, s:null})) : [];
+}
 function alinear(forzarPintado){
   const l=lect; if(!l || (!l.activa && !forzarPintado)) return;
-  let st;
-  if(l.oidoId){
-    if(!l.al){ l.al=nuevoEstadoAl(); l.nFin=0; }
-    const par = (l.parcialT ? l.parcialT.map(p=>({w:normalizar(p.w), s:p.s})) : (l.parcial||'').split(/\s+/).map(w=>({w:normalizar(w), s:null}))).filter(t=>t.w);
-    if(l.finales.length>l.nFin){ let salta=l.saltar||0; l.saltar=0;
-      while(l.nFin<l.finales.length){ const f=l.finales[l.nFin++]; if(salta>0){ salta--; continue; } pasoAl(l.al, {w:normalizar(f.w), s:f.s}); } }
-    if(l.forzado!=null && l.forzado>l.al.ptr){ l.al.ptr=l.forzado; l.al.sp=0; l.al.acc=''; l.saltar=Math.max(l.saltar||0, l.parcialVisto||0); }
-    st={ptr:l.al.ptr, sp:l.al.sp, acc:l.al.acc, ok:{...l.al.ok}, tw:{...l.al.tw}};
-    par.slice(l.saltar||0).forEach(t=>pasoAl(st, t)); l.parcialVisto=par.length;
-  } else {
-    st=nuevoEstadoAl(); if(l.sr) tokensNavegador().forEach(t=>pasoAl(st, t));
-    if(l.forzado!=null && l.forzado>st.ptr){ st.ptr=l.forzado; st.sp=0; st.acc=''; }
-  }
+  // como mucho unas 4 veces por segundo (con historias largas el cálculo tarda un poco en el iPad)
+  const ahoraMs=performance.now();
+  if(!forzarPintado && l.ultAlinear && ahoraMs-l.ultAlinear<250){ if(!l.alinearPend){ l.alinearPend=setTimeout(()=>{ l.alinearPend=null; if(lect===l) alinear(); }, 260); } return; }
+  l.ultAlinear=ahoraMs;
+  const toks=tokensOidos(l).filter(t=>ALINEA.fon(t.w));
+  const r=ALINEA.leidas(palabras.map(w=>w.p), toks.map(t=>t.w));
+  let ptr=Math.max(l.ptrMax||0, ALINEA.puntero(r.ok, l.ptrMax||0));
+  if(l.forzado!=null && l.forzado>ptr) ptr=l.forzado;
+  l.ptrMax=ptr;
   const ahora=tLect();
-  palabras.forEach((w,i)=>{ if(st.ok[i] && l.tOk[i]==null){ l.tOk[i] = st.tw[i]!=null ? st.tw[i] : ahora; if(st.tw[i]!=null){ (l.retrasos=l.retrasos||[]).push(Math.max(0, ahora-st.tw[i])); } } });
-  l.ok=palabras.map((w,i)=>!!st.ok[i]); l.puntero=st.ptr; l.spActual=st.sp;
-  pintarSeguimiento(st.ptr, st.sp);
-  if(typeof turnoJuntos==='function') turnoJuntos(st.ptr);
-  if(st.ptr>=palabras.length && !l.finPendiente && l.activa){ l.finPendiente=true; setTimeout(()=>{ if(lect===l && l.activa) terminarDeLeer(); }, 1100); }
+  palabras.forEach((w,i)=>{ if(r.ok[i] && l.tOk[i]==null){ const t=r.tok[i]>=0 && toks[r.tok[i]] ? toks[r.tok[i]].s : null; l.tOk[i] = t!=null ? t : ahora; if(t!=null) (l.retrasos=l.retrasos||[]).push(Math.max(0, ahora-t)); } });
+  l.ok=palabras.map((w,i)=>!!r.ok[i]); l.puntero=ptr; l.spActual=0;
+  pintarSeguimiento(ptr, 0);
+  if(typeof turnoJuntos==='function') turnoJuntos(ptr);
+  if(ptr>=palabras.length && !l.finPendiente && l.activa){ l.finPendiente=true; setTimeout(()=>{ if(lect===l && l.activa) terminarDeLeer(); }, 1100); }
 }
 /* pinta: verde lo leído (también sílaba a sílaba), subrayado azul la palabra que toca */
 function pintarSeguimiento(ptr, sp){
@@ -207,5 +187,6 @@ function diceRespuesta(texto, respuesta){
   const oido=String(texto).split(/\s+/).map(normalizar).filter(Boolean);
   const obj=String(respuesta).split(/\s+/).map(normalizar).filter(w=>w && !VACIAS.has(w));
   if(!obj.length) return false;
-  return obj.every(w=>oido.some(t=>coincide(t,w) || (w.length<=4 && t===w) || (w.endsWith('s') && coincide(t, w.slice(0,-1)))));
+  const suena = (t,w) => typeof ALINEA!=='undefined' && ALINEA.parecido(ALINEA.fon(t), ALINEA.fon(w))>0;   // 31/10: también por cómo suena (b/v, c/z…)
+  return obj.every(w=>oido.some(t=>coincide(t,w) || (w.length<=4 && t===w) || (w.endsWith('s') && coincide(t, w.slice(0,-1))) || suena(t,w)));
 }

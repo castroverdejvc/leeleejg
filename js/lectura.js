@@ -274,7 +274,7 @@ async function cerrarLectura(){
   const seg=Math.max(1,(performance.now()-l.t0-l.pausaTotal)/1000); l.activa=false;
   if(l.sr){ l.sr.onend=null; try{ l.sr.stop(); }catch(e){} }
   await cerrarOido(l);
-  if(l.oidoId){ l.activa=true; alinear(); l.activa=false; }
+  l.ultAlinear=0; alinear(true);   // con todo lo oído hasta el final
   const blob=await pararGrabacion(l); if(lect===l) lect=null;
   const oyo = l.oyendo && !l.srFallo && (l.oidoId ? l.finales.length>0 : (l.txtPrevio+' '+l.txtSesion).trim().length>0);
   // ritmo de este niño: un niño que lee sílaba a sílaba tarda 10-15 s por palabra y no por eso lo ha leído mal
