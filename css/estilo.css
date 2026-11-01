@@ -1483,7 +1483,7 @@ small.verde{color:var(--green)}small.rojo{color:#DC2626}
 .nav.pestanas .pest span{display:inline}
 .nav.pestanas .pest:hover{filter:brightness(.97);background:var(--s)}
 .nav.pestanas .pest[aria-current="page"]{background:var(--c);color:#fff;box-shadow:0 6px 16px rgba(19,32,74,.18)}
-.pest-hoy{--c:#1462CC!important;--s:#E2EEFF!important}.pest-leer{--c:#127A43!important;--s:#E1F6E9!important}.pest-act{--c:#5B3FD0!important;--s:#EFEAFF!important}.pest-pre{--c:#9A5B00!important;--s:#FFF2CC!important}
+.pest-hoy{--c:#1462CC!important;--s:#E2EEFF!important}.pest-leer{--c:#127A43!important;--s:#E1F6E9!important}.pest-act{--c:#5B3FD0!important;--s:#EFEAFF!important}.pest-pre{--c:#9A5B00!important;--s:#FFF2CC!important}.pest-alb{--c:#B0255B!important;--s:#FDE7EF!important}
 @media (min-width:1001px) and (max-width:1240px){ .nav.pestanas{gap:6px} .nav.pestanas .pest{padding:8px 12px;font-size:1rem} }
 @media (max-width:1000px){ .nav.pestanas .pest span{display:inline} .nav.pestanas .pest{padding:8px 10px;font-size:.95rem;gap:6px} .logo span,.logo b{display:none} }
 @media (max-width:560px){ .nav.pestanas{gap:4px} .nav.pestanas .pest{flex:1;flex-direction:column;gap:2px;padding:6px 2px;font-size:.78rem;min-height:56px;justify-content:center} .nav.pestanas .pest svg{width:22px;height:22px} }
@@ -1694,4 +1694,13 @@ small.verde{color:var(--green)}small.rojo{color:#DC2626}
   .fam-dpal{font-size:1.25rem}
   .fam-sino .btn{min-width:0;padding:8px 12px}
   .fam-cc{grid-template-columns:1fr 1.1fr}
+}
+
+/* 8.4.1 · cinco pestañas (Hoy, Leer, Actividades, Premios, Álbum): en el iPad de pie y pantallas medianas las pestañas van
+   en su propia fila, a todo lo ancho, para que no se salgan la tele y los premios de arriba */
+@media (min-width:561px) and (max-width:1100px){
+  #topNino .top-in{flex-wrap:wrap;row-gap:8px}
+  #topNino .nav.pestanas{order:3;flex:1 0 100%;width:100%;justify-content:space-between;margin:0}
+  #topNino .nav.pestanas .pest{flex:1;justify-content:center}
+  #topNino .premios-arriba{margin-left:auto}
 }

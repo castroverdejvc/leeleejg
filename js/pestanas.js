@@ -3,18 +3,22 @@
    - Hoy: lo que toca hoy (lectura del día, repaso de fichas y ficha nueva del cole). Cuando está todo, se abren los juegos.
    - Leer: todas las lecturas juntas (la de hoy, atrasadas, fiestas, extra, temas y calendario).
    - Actividades: escribir (fichas, dictado, ficha del cole, Spell it!), palabras y juegos.
-   - Premios: tele, pelis, móvil, estrellas, sobres, objetivos, cromos y muñecos.
+   - Premios: tele, pelis, móvil, estrellas, sobres y objetivos.
+   - Álbum (8.4.1, 1/11/2026, pedido por José Luis: «no aparecen los álbumes de cromos; tiene que haber una pestaña
+     donde pueda ver todos sus cromos»): abre el álbum con sus pestañas (cromos de lecturas y de extras, muñecos,
+     álbum del año, pasaporte y juegos).
    Al tocar una pestaña, el programa dice su nombre. */
 'use strict';
 const PESTANAS = [
   {id:'inicio', t:'Hoy', icono:'casa', c:'hoy'},
   {id:'leer', t:'Leer', icono:'libro', c:'leer'},
   {id:'actividades', t:'Actividades', icono:'lapiz', c:'act'},
-  {id:'premios', t:'Premios', icono:'estrella', c:'pre'}
+  {id:'premios', t:'Premios', icono:'estrella', c:'pre'},
+  {id:'cromos', t:'Álbum', icono:'album', c:'alb'}
 ];
 /* a qué pestaña pertenece cada pantalla (para marcarla arriba) */
-const PESTANA_DE_NAV = {inicio:'inicio', historias:'leer', calendario:'leer', cromos:'premios', practicar:'actividades', repaso:'actividades', juegos:'actividades'};
-const PESTANA_DE_PANT = {tele:'premios', mispremios:'premios', criaturas:'premios', temporada:'leer', ordenar:'leer', extra:'leer', adviento:'actividades', carta:'actividades',
+const PESTANA_DE_NAV = {inicio:'inicio', historias:'leer', calendario:'leer', cromos:'cromos', practicar:'actividades', repaso:'actividades', juegos:'actividades'};
+const PESTANA_DE_PANT = {tele:'premios', mispremios:'premios', temporada:'leer', ordenar:'leer', extra:'leer', adviento:'actividades', carta:'actividades',
   adivinanzas:'actividades', gustos:'actividades', palabrasdia:'actividades', aprender:'actividades', aprende:'actividades', deportes:'actividades', buzon:'leer',
   leer:'leer', actividades:'actividades', premios:'premios'};
 function pestanaDe(p){ const d=PANT[p]||{}; return PESTANA_DE_PANT[p] || PESTANA_DE_NAV[d.nav] || ''; }
@@ -162,11 +166,11 @@ definir('premios', {nav:'', pintar(){
   const fotosCromos = (ult.length?ult:CONT.historias.slice(0,3)).slice(0,3).map(x=>imgHTML(x.portada)).join('');
   $('#s-premios').innerHTML = `<div class="pag-cab"><div><h1 class="tit">🏆 Premios</h1><p class="sub">Todo lo que vas ganando.</p></div></div>
   ${f_('teleHTML')}
+  ${seccion('📒 Mi álbum', [
+      `<button class="acceso verde" type="button" data-ir="cromos"><span class="mini-fotos">${fotosCromos}</span><span><b>Mis cromos</b><span class="nota">${Object.keys(cromosDe(p)).length} de ${CONT.historias.length} conseguidos.</span></span><span class="ir">${ic('dcha')}</span></button>`,
+      accesoHTML('criaturas','🐾','Mis muñecos','El álbum de muñecos que vas ganando'), f_('misPremiosBotonHTML')].join(''))}
   ${typeof premiosCasaHTML==='function' ? f_('premiosCasaHTML') : f_('premiosRealesHTML')}
   ${typeof estrellasHTML==='function' ? f_('estrellasHTML', false) : f_('premiosHTML')}
-  ${seccion('Mis colecciones', [f_('misPremiosBotonHTML'),
-      `<button class="acceso verde" type="button" data-ir="cromos"><span class="mini-fotos">${fotosCromos}</span><span><b>Mis cromos</b><span class="nota">${Object.keys(cromosDe(p)).length} de ${CONT.historias.length} conseguidos.</span></span><span class="ir">${ic('dcha')}</span></button>`,
-      accesoHTML('criaturas','🐾','Mis muñecos','El álbum de muñecos que vas ganando')].join(''))}
   ${f_('motivacionHTML')}
   ${f_('metasHTML', true)}`;
   const s=$('#s-premios');
