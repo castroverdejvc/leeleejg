@@ -1704,3 +1704,39 @@ small.verde{color:var(--green)}small.rojo{color:#DC2626}
   #topNino .nav.pestanas .pest{flex:1;justify-content:center}
   #topNino .premios-arriba{margin-left:auto}
 }
+
+/* 8.5 · muñecos con 6 fases (Normal, Súper, Mega, Ultra, Giga y Legendario) y elegir cuál evoluciona */
+.fases{display:flex;gap:1px;justify-content:center;margin-top:2px;font-size:.82rem;line-height:1}
+.fases i{font-style:normal;color:#E2E8F0}
+.fases i.si{color:#F5A300}
+.fases i.si.ley{background:linear-gradient(90deg,#FF5FA2,#FFC83D,#3DD68C,#3BA7FF,#9B6BFF);-webkit-background-clip:text;background-clip:text;color:transparent}
+.cri-hueco.leyenda,.cri-carta.leyenda{border-color:transparent!important;background:linear-gradient(#fff,#fff) padding-box,linear-gradient(135deg,#FF5FA2,#FFC83D,#3DD68C,#3BA7FF,#9B6BFF) border-box!important;border:3px solid transparent!important}
+svg.criatura.forma6{filter:drop-shadow(0 0 6px rgba(255,200,61,.75))}
+@media (prefers-reduced-motion:no-preference){ svg.criatura.forma6{animation:leyendaBrilla 2.4s ease-in-out infinite} }
+@keyframes leyendaBrilla{50%{filter:drop-shadow(0 0 12px rgba(155,107,255,.8))}}
+.evo-elige{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px;max-height:56vh;overflow:auto;padding:4px}
+.evo-elige .cri-hueco svg{width:84px;height:84px}
+.evo-elige .cri-hueco .nota{font-size:.8rem;font-weight:800;color:#7C3AED}
+.dlg-evo .dialogo{max-width:720px}
+.evo-pend{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:2px solid #C4B5FD;background:linear-gradient(180deg,#F5F0FF,#fff);margin-bottom:12px;cursor:pointer}
+.evo-pend .tx{display:grid;flex:1}
+.evo-pend.leg{border-color:#FBCFE8;background:linear-gradient(180deg,#FFF1F8,#fff);cursor:default}
+.fases-explica{display:grid;gap:6px;margin-bottom:12px}
+.fases-lista{display:flex;flex-wrap:wrap;gap:6px 14px}
+.fases-lista span{display:flex;flex-direction:column;align-items:center;font-weight:800;font-size:.9rem}
+.fases-lista i{font-style:normal;color:#F5A300;font-size:.75rem;letter-spacing:-1px}
+.fases-lista i.f6{background:linear-gradient(90deg,#FF5FA2,#FFC83D,#3DD68C,#3BA7FF,#9B6BFF);-webkit-background-clip:text;background-clip:text;color:transparent}
+.dlg-fases .cri-formas svg{width:78px;height:78px}
+@media (max-width:560px){ .dlg-fases .cri-formas svg{width:60px;height:60px} .dlg-fases .cri-carta b{font-size:.85rem} .evo-elige{grid-template-columns:repeat(2,1fr)} }
+
+/* 8.5 · marcos de los cromos al releer mejor: bronce, plata, oro y brillante */
+.cromo.marco-bronce,.carta.marco-bronce,.ft.marco-bronce{border:4px solid #C7783A!important;box-shadow:0 0 0 2px #F3C79F inset,var(--shadow-s)}
+.cromo.marco-plata,.carta.marco-plata,.ft.marco-plata{border:4px solid #9AA6B5!important;box-shadow:0 0 0 2px #E7ECF2 inset,var(--shadow-s);background:linear-gradient(180deg,#F7F9FC,#fff)}
+.cromo.marco-oro,.carta.marco-oro,.ft.marco-oro{border:4px solid #E3A400!important;box-shadow:0 0 0 2px #FFE7A3 inset,0 4px 14px rgba(227,164,0,.3);background:linear-gradient(180deg,#FFF8DF,#fff)}
+.cromo.marco-brillante,.carta.marco-brillante,.ft.marco-brillante{border:4px solid transparent!important;background:linear-gradient(#fff,#fff) padding-box,linear-gradient(135deg,#FF5FA2,#FFC83D,#3DD68C,#3BA7FF,#9B6BFF) border-box!important;box-shadow:0 4px 18px rgba(155,107,255,.35)}
+.cromo .ft{position:relative}
+.marco-chip{position:absolute;bottom:6px;right:6px;z-index:1;font-size:1.25rem;line-height:1;background:rgba(255,255,255,.92);border-radius:99px;width:32px;height:32px;display:grid;place-items:center;filter:drop-shadow(0 1px 1px rgba(0,0,0,.2))}
+.marco-sube{margin:8px 0;padding:10px 12px;border-radius:14px;background:#FFF8DF;border:2px solid #FFD25A;font-weight:700}
+.marco-pista{margin:6px 0}
+.marco-det{padding:8px 12px;border-radius:12px;background:var(--bg-2);font-weight:800;border:2px solid transparent}
+.ft.marco-bronce,.ft.marco-plata,.ft.marco-oro,.ft.marco-brillante{border-radius:16px;overflow:hidden}

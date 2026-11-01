@@ -100,12 +100,49 @@ function ordenCriaturas(p){ const s=semilla('criaturas-'+p.id); return [1,2,3].f
 /* 25/10/2026: lo que ya salió en su álbum no se quita aunque cambien las reglas (p. ej. un iPad con una versión antigua
    que dio muñecos con la regla vieja después del 24/10). Eso queda «de regalo» y los muñecos que gane después son nuevos. */
 const munecosRegalo = p => { const r=cfgDe(p).munecosRegalo; return Array.isArray(r) ? r.filter(id=>!!criatura(id)) : []; };
-function munecosPorRegla(p, n=munecosHasta(p)){
-  const reg=new Set(munecosRegalo(p)), ids=[];
-  for(const id of secuenciaMunecos(p)){ if(ids.length>=n) break; if(!reg.has(id)) ids.push(id); }
-  return ids;
+/* 8.5 (1/11/2026): evoluciones a elegir. Lo ganado antes del 2/11/2026 se queda como estaba (orden fijo de antes).
+   Desde entonces, cada 8 ⭐ toca, por turnos, un muñeco nuevo o una evolución; en la evolución el niño elige qué muñeco
+   evoluciona (cfg.evoLog: [{t, id, f}], t = «m<n.º de muñeco>»). Fases: 1 normal, 2 Súper, 3 Mega, 4 Ultra, 5 Giga.
+   La 6.ª (Legendario) solo con un gran esfuerzo: cada racha de 7 días seguidos leyendo (desde el 2/11) da una
+   «evolución legendaria» (t = «l<n.º>») para un muñeco que ya sea Giga. Todo se calcula de lo hecho y de lo elegido,
+   así el iPad y el ordenador dan lo mismo al juntar los datos. */
+const CORTE_EVO = new Date('2026-11-02T00:00:00');
+const _cacheEvo = {};
+function estadoMunecos(p=perfil()){
+  const n=munecosHasta(p), nCut=Math.min(n, munecosHasta(p, CORTE_EVO)), reg=munecosRegalo(p), log=Array.isArray(cfgDe(p).evoLog)?cfgDe(p).evoLog:[];
+  const legs = typeof eventosRacha==='function' ? eventosRacha(p).filter(e=>+new Date(e.f)>=+CORTE_EVO).length : 0;
+  const k=[p.id,n,nCut,reg.join(','),log.map(x=>x.t+':'+x.id).join(','),legs].join('|'); if(_cacheEvo[k]) return _cacheEvo[k];
+  const ids=[], regS=new Set(reg);
+  for(const id of secuenciaMunecos(p)){ if(ids.length>=nCut) break; if(!regS.has(id)) ids.push(id); }
+  reg.forEach(id=>{ if(!ids.includes(id)) ids.push(id); });
+  const forma={}, esNormal=new Set(CRIATURAS.map(c=>c.id));
+  const poner=id=>{ const [b,f]=String(id).split('@'); if(!esNormal.has(b)) return; forma[b]=Math.max(forma[b]||0, +f||1); };
+  ids.forEach(poner);
+  const elegido = t => { const e=log.filter(x=>x && x.t===t).sort((a,b)=>String(a.f).localeCompare(String(b.f)))[0]; return e ? e.id : null; };
+  const orden=ordenCriaturas(p).map(c=>c.id), pend=[];
+  const libres = () => orden.filter(b=>!forma[b]);
+  const evolucionables = () => Object.keys(forma).filter(b=>forma[b]<FORMA_MAX_NORMAL);
+  const tipoDe = j => { const L=libres().length, E=evolucionables().length; let t=(j-nCut)%2===0?'nuevo':'evo';
+    if(t==='nuevo' && !L) t='evo'; if(t==='evo' && !E) t=L?'nuevo':null; return t; };
+  for(let j=nCut; j<n; j++){
+    const t=tipoDe(j); if(!t) break;
+    if(t==='nuevo'){ const b=libres()[0]; ids.push(b); poner(b); }
+    else { const tk='m'+j, b=elegido(tk);
+      if(b && forma[b] && forma[b]<FORMA_MAX_NORMAL){ const id=b+'@'+(forma[b]+1); ids.push(id); poner(id); } else pend.push({t:tk, tipo:'evo'}); }
+  }
+  for(let i=0;i<legs;i++){ const tk='l'+i, b=elegido(tk);
+    if(b && forma[b]===FORMA_MAX_NORMAL){ const id=b+'@'+FORMA_MAX; ids.push(id); poner(id); } else pend.push({t:tk, tipo:'leg'}); }
+  const sig = tipoDe(n);
+  const giga=Object.keys(forma).filter(b=>forma[b]===FORMA_MAX_NORMAL);
+  /* evoluciones que puede elegir ya (las legendarias solo si tiene algún Giga) */
+  const elegibles = pend.filter(x=>x.tipo==='evo' ? evolucionables().length : giga.length);
+  return (_cacheEvo[k]={ids, forma, pend, elegibles, sig});
 }
-const siguienteMuneco = p => { const reg=new Set(munecosRegalo(p)), ya=new Set(munecosPorRegla(p)); return secuenciaMunecos(p).find(id=>!ya.has(id) && !reg.has(id)) || null; };
+const munecosPorRegla = p => { const r=new Set(munecosRegalo(p)); return estadoMunecos(p).ids.filter(id=>!r.has(id)); };
+/* lo que toca después: 'nuevo', 'evo' o null si ya los tiene todos */
+const siguienteMuneco = p => estadoMunecos(p).sig;
+/* fase de cada muñeco (1 a 6) */
+const formaMuneco = (p, id) => estadoMunecos(p).forma[id] || 0;
 function guardarLoYaVisto(p=perfil()){
   const cfg=cfgDe(p), v=cfg.premiosVistos; if(!v || p.prueba) return false;
   let cambio=false;
@@ -120,7 +157,7 @@ function guardarLoYaVisto(p=perfil()){
   return cambio;
 }
 function criaturasDe(p=perfil()){
-  const ids=munecosPorRegla(p); munecosRegalo(p).forEach(id=>{ if(!ids.includes(id)) ids.push(id); });
+  const ids=estadoMunecos(p).ids.slice();
   if(typeof temporadaGanada==='function') especiales().forEach(c=>{ if(temporadaGanada(c.temporada,p)) ids.push(c.id); });
   return ids;
 }
@@ -177,11 +214,17 @@ function criaturaSVG(c, {silueta=false, cls=''}={}){
   const brillo = (!silueta && c.rareza===3) ? '<path d="M14 24l2 6 6 2-6 2-2 6-2-6-6-2 6-2z M104 18l1.5 4.5 4.5 1.5-4.5 1.5-1.5 4.5-1.5-4.5-4.5-1.5 4.5-1.5z" fill="#FFC83D"/>' : '';
   const pies = `<ellipse cx="45" cy="106" rx="9" ry="5" fill="${silueta?col:osc}"/><ellipse cx="75" cy="106" rx="9" ry="5" fill="${silueta?col:osc}"/>`;
   const tono = silueta ? '' : ` style="filter:hue-rotate(${Math.round((r()-.5)*36)}deg) saturate(${(1+(c.rareza-1)*.12).toFixed(2)}) brightness(${(1.06-(c.rareza-1)*.05).toFixed(2)})"`;
-  /* evoluciones (24/10/2026): la 2.ª forma lleva un aura y alas; la 3.ª, además, corona y estrellas */
-  const aura = forma>1 ? `<circle cx="60" cy="68" r="${forma===3?57:52}" fill="${clara}" opacity=".75"/><circle cx="60" cy="68" r="${forma===3?57:52}" fill="none" stroke="${col}" stroke-width="2" stroke-dasharray="${forma===3?'2 5':'6 6'}" opacity=".8"/>` : '';
+  /* evoluciones: cada fase añade algo que se ve (24/10/2026 y 8.5, 1/11/2026)
+     2 Súper: aura y alas · 3 Mega: corona y estrellas · 4 Ultra: rayos dorados · 5 Giga: anillo doble y diamante · 6 Legendario: arcoíris y brillo */
+  const aura = forma>1 ? `<circle cx="60" cy="68" r="${forma>=3?57:52}" fill="${clara}" opacity=".75"/><circle cx="60" cy="68" r="${forma>=3?57:52}" fill="none" stroke="${col}" stroke-width="2" stroke-dasharray="${forma>=3?'2 5':'6 6'}" opacity=".8"/>` : '';
   const alas = forma>1 ? `<path d="M28 70C10 58 6 40 12 30c8 10 14 22 22 30z" fill="${col}" opacity=".85"/><path d="M92 70c18-12 22-30 16-40-8 10-14 22-22 30z" fill="${col}" opacity=".85"/>` : '';
-  const mega = forma===3 ? `<path d="M44 34l4-14 7 8 5-12 5 12 7-8 4 14z" fill="#FFC83D" stroke="#B7791F" stroke-width="1.4"/><circle cx="60" cy="18" r="2.6" fill="#E5484D"/><path d="M10 96l2 5 5 2-5 2-2 5-2-5-5-2 5-2z M108 92l2 5 5 2-5 2-2 5-2-5-5-2 5-2z M100 12l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z" fill="#FFC83D"/>` : '';
-  return `<svg class="criatura ${cls}${forma>1?' forma'+forma:''}" viewBox="0 0 120 120" aria-hidden="true"${tono}>${aura}${brillo}${alas}${pies}${tipoDeco}${cuerpo}${cara}${extra}${emoAdorno}${mega}</svg>`;
+  const mega = forma>=3 ? `<path d="M44 34l4-14 7 8 5-12 5 12 7-8 4 14z" fill="#FFC83D" stroke="#B7791F" stroke-width="1.4"/><circle cx="60" cy="18" r="2.6" fill="#E5484D"/><path d="M10 96l2 5 5 2-5 2-2 5-2-5-5-2 5-2z M108 92l2 5 5 2-5 2-2 5-2-5-5-2 5-2z M100 12l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z" fill="#FFC83D"/>` : '';
+  const rayos = forma>=4 ? `<g fill="#FFD25A" opacity=".9">${[0,30,60,90,120,150,180,210,240,270,300,330].map(g=>`<path d="M60 68L57 2h6z" transform="rotate(${g} 60 68)"/>`).join('')}</g>` : '';
+  const giga = forma>=5 ? `<circle cx="60" cy="68" r="59" fill="none" stroke="#F5B301" stroke-width="2.5"/><circle cx="60" cy="68" r="54" fill="none" stroke="#F5B301" stroke-width="1.2" opacity=".8"/>` : '';
+  const gema = forma>=5 ? `<path d="M60 8l7 8-7 10-7-10z" fill="#3BA7FF" stroke="#1F5FA8" stroke-width="1.2"/><path d="M56 13h8" stroke="#E6F4FF" stroke-width="1.2"/>` : '';
+  const gid='lg'+String(c.base||c.id).replace(/[^a-z0-9]/gi,'');
+  const leyenda = forma>=6 ? `<defs><radialGradient id="${gid}"><stop offset="30%" stop-color="#fff" stop-opacity="0"/><stop offset="55%" stop-color="#FF7AB6"/><stop offset="68%" stop-color="#FFD25A"/><stop offset="80%" stop-color="#5BE3A6"/><stop offset="92%" stop-color="#5AB8FF"/><stop offset="100%" stop-color="#A78BFA"/></radialGradient></defs><circle cx="60" cy="66" r="62" fill="url(#${gid})" opacity=".7"/>` : '';
+  return `<svg class="criatura ${cls}${forma>1?' forma'+forma:''}" viewBox="0 0 120 120" aria-hidden="true"${tono}>${aura}${leyenda}${rayos}${giga}${brillo}${alas}${pies}${tipoDeco}${cuerpo}${cara}${extra}${emoAdorno}${mega}${gema}</svg>`;
 }
 
 /* ---------------- juegos que se abren ---------------- */
@@ -222,10 +265,11 @@ function comprobarPremios(){
   // las pruebas automáticas antiguas no esperan este aviso
   if((typeof EST!=='undefined' && EST && EST.sinPremiosAuto)){ return; } try{ if(localStorage.getItem('leeleejgSinPremios')) return; }catch(e){}
   const p=perfil(); const cfg=cfgDe(p); const vistos=cfg.premiosVistos || null;
+  if(vistos && !p.prueba){ const ev=estadoMunecos(p).elegibles[0]; if(ev && evoPospuesta!==ev.t){ elegirEvolucion(p); return; } }
   const tengo=criaturasDe(p), juegos=juegosAbiertos(p);
   const primera=!vistos;   // primera vez: se le regala todo lo que ya se ha ganado con lo leído hasta ahora
   const v=vistos||{criaturas:[], juegos:1};
-  const nuevas=tengo.filter(id=>!v.criaturas.includes(id)).map(criatura).filter(Boolean);
+  const nuevas=tengo.filter(id=>!v.criaturas.includes(id)).map(criatura).filter(Boolean).reverse();   // lo más nuevo primero
   const juegoNuevo = juegos>v.juegos && typeof JUEGOS!=='undefined' ? JUEGOS[juegos-1] : null; const masJuegos=juegos-v.juegos;
   avisarTele(p);
   const so=sobresDe(p), sobreNuevo = so.activo && v.sobres!=null && so.ganados>v.sobres;
@@ -235,40 +279,77 @@ function comprobarPremios(){
     sonido('cromo'); confeti(d.el.querySelector('.dialogo')||document.body); decir(`¡${nombre()}, has ganado un sobre de cartas! Pídeselo a papá o a mamá.`); return; }
   if(!nuevas.length && !juegoNuevo) return;
   cfg.premiosVistos={criaturas:tengo, juegos, ...(so.activo?{sobres:so.ganados}:{})}; guardarAj();
-  const html = (primera?`<p class="sub" style="margin-bottom:6px">¡Por todo lo que ya has leído${nuevas.length?`, tienes ${nuevas.length===1?'una criatura':nuevas.length+' criaturas'}`:''}${masJuegos>0?` y ${masJuegos===1?'un juego nuevo':masJuegos+' juegos nuevos'}`:''}!</p>`:'') + (nuevas.length?`<div class="nuevas-cri">${nuevas.slice(0,3).map(c=>`<div class="cri-carta ${c.rareza===3?'rara':''}">${criaturaSVG(c)}<b>${esc(c.nombre)}</b><span class="nota">${TIPOS_CRIATURA[c.tipo].emo} ${TIPOS_CRIATURA[c.tipo].n}${c.especial?' · ¡especial!':''}</span></div>`).join('')}</div>${nuevas.length>3?`<p class="nota">…y ${nuevas.length-3} más en tu álbum.</p>`:''}`:'')
+  const html = (primera?`<p class="sub" style="margin-bottom:6px">¡Por todo lo que ya has leído${nuevas.length?`, tienes ${nuevas.length===1?'una criatura':nuevas.length+' criaturas'}`:''}${masJuegos>0?` y ${masJuegos===1?'un juego nuevo':masJuegos+' juegos nuevos'}`:''}!</p>`:'') + (nuevas.length===1 && nuevas[0].forma>1 ? `<div class="cri-formas evo-antes">${[criatura(nuevas[0].forma>2?nuevas[0].base+'@'+(nuevas[0].forma-1):nuevas[0].base), nuevas[0]].map((c,i)=>`<div class="cri-carta ${i?'rara':''}${c.forma>=6?' leyenda':''}">${criaturaSVG(c)}<b>${esc(c.nombre)}</b>${estrellasForma(c.forma||1)}</div>`).join('<span class="flecha-evo">➜</span>')}</div>`
+    : nuevas.length?`<div class="nuevas-cri">${nuevas.slice(0,3).map(c=>`<div class="cri-carta ${c.rareza===3||c.forma>=3?'rara':''}${c.forma>=6?' leyenda':''}">${criaturaSVG(c)}<b>${esc(c.nombre)}</b><span class="nota">${TIPOS_CRIATURA[c.tipo].emo} ${TIPOS_CRIATURA[c.tipo].n}${c.especial?' · ¡especial!':''}</span></div>`).join('')}</div>${nuevas.length>3?`<p class="nota">…y ${nuevas.length-3} más en tu álbum.</p>`:''}`:'')
     + (sobreNuevo?`<div class="nuevo-juego"><span class="emo-g">🎴</span><div><b>¡Y un sobre de cartas de verdad!</b><span class="nota">Pídeselo a papá o a mamá.</span></div></div>`:'')
     + (juegoNuevo?`<div class="nuevo-juego"><span class="emo-g">${juegoNuevo.emo}</span><div><b>${masJuegos>1?`¡${masJuegos} juegos nuevos!`:`¡Nuevo juego: ${esc(juegoNuevo.nombre)}!`}</b><span class="nota">Lo tienes en Juegos.</span></div></div>`:'');
   const soloEvo = nuevas.length && nuevas.every(c=>c.forma>1);
-  const d=dialogo({titulo: primera ? `¡Sorpresa, ${esc(nombre())}!` : soloEvo ? (nuevas.length===1?`¡${esc(nuevas[0].nombre.replace(/^(Súper|Mega) /,''))} ha evolucionado!`:'¡Evoluciones!') : nuevas.length ? (nuevas.length===1?'¡Nuevo muñeco!':'¡Nuevos muñecos!') : '¡Nuevo juego!', html, cls:'dlg-premio',
+  const nomBase = c => (criatura(c.base||c.id)||c).nombre;
+  const d=dialogo({titulo: primera ? `¡Sorpresa, ${esc(nombre())}!` : soloEvo ? (nuevas.length===1?`¡${esc(nomBase(nuevas[0]))} ha evolucionado!`:'¡Evoluciones!') : nuevas.length ? (nuevas.length===1?'¡Nuevo muñeco!':'¡Nuevos muñecos!') : '¡Nuevo juego!', html, cls:'dlg-premio',
     botones:[...(nuevas.length?[{t:'Ver mi álbum de muñecos', cls:'btn-p', fn:()=>ir('criaturas')}]:[]), ...(juegoNuevo?[{t:'Ir a los juegos', cls:nuevas.length?'btn':'btn-p', fn:()=>ir('juegos')}]:[]), {t:'¡Genial!', cls:'btn'}]});
   sonido('cromo'); confeti(d.el.querySelector('.dialogo')||document.body);
   if(primera) decir(`¡Sorpresa, ${nombre()}! Por todo lo que ya has leído tienes premios: criaturas y juegos.`); else
-  decir(nuevas.length ? (soloEvo && nuevas.length===1 ? `¡Mira! ${nuevas[0].nombre.replace(/^(Súper|Mega) /,'')} ha evolucionado. ¡Ahora es ${nuevas[0].nombre}!` : `¡Has conseguido ${nuevas.length===1?'a '+nuevas[0].nombre:nuevas.length+' muñecos nuevos'}!`) + (juegoNuevo?' ¡Y un juego nuevo!':'') : `¡Nuevo juego: ${juegoNuevo.nombre}!`);
+  decir(nuevas.length ? (soloEvo && nuevas.length===1 ? `¡Mira! ${nomBase(nuevas[0])} ha evolucionado. ¡Ahora es ${nuevas[0].nombre}!` : `¡Has conseguido ${nuevas.length===1?'a '+nuevas[0].nombre:nuevas.length+' muñecos nuevos'}!`) + (juegoNuevo?' ¡Y un juego nuevo!':'') : `¡Nuevo juego: ${juegoNuevo.nombre}!`);
 }
+
+/* ---------------- elegir qué muñeco evoluciona (8.5) ---------------- */
+let evoPospuesta=null;   // si cierra la ventana sin elegir, no se le vuelve a preguntar hasta la próxima vez que abra el programa
+/* estrellas de fase debajo del muñeco: ★ por cada fase que tiene (de 6); la 6.ª, de arcoíris */
+const estrellasForma = f => `<span class="fases" aria-label="Fase ${f} de ${FORMA_MAX}">${Array.from({length:FORMA_MAX},(_,i)=>`<i class="${i<f?'si':''}${i===FORMA_MAX-1?' ley':''}">★</i>`).join('')}</span>`;
+function elegirEvolucion(p=perfil()){
+  const st=estadoMunecos(p), tk=st.elegibles[0]; if(!tk) return;
+  const leg=tk.tipo==='leg';
+  const cands=CRIATURAS.filter(c=>leg ? st.forma[c.id]===FORMA_MAX_NORMAL : st.forma[c.id] && st.forma[c.id]<FORMA_MAX_NORMAL)
+    .sort((x,y)=>(st.forma[y.id]-st.forma[x.id]) || (x.n-y.n));
+  const ahora = c => criatura(st.forma[c.id]>1 ? c.id+'@'+st.forma[c.id] : c.id);
+  const luego = c => criatura(c.id+'@'+(st.forma[c.id]+1));
+  const d=dialogo({titulo: leg ? '🌈 ¡Evolución LEGENDARIA!' : '✨ ¡Toca una evolución!', cls:'dlg-premio dlg-evo',
+    html:`<p class="sub">${leg?'Por leer 7 días seguidos, uno de tus muñecos Giga puede ser <b>Legendario</b>. ¿Cuál eliges?':'¿Qué muñeco quieres que evolucione? Tócalo.'}</p>
+      <div class="evo-elige">${cands.map(c=>{ const a=ahora(c); return `<button type="button" class="cri-hueco tengo${a.forma>=3?' rara':''}" data-evo="${c.id}">${criaturaSVG(a)}<b>${esc(a.nombre)}</b>${estrellasForma(a.forma||1)}<span class="nota">➜ ${esc(luego(c).nombre)}</span></button>`; }).join('')}</div>`,
+    alCerrar:()=>{ evoPospuesta=tk.t; setTimeout(comprobarPremios, 50); }});
+  decir(leg ? `¡${nombre()}, por leer siete días seguidos tienes una evolución legendaria! Elige qué muñeco Giga quieres que sea legendario.` : `¡${nombre()}, toca una evolución! Elige qué muñeco quieres que evolucione.`);
+  sonido('cromo');
+  $$('[data-evo]', d.el).forEach(b=>b.onclick=()=>{
+    const c=CRIATURAS.find(x=>x.id===b.dataset.evo), a=ahora(c), n=luego(c);
+    d.cerrar();
+    const d2=dialogo({titulo:`¿${esc(a.nombre)}?`, cls:'dlg-premio', html:`<div class="cri-formas">${[a,n].map((x,i)=>`<div class="cri-carta ${i?'rara':''}${x.forma>=6?' leyenda':''}">${criaturaSVG(x)}<b>${esc(x.nombre)}</b>${estrellasForma(x.forma||1)}</div>`).join('<span class="flecha-evo">➜</span>')}</div><p class="sub">${esc(a.nombre)} se convertirá en <b>${esc(n.nombre)}</b>.</p>`,
+      botones:[{t:'¡Sí, este!', cls:'btn-p', fn:()=>{ const cfg=cfgDe(p); cfg.evoLog=(Array.isArray(cfg.evoLog)?cfg.evoLog:[]).concat([{t:tk.t, id:c.id, f:new Date().toISOString()}]).slice(-500); guardarAj(); evoPospuesta=null; comprobarPremios(); if(actual==='criaturas') PANT.criaturas.pintar(); }},
+               {t:'Elegir otro', cls:'btn', fn:()=>elegirEvolucion(p)}],
+      alCerrar:()=>{ evoPospuesta=tk.t; }});
+    decir(`¿Quieres que ${a.nombre} se convierta en ${n.nombre}?`);
+  });
+}
+function evoPendienteHTML(p=perfil()){
+  if(p.prueba) return ''; const st=estadoMunecos(p), el=st.elegibles.length, legGuard=st.pend.filter(x=>x.tipo==='leg').length - st.elegibles.filter(x=>x.tipo==='leg').length;
+  return (el ? `<button type="button" class="card premio evo-pend" data-elegir-evo><span class="emo-g">✨</span><span class="tx"><b>${el===1?'¡Tienes una evolución por elegir!':`¡Tienes ${el} evoluciones por elegir!`}</b><span class="nota">Toca aquí y elige qué muñeco evoluciona.</span></span><span class="btn btn-p">Elegir</span></button>` : '')
+    + (legGuard>0 ? `<div class="card premio evo-pend leg"><span class="emo-g">🌈</span><span class="tx"><b>${legGuard===1?'Tienes una evolución Legendaria guardada':`Tienes ${legGuard} evoluciones Legendarias guardadas`}</b><span class="nota">Cuando un muñeco llegue a Giga, podrás hacerlo Legendario.</span></span></div>` : '');
+}
+document.addEventListener('click', e=>{ if(e.target.closest('[data-elegir-evo]')){ evoPospuesta=null; elegirEvolucion(); } });
 
 /* ---------------- álbum de criaturas ---------------- */
 definir('criaturas', {nav:'cromos', pintar(){
   try{ guardarLoYaVisto(perfil()); }catch(e){}
-  const p=perfil(), tengo=new Set(criaturasDe(p)); const base=CRIATURAS.filter(c=>tengo.has(c.id)).length; const fc=faltanParaCriatura(p), kc=Math.max(1,+premiosCfg().estCriatura);
-  const evos=[...tengo].filter(id=>/@[23]$/.test(id)).length;
-  const formaDe = c => tengo.has(c.id+'@3')?3:tengo.has(c.id+'@2')?2:1;
-  const puntos = f => `<span class="formas">${[1,2,3].map(i=>`<i class="${i<=f?'si':''}"></i>`).join('')}</span>`;
+  const p=perfil(), tengo=new Set(criaturasDe(p)), st=estadoMunecos(p); const base=CRIATURAS.filter(c=>tengo.has(c.id)).length; const fc=faltanParaCriatura(p), kc=Math.max(1,+premiosCfg().estCriatura);
+  const evos=CRIATURAS.reduce((a,c)=>a+Math.max(0,(st.forma[c.id]||1)-1),0), totEvos=CRIATURAS.length*(FORMA_MAX-1), leyendas=CRIATURAS.filter(c=>st.forma[c.id]>=FORMA_MAX).length;
+  const formaDe = c => st.forma[c.id] || 1;
   $('#s-criaturas').innerHTML = `${albumTabsHTML('criaturas')}
-  <div class="album-cab"><div><h1 class="tit">Álbum de muñecos</h1><p class="sub">Cada ${kc} ⭐ ganas un muñeco: uno nuevo o la evolución de uno que ya tienes (Súper y Mega).</p></div>
-    <div class="contador">🐾<div><b>${base} de ${CRIATURAS.length}</b><br><span>${evos} ${evos===1?'evolución':'evoluciones'} de ${CRIATURAS.length*2}</span></div></div></div>
-  <div class="card album-prog"><span class="emo-g">🎁</span><div class="tx"><b>${fc===1?'¡Te falta 1 ⭐ para el próximo!':'Te faltan '+fc+' ⭐ para el próximo'}</b><span class="barra-t"><i style="width:${Math.round(100*(kc-fc)/kc)}%;background:#8B5CF6"></i></span></div></div>
+  <div class="album-cab"><div><h1 class="tit">Álbum de muñecos</h1><p class="sub">Cada ${kc} ⭐ ganas un muñeco nuevo o una evolución, y <b>tú eliges</b> qué muñeco evoluciona.</p></div>
+    <div class="contador">🐾<div><b>${base} de ${CRIATURAS.length}</b><br><span>${evos} ${evos===1?'evolución':'evoluciones'} de ${totEvos}${leyendas?` · ${leyendas} 🌈`:''}</span></div></div></div>
+  ${evoPendienteHTML(p)}
+  <div class="card fases-explica"><b>Las fases</b><span class="fases-lista">${[1,2,3,4,5,6].map(f=>`<span><i class="f${f}">${'★'.repeat(f)}</i>${f===1?'Normal':FORMAS[f].n}</span>`).join('')}</span><span class="nota">Legendario: lee 7 días seguidos y elige uno de tus muñecos Giga.</span></div>
+  <div class="card album-prog"><span class="emo-g">🎁</span><div class="tx"><b>${fc===1?'¡Te falta 1 ⭐ para el próximo!':'Te faltan '+fc+' ⭐ para el próximo'}${st.sig==='evo'?' (¡será una evolución!)':st.sig==='nuevo'?' (¡un muñeco nuevo!)':''}</b><span class="barra-t"><i style="width:${Math.round(100*(kc-fc)/kc)}%;background:#8B5CF6"></i></span></div></div>
   <div class="cri-grid">${CRIATURAS.map(c=>tengo.has(c.id)
-    ? (()=>{ const f=formaDe(c), cf=criatura(f>1?c.id+'@'+f:c.id); return `<button type="button" class="cri-hueco tengo ${c.rareza===3||f===3?'rara':''}" data-cri="${c.id}"><span class="num">${c.n}</span>${criaturaSVG(cf)}<b>${esc(cf.nombre)}</b>${puntos(f)}</button>`; })()
+    ? (()=>{ const f=formaDe(c), cf=criatura(f>1?c.id+'@'+f:c.id); return `<button type="button" class="cri-hueco tengo ${c.rareza===3||f>=3?'rara':''}${f>=6?' leyenda':''}" data-cri="${c.id}"><span class="num">${c.n}</span>${criaturaSVG(cf)}<b>${esc(cf.nombre)}</b>${estrellasForma(f)}</button>`; })()
     : `<div class="cri-hueco"><span class="num">${c.n}</span>${criaturaSVG(c,{silueta:true})}<b class="nota">¿?</b></div>`).join('')}</div>
   <h2 class="sub-album">Muñecos especiales de fiesta</h2><p class="nota">Solo se consiguen en su fiesta: lee las historias especiales de esos días.</p>
   <div class="cri-grid">${especiales().map(c=>tengo.has(c.id)
     ? `<button type="button" class="cri-hueco tengo rara" data-cri="${c.id}"><span class="num">★</span>${criaturaSVG(c)}<b>${esc(c.nombre)}</b></button>`
     : `<div class="cri-hueco esp"><span class="num">★</span>${criaturaSVG(c,{silueta:true})}<b class="nota">${esc(typeof nombreTemporada==='function'?nombreTemporada(c.temporada):'')}</b></div>`).join('')}</div>`;
   activarAlbumTabs();
-  $$('#s-criaturas [data-cri]').forEach(b=>b.onclick=()=>{ const c=criatura(b.dataset.cri), T=TIPOS_CRIATURA[c.tipo];
-    const fs=[1,2,3].filter(i=>i===1||tengo.has(c.id+'@'+i)).map(i=>criatura(i>1?c.id+'@'+i:c.id)); const ult=fs[fs.length-1];
-    const falta = c.especial ? '' : fs.length<3 ? `<p class="nota">${fs.length===1?`Cuando evolucione será ${esc(FORMAS[2].pre)} ${esc(c.nombre)}.`:`Todavía le queda ser ${esc(FORMAS[3].pre)} ${esc(c.nombre)}.`}</p>` : '<p class="nota">¡Ya tiene todas sus formas!</p>';
-    dialogo({cls:'dlg-premio', html:`<div class="cri-formas">${fs.map(x=>`<div class="cri-carta ${c.rareza===3||x.forma===3?'rara':''}">${criaturaSVG(x)}<b>${esc(x.nombre)}</b></div>`).join('<span class="flecha-evo">➜</span>')}</div><span class="nota">${T.emo} Tipo ${T.n} · ${'★'.repeat(c.rareza)}</span><p class="nota">${esc(T.frase)}</p>${falta}`, botones:[{t:'Cerrar', cls:'btn-p'}]});
+  $$('#s-criaturas [data-cri]').forEach(b=>b.onclick=()=>{ const c=criatura(b.dataset.cri), T=TIPOS_CRIATURA[c.tipo], f=c.especial?1:formaDe(c);
+    const fs=Array.from({length:f},(_,i)=>criatura(i?c.id+'@'+(i+1):c.id)); const ult=fs[fs.length-1];
+    const falta = c.especial ? '' : f<FORMA_MAX_NORMAL ? `<p class="nota">Cuando evolucione será <b>${esc(nombreForma(c.nombre,f+1))}</b>.</p>` : f===FORMA_MAX_NORMAL ? `<p class="nota">Para ser <b>${esc(nombreForma(c.nombre,FORMA_MAX))}</b>: lee 7 días seguidos.</p>` : '<p class="nota">🌈 ¡Es Legendario! Ya tiene todas sus fases.</p>';
+    dialogo({cls:'dlg-premio dlg-fases', html:`<div class="cri-formas">${fs.map(x=>`<div class="cri-carta ${c.rareza===3||(x.forma||1)>=3?'rara':''}${(x.forma||1)>=6?' leyenda':''}">${criaturaSVG(x)}<b>${esc(x.nombre)}</b></div>`).join('<span class="flecha-evo">➜</span>')}</div>${c.especial?'':estrellasForma(f)}<span class="nota">${T.emo} Tipo ${T.n} · ${'★'.repeat(c.rareza)}</span><p class="nota">${esc(T.frase)}</p>${falta}`, botones:[{t:'Cerrar', cls:'btn-p'}]});
     decir(`${ult.nombre}. Tipo ${T.n.toLowerCase()}. ${T.frase}`); });
 }});
 /* pestañas de los dos álbumes */

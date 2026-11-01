@@ -47,3 +47,44 @@ definir('cambiar', {nav:'cromos', pintar(conId){
         guardarAj(); sonido('cromo'); cambioSel={da:null, recibe:null}; ir('cambiar'); confeti($('#s-cambiar')); decir(`¡Cambio hecho! ${yo.nombre} y ${otro.nombre} tienen un cromo nuevo.`); }},
         {t:'No, ahora no', cls:'btn'}]}); };
 }});
+
+/* ---------- 8.5 (1/11/2026) · marcos de los cromos al releer mejor ----------
+   Pedido por José Luis. Cada vez que vuelve a leer una historia MEJOR que nunca (al menos un 10 % y 2 palabras por minuto
+   más rápido, o con menos palabras con ayuda sin ir más lento), su cromo sube de marco:
+   normal → bronce → plata → oro → brillante. Releer es lo que más ayuda a leer con soltura.
+   Solo cuentan las relecturas desde el 2/11/2026; las de antes sirven para saber cuál era su mejor lectura.
+   Se calcula de las lecturas guardadas (nada nuevo que juntar entre aparatos). Los repes para cambiar siguen igual. */
+const MARCOS = [{n:'', t:'Sin marco', emo:'🃏'}, {n:'bronce', t:'Bronce', emo:'🥉'}, {n:'plata', t:'Plata', emo:'🥈'}, {n:'oro', t:'Oro', emo:'🥇'}, {n:'brillante', t:'Brillante', emo:'💎'}];
+const MARCO_MAX = MARCOS.length-1;
+const CORTE_MARCOS = new Date('2026-11-02T00:00:00');
+/* hid: historia; extra: la lectura que se está terminando (aún sin guardar); excluir: id de lectura que no cuenta */
+function marcoInfo(p, hid, {extra=null, excluir=null}={}){
+  let ss=sesDe(p.id).filter(s=>s.historiaId===hid && !s.incompleta && s.id!==excluir && (!extra || s.id!==extra.id));
+  if(extra) ss.push(extra);
+  ss.sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha)));
+  const ayudas = s => (Array.isArray(s.palabras) && s.palabras.length && !s.juntos) ? s.palabras.filter(x=>x && x.e==='ayuda').length : null;
+  const ppmDe = s => (s.ppm>0 && s.ppm<=200 && s.auto && !s.desdePalabra && !s.juntos) ? s.ppm : null;
+  let marco=0, bestP=null, bestA=null, ultima=null;
+  ss.forEach((s,i)=>{
+    const pp=ppmDe(s), a=ayudas(s);
+    if(i>0 && marco<MARCO_MAX && +new Date(s.fecha)>=+CORTE_MARCOS){
+      const rapido = pp!=null && bestP!=null && pp>=bestP*1.1 && pp-bestP>=2;
+      const ayuda = a!=null && bestA!=null && a<bestA && (pp==null || bestP==null || pp>=bestP*0.9);
+      if(rapido || ayuda){ marco++; ultima={id:s.id, por: rapido?'rapido':'ayuda', antes: rapido?bestP:bestA, hoy: rapido?pp:a, marco}; }
+    }
+    if(pp!=null) bestP=Math.max(bestP||0, pp);
+    if(a!=null) bestA = bestA==null ? a : Math.min(bestA, a);
+  });
+  return {marco, ultima, veces:ss.length};
+}
+const marcoDe = (p, hid) => marcoInfo(p, hid).marco;
+const marcoClase = m => m>0 ? ' marco-'+MARCOS[m].n : '';
+const marcoChip = m => m>0 ? `<span class="marco-chip">${MARCOS[m].emo}</span>` : '';
+/* mensaje del final de la historia cuando el cromo sube de marco (o lo que le falta para el siguiente) */
+function marcoFinHTML(p, h, s){
+  const antes=marcoInfo(p, h.id, {excluir:s.id}).marco, ahora=marcoInfo(p, h.id, {extra:s});
+  if(ahora.marco>antes && ahora.ultima && ahora.ultima.id===s.id){ const M=MARCOS[ahora.marco], u=ahora.ultima;
+    return {sube:M, html:`<p class="marco-sube">${M.emo} ¡Tu cromo ahora tiene <b>marco de ${M.t.toLowerCase()}</b>! ${u.por==='rapido'?`Hoy la has leído más rápido: antes ${u.antes} palabras por minuto, hoy ${u.hoy}.`:`Hoy has necesitado menos ayuda: antes ${u.antes} ${u.antes===1?'palabra':'palabras'}, hoy ${u.hoy}.`}</p>`}; }
+  if(ahora.marco<MARCO_MAX) return {sube:null, html:`<p class="nota marco-pista">${MARCOS[ahora.marco+1].emo} Si la vuelves a leer más rápido o con menos ayuda, tu cromo tendrá marco de ${MARCOS[ahora.marco+1].t.toLowerCase()}.</p>`};
+  return {sube:null, html:''};
+}

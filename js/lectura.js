@@ -369,10 +369,12 @@ definir('cromonuevo', {nav:'cromos', pintar(){
   const TA=temaDeMundo(h.mundo)||{id:h.mundo, nombre:m.nombre, emo:'⭐'}; const hsA=historiasTema(TA.id); const lA=leidas(); const nA=hsA.filter(x=>lA[x.id]||x.id===h.id).length; const albumCompleto=eraNueva && hsA.length>0 && nA===hsA.length;
   sesion.aciertos=sesion.preguntas.filter(p=>p.ok).length;
   const mejora = eraNueva ? null : mejoraRelectura(h, sesion);
+  const mf = (!eraNueva && typeof marcoFinHTML==='function') ? marcoFinHTML(perfil(), h, sesion) : {sube:null, html:''};
+  const mAhora = typeof marcoInfo==='function' ? marcoInfo(perfil(), h.id, {extra:sesion}).marco : 0;
   const T=pasos(); const miAudio = audioBlob || (sesion.audio ? '/api/audio/'+sesion.id : null);
   $('#s-cromonuevo').innerHTML = `<div class="card" style="padding:20px 26px 6px">${cabPaso(T, {t: eraNueva?'Tu nuevo cromo':'Historia terminada', cls:'verde'})}</div>
-  <div class="card cromo-g" id="cromoCaja" style="margin-top:-10px;border-top-left-radius:0;border-top-right-radius:0"><div class="carta"><div class="ft">${imgHTML(h.portada,true)}</div><div class="pie"><b>${esc(conNombre(h.titulo))}</b><span>${TA.emo} ${esc(TA.nombre)} · ${nA} de ${hsA.length}</span></div></div>
-    <div class="tx"><h1>${eraNueva?'¡Nuevo cromo!':'¡Muy bien!'}</h1><p class="sub">${albumCompleto?`🏆 ¡Has completado el álbum de ${esc(TA.nombre)}!`:eraNueva?`Has aprendido sobre ${esc(m.nombre.toLowerCase())}.`:'¡Cromo repetido! Ya tenías este, así que te llevas un repe para cambiar con otro niño.'}</p>${typeof esfuerzoHTML==='function'?esfuerzoHTML():''}
+  <div class="card cromo-g" id="cromoCaja" style="margin-top:-10px;border-top-left-radius:0;border-top-right-radius:0"><div class="carta${typeof marcoClase==='function'?marcoClase(mAhora):''}"><div class="ft">${imgHTML(h.portada,true)}</div><div class="pie"><b>${esc(conNombre(h.titulo))}</b><span>${TA.emo} ${esc(TA.nombre)} · ${nA} de ${hsA.length}</span></div></div>
+    <div class="tx"><h1>${eraNueva?'¡Nuevo cromo!':'¡Muy bien!'}</h1><p class="sub">${albumCompleto?`🏆 ¡Has completado el álbum de ${esc(TA.nombre)}!`:eraNueva?`Has aprendido sobre ${esc(m.nombre.toLowerCase())}.`:'¡Cromo repetido! Ya tenías este, así que te llevas un repe para cambiar con otro niño.'}</p>${mf.html}${typeof esfuerzoHTML==='function'?esfuerzoHTML():''}
       ${typeof fluidezHTML==='function' ? fluidezHTML(h, sesion, eraNueva) : (mejora?`<p class="mejora-rel">🚀 ¡Hoy la has leído más rápido! La otra vez, ${mejora.antes} palabras por minuto; hoy, ${mejora.hoy}.</p>`:'')}
       <div class="res-mini"><span class="chip">Preguntas ${sesion.aciertos} de ${sesion.totalPreguntas}</span>${teleChipHTML(sesion)}${typeof estrellasChipHTML==='function'?estrellasChipHTML(sesion):''}${sesion.calculo?`<span class="chip">Números ${sesion.calculo.ok?'✓':'con ayuda'}</span>`:''}<span class="chip">${sesion.segundos<60?sesion.segundos+' segundos':mmss(sesion.segundos)+' min'}</span></div>
       ${miAudio?`<button class="btn btn-verde btn-g btn-bloque" type="button" id="btnEscucharme">${ic('altavoz')} Escucharme</button>`:''}
@@ -383,10 +385,10 @@ definir('cromonuevo', {nav:'cromos', pintar(){
   if(miAudio) $('#btnEscucharme').onclick=()=>sonarAudio(miAudio);
   if(typeof activarOrdenarBoton==='function') activarOrdenarBoton(h);
   if(typeof registrarPruebaNivel==='function') registrarPruebaNivel(sesion);
-  if(eraNueva){ confeti($('#cromoCaja')); sonido('cromo'); }
+  if(eraNueva || mf.sube){ confeti($('#cromoCaja')); sonido('cromo'); }
   coleccion=TA.id;
   if(albumCompleto){ setTimeout(()=>{ confeti($('#cromoCaja')); sonido('bien'); }, 1600); }
-  decir(albumCompleto ? `¡Nuevo cromo, ${nombre()}! ¡Y has completado el álbum de ${TA.nombre}!` : eraNueva ? `¡Nuevo cromo, ${nombre()}! ${conNombre(h.titulo)}.` : mejora ? `¡Muy bien, ${nombre()}! Hoy la has leído más rápido que la otra vez. ¡Practicar funciona!` : `¡Muy bien, ${nombre()}! Has terminado la historia.`);
+  decir(albumCompleto ? `¡Nuevo cromo, ${nombre()}! ¡Y has completado el álbum de ${TA.nombre}!` : eraNueva ? `¡Nuevo cromo, ${nombre()}! ${conNombre(h.titulo)}.` : mf.sube ? `¡Muy bien, ${nombre()}! Tu cromo ahora tiene marco de ${mf.sube.t.toLowerCase()}. ¡Practicar funciona!` : mejora ? `¡Muy bien, ${nombre()}! Hoy la has leído más rápido que la otra vez. ¡Practicar funciona!` : `¡Muy bien, ${nombre()}! Has terminado la historia.`);
   delete sesion.incompleta; guardarSesionActual().then(()=>setTimeout(()=>{ if(actual==='cromonuevo') comprobarPremios(); }, albumCompleto?3600:2600));
 }});
 /* al volver a leer una historia: si hoy ha ido más rápido que la última vez, se le dice (solo lo bueno; con lecturas oídas por el programa) */

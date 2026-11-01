@@ -94,12 +94,16 @@ const hitosCada = (p, clave) => hitosEstrellas(p, clave, R=>cadaK(R[clave]));   
 function progresoCada(p, clave){ const h=hitosCada(p, clave), k=Math.max(1,h.n||1), falta=Math.max(1, (h.sig==null?h.est+k:h.sig)-h.est); return {falta, hecho:Math.max(0,k-falta), k}; }
 
 /* ---------- muñecos: criaturas nuevas y sus evoluciones ---------- */
-const FORMAS = {2:{pre:'Súper', n:'Súper'}, 3:{pre:'Mega', n:'Mega'}};
-/* criatura u objeto evolucionado a partir de «id» o «id@2» / «id@3» */
+/* 8.5 (1/11/2026, pedido por José Luis): 6 fases. Una palabra nueva en cada fase para que se distingan y las lea él:
+   Fueguín → Súper Fueguín → Mega Fueguín → Ultra Fueguín → Giga Fueguín → Fueguín Legendario */
+const FORMAS = {2:{pre:'Súper', n:'Súper'}, 3:{pre:'Mega', n:'Mega'}, 4:{pre:'Ultra', n:'Ultra'}, 5:{pre:'Giga', n:'Giga'}, 6:{post:'Legendario', n:'Legendario'}};
+const FORMA_MAX = 6, FORMA_MAX_NORMAL = 5;   // Legendario solo leyendo 7 días seguidos
+const nombreForma = (nombre, f) => f>1 && FORMAS[f] ? (FORMAS[f].post ? nombre+' '+FORMAS[f].post : FORMAS[f].pre+' '+nombre) : nombre;
+/* criatura u objeto evolucionado a partir de «id» o «id@2» … «id@6» */
 function criaturaForma(id){
   const [bid, f]=String(id).split('@'); const b=todasCriaturas().find(c=>c.id===bid); if(!b) return null;
-  const forma=+f||1; if(forma===1) return b;
-  return {...b, id:bid+'@'+forma, base:bid, forma, nombre:FORMAS[forma].pre+' '+b.nombre};
+  const forma=Math.min(FORMA_MAX, +f||1); if(forma===1) return b;
+  return {...b, id:bid+'@'+forma, base:bid, forma, nombre:nombreForma(b.nombre, forma)};
 }
 const munecosBase0 = p => Math.floor(actividadesAntesCorte(p)/cadaK(premiosCfg().criatura));
 /* el orden de los muñecos: primero los que ya tenía; después, alternando nuevos y evoluciones (las de 3.ª forma al final de cada ronda) */
@@ -185,13 +189,13 @@ function estrellasHTML(conSobre=true){   // 31/10: en la pestaña Premios el sob
   const p=perfil(); if(p.prueba) return '';
   const cfg=premiosCfg(), est=estrellasDe(p), kc=cadaK(cfg.estCriatura), kj=cadaK(cfg.estJuego);
   const fc=progresoCada(p,'estCriatura').falta, fj=juegosAbiertos(p)>=(typeof JUEGOS!=='undefined'?JUEGOS.length:0) ? null : progresoCada(p,'estJuego').falta;
-  const sd=sobreDelDia(p), sigId=typeof siguienteMuneco==='function' ? siguienteMuneco(p) : secuenciaMunecos(p)[munecosHasta(p)], sig=sigId ? criaturaForma(sigId) : null;
-  const sigTxt = !sig ? '¡Los tienes todos!' : sig.forma>1 ? '¡Toca una evolución!' : 'Un muñeco nuevo';
+  const sd=sobreDelDia(p), sig=siguienteMuneco(p);
+  const sigTxt = !sig ? '¡Los tienes todos!' : sig==='evo' ? '¡Toca una evolución! Tú eliges cuál' : 'Un muñeco nuevo';
   const barra=(v,k,col)=>`<span class="barra-t"><i style="width:${Math.round(100*v/k)}%;background:${col}"></i></span>`;
   const ok=b=>b?'✅':'⬜';
   const sobre = conSobre && sd.activo ? `<div class="premio sobre-dia${sd.sorpresa?' sorpresa':''}${sd.ganado?' gana':''}"><span class="emo-g">${sd.sorpresa?'🎁':'🎴'}</span><div class="tx"><b>${sd.ganado?'¡Sobre de hoy conseguido!':sd.lleno?`¡Ya tienes los ${sd.semana.tope} sobres de esta semana!`:sd.sorpresa?'¡Hoy es día sorpresa!':'Sobre de cartas de hoy'}</b>
       <span class="nota">${sd.ganado?'Pídeselo a papá o a mamá.':sd.lleno?'El sábado empiezan otros.':`${ok(sd.dia)} La historia de hoy · ${ok(sd.extras>=sd.meta)} ${Math.min(sd.extras,sd.meta)} de ${sd.meta} lecturas extra`}</span>${sd.ganado||sd.lleno?'':barra(Math.min(sd.meta+1,(sd.dia?1:0)+Math.min(sd.extras,sd.meta)), sd.meta+1, '#E11D48')}</div></div>` : '';
-  return `<div class="card premios estrellas-card"><div class="estrellas-cab"><span class="est-n">⭐ ${est}</span><span class="nota">estrellas desde el 24 de octubre</span>${typeof rachaHTML==='function'?rachaHTML():''}</div>
+  return `${typeof evoPendienteHTML==='function'?evoPendienteHTML(p):''}<div class="card premios estrellas-card"><div class="estrellas-cab"><span class="est-n">⭐ ${est}</span><span class="nota">estrellas desde el 24 de octubre</span>${typeof rachaHTML==='function'?rachaHTML():''}</div>
     <div class="premio" data-ir="criaturas"><span class="emo-g">🐾</span><div class="tx"><b>Próximo muñeco · ${esc(sigTxt)}</b><span class="nota">${fc===1?'¡Te falta 1 ⭐!':'Te faltan '+fc+' ⭐'}</span>${barra(kc-fc,kc,'#8B5CF6')}</div></div>
     <div class="premio" data-ir="juegos"><span class="emo-g">🎮</span><div class="tx"><b>${fj==null?'¡Tienes todos los juegos!':'Próximo juego'}</b><span class="nota">${fj==null?'Juega un ratito cuando acabes.':fj===1?'¡Te falta 1 ⭐!':'Te faltan '+fj+' ⭐'}</span>${fj==null?'':barra(kj-fj,kj,'#F5A300')}</div></div>
     ${sobre}</div>`;
