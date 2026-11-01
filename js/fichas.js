@@ -15,6 +15,7 @@ const fraseBien = l => { const a=FRASE.bien[l]||FRASE.bien.es; return a[Math.flo
 async function cargarFichas(){ try{ FICHAS=await api('/api/fichas'); if(!Array.isArray(FICHAS)) FICHAS=[]; }catch(e){ FICHAS=[]; } }
 async function guardarFichas(){ aj.fichasMod=Date.now(); guardarAj(); await postJSON('/api/fichas', FICHAS); }
 const imgPalabra = (p, grande) => p.img ? imgHTML(p.img, grande) : '<span class="emo">🖼️</span>';
+const articulo = t => /^[aeiou]/i.test(t) ? 'an' : 'a';
 /* 19/10: la familia pidió cambiar las fotos de la ficha «Plants» por las de la hoja nueva coloreada (van con el programa, en fichas/plants/).
    Se hace una sola vez y solo si la ficha sigue con sus fotos de antes; las imágenes antiguas no se borran (se guardan con otro nombre). */
 async function actualizarFichasDeSerie(){
@@ -38,7 +39,25 @@ const FICHAS_NUEVAS = [
     ['pencilcase','pencil case','estuche','Pencil case'], ['pencil','pencil','lápiz','Pencil case'], ['pen','pen','bolígrafo','Pencil case'], ['crayon','crayon','cera','Pencil case'],
     ['rubber','rubber','goma','Pencil case'], ['ruler','ruler','regla','Pencil case'], ['sharpener','pencil sharpener','sacapuntas','Pencil case'], ['book','book','libro','Pencil case'],
     ['board','board','pizarra','Classroom'], ['desk','desk','mesa','Classroom'], ['computer','computer','ordenador','Classroom'], ['chair','chair','silla','Classroom']
-  ].map(([id,t,es,g])=>({id, t, es, g, img:'fi_school_'+id}))}
+  ].map(([id,t,es,g])=>({id, t, es, g, img:'fi_school_'+id}))},
+  /* 1/11/2026: hoja «School and family» (Social Science 1). 32 palabras en 6 grupos, con los dibujos de la hoja limpia que
+     mandó la familia. Muchas no son cosas (get up, happy, we help): cada una lleva su pregunta (q) y su frase (fr) para el
+     repaso, y solo las que son cosas o sitios salen en «Is it a…?». Sus ejercicios (y los de todas las fichas) están en aprendeficha.js. */
+  {id:'family', titulo:'School and family', idioma:'en', frases:true, fotos:['fi_fam_h1','fi_fam_h2'], creada:'2026-11-01T18:00:00', palabras:[
+    ['classroom','classroom','aula','School and jobs','a'], ['gym','gym','gimnasio','School and jobs','a'], ['playground','playground','patio de recreo','School and jobs','a'],
+    ['canteen','canteen','comedor','School and jobs','a'], ['library','library','biblioteca','School and jobs','a'], ['teacher','teacher','profesora','School and jobs','Who is she?',"She's a teacher."],
+    ['grandad','grandad','abuelo','Family members','f'], ['grandma','grandma','abuela','Family members','f'], ['mum','mum','mamá','Family members','f'],
+    ['dad','dad','papá','Family members','f'], ['brother','brother','hermano','Family members','f'], ['sister','sister','hermana','Family members','f'],
+    ['kitchen','kitchen','cocina','Home and chores','a'], ['livingroom','living room','salón','Home and chores','a'], ['bedroom','bedroom','dormitorio','Home and chores','a'],
+    ['bathroom','bathroom','baño','Home and chores','a'], ['tidyup','tidy up','ordenar','Home and chores','What do you do?','I tidy up.'], ['makethebed','make the bed','hacer la cama','Home and chores','What do you do?','I make the bed.'],
+    ['getup','get up','levantarse','Daily routines','What do you do?','I get up.'], ['gotoschool','go to school','ir al colegio','Daily routines','What do you do?','I go to school.'],
+    ['havelunch','have lunch','comer','Daily routines','What do you do?','I have lunch.'], ['homework','do homework','hacer los deberes','Daily routines','What do you do?','I do homework.'],
+    ['shower','shower','ducharse','Daily routines','What do you do?','I have a shower.'], ['play','play','jugar','Daily routines','What do you do?','I play.'],
+    ['wehelp','we help','ayudamos','Living together','What do we do?','We help.'], ['weshare','we share','compartimos','Living together','What do we do?','We share.'], ['taketurns','we take turns','nos turnamos','Living together','What do we do?','We take turns.'],
+    ['happy','happy','feliz','My emotions','e'], ['angry','angry','enfadado','My emotions','e'], ['sad','sad','triste','My emotions','e'], ['surprised','surprised','sorprendido','My emotions','e'], ['scared','scared','asustado','My emotions','e']
+  ].map(([id,t,es,g,q,fr])=>{ const p={id, t, es, g, img:'fi_fam_'+id};
+    if(q==='a'){ p.q="What's this?"; p.fr=`It's ${articulo(t)} ${t}.`; } else if(q==='f'){ p.q='Who is this?'; p.fr=`It's my ${t}.`; } else if(q==='e'){ p.q='How do you feel?'; p.fr=`I'm ${t}.`; } else { p.q=q; p.fr=fr; }
+    return p; })}
 ];
 async function anadirFichasNuevas(){
   aj.fichasSerie=aj.fichasSerie||[]; let n=0;
@@ -50,8 +69,11 @@ async function anadirFichasNuevas(){
   }
   if(n) await guardarFichas(); return n;
 }
-const articulo = t => /^[aeiou]/i.test(t) ? 'an' : 'a';
-const esLo = (f,p,l) => f.frases && l==='en' ? `It's ${articulo(p.t)} ${p.t}.` : FRASE.es[l](p.t);
+/* frase de la respuesta: la propia de la palabra (fr) o «It's a…» en las fichas con frases */
+const fraseDe = (f,p,l) => l==='en' && p.fr ? p.fr : f.frases && l==='en' ? `It's ${articulo(p.t)} ${p.t}.` : null;
+const esLo = (f,p,l) => fraseDe(f,p,l) || FRASE.es[l](p.t);
+/* «Is it a…? Yes, it is / No, it isn't» solo con cosas y sitios (no con get up, happy o we help) */
+const admiteSino = p => !p.fr || /^It's an? /.test(p.fr);
 
 /* ---------- repaso espaciado (cajas de Leitner) ---------- */
 const DIAS_CAJA=[0,1,2,4,7,14];
@@ -98,7 +120,7 @@ function empezarRepaso(fichaId){
   if(!items.length){ ir('repaso'); return; }
   rep={items, i:0, res:[], intentos:0}; ir('repasoitem');
 }
-const modoDe = it => (!it.e || it.e.c===0) ? 'toca' : (it.f.frases && it.e.c===1) ? 'sino' : 'di';
+const modoDe = it => (!it.e || it.e.c===0) ? 'toca' : (it.f.frases && it.e.c===1 && admiteSino(it.p)) ? 'sino' : 'di';
 definir('repasoitem', {nav:'repaso', pintar(){
   const it=rep.items[rep.i]; const f=it.f, p=it.p, l=f.idioma||'es'; const id=IDIOMAS[l]||IDIOMAS.es; it.modo=it.modo||modoDe(it);
   const cab=`<div class="paso-cab"><span class="pill">${id.bandera} ${esc(f.titulo)} · ${id.propio}</span><span class="der">${rep.i+1} de ${rep.items.length}<span class="barra-paso"><i style="width:${Math.round(100*(rep.i+1)/rep.items.length)}%"></i></span></span></div>`;
@@ -117,7 +139,7 @@ definir('repasoitem', {nav:'repaso', pintar(){
         if(rep.intentos>=2){ const k=it.ops.findIndex(x=>x.ok); const bb=$(`#s-repasoitem .op[data-i="${k}"]`); bb.classList.add('bien'); bb.querySelector('.et').style.visibility='visible'; $$('#s-repasoitem .op').forEach(x=>x.disabled=true); setTimeout(()=>decir(esLo(f,p,l), l), 900); resultado(false); } } });
   } else if(it.modo==='sino'){
     // «Is it a ruler?» → «Yes, it is.» / «No, it isn't.» (como en la ficha del cole)
-    if(!it.q){ const otros=f.palabras.filter(q=>q.id!==p.id); it.q = Math.random()<.5 || !otros.length ? p : otros[Math.floor(Math.random()*otros.length)]; }
+    if(!it.q){ const otros=f.palabras.filter(q=>q.id!==p.id && admiteSino(q)); it.q = Math.random()<.5 || !otros.length ? p : otros[Math.floor(Math.random()*otros.length)]; }
     const q=it.q, si=q.id===p.id, preg=`Is it ${articulo(q.t)} ${q.t}?`;
     $('#s-repasoitem').innerHTML = `<div class="card preg">${cab}<div class="di-grid"><div class="di-ft">${imgPalabra(p,true)}</div>
       <div class="di-tx"><h2 style="text-align:left;margin:0">${esc(preg)}</h2><button class="ico-btn" type="button" id="rpOir" aria-label="Escuchar la pregunta">${ic('altavoz')}</button>
@@ -130,7 +152,7 @@ definir('repasoitem', {nav:'repaso', pintar(){
       if(ok){ b.classList.add('bien'); sonido('bien'); decirVarias([[fraseBien('en'),'en'],[res,'en']]); } else { b.classList.add('mal'); sonido('mal'); decir(res,'en'); }
       resultado(ok); });
   } else {
-    const pregunta = l==='es' ? FRASE.queEs.es : l==='gl' ? `Como se di «${p.es||'?'}» en galego?` : f.frases ? "What's this?" : `How do you say «${p.es||'?'}» in English?`;
+    const pregunta = l==='es' ? FRASE.queEs.es : l==='gl' ? `Como se di «${p.es||'?'}» en galego?` : p.q ? p.q : f.frases ? "What's this?" : `How do you say «${p.es||'?'}» in English?`;
     $('#s-repasoitem').innerHTML = `<div class="card preg">${cab}<div class="di-grid"><div class="di-ft">${imgPalabra(p,true)}</div>
       <div class="di-tx"><h2 style="text-align:left;margin:0">${esc(pregunta)}</h2><button class="ico-btn" type="button" id="rpOir" aria-label="Escuchar la pregunta">${ic('altavoz')}</button>
         <button class="btn btn-p btn-xl" type="button" id="rpHablar">${ic('mic')} Responder</button><div class="medidor" id="rpMed" hidden>${'<i></i>'.repeat(12)}</div>
@@ -164,8 +186,8 @@ definir('repasoitem', {nav:'repaso', pintar(){
     function mostrarRespuesta(ok){
       pararEscucha(); $('#rpHablar').hidden=true; $('#rpBotones').innerHTML='';
       const est=$('#rpEstado'); est.className='estado-mic '+(ok?'ok':''); est.innerHTML = `<span class="respuesta-g">${esc(p.t)}</span>`;
-      const frase = f.frases && l==='en' ? `It's ${articulo(p.t)} ${p.t}.` : p.t;
-      if(f.frases && l==='en') est.innerHTML = `<span class="respuesta-g">${esc(frase)}</span>`;
+      const frase = fraseDe(f,p,l) || p.t;
+      if(fraseDe(f,p,l)) est.innerHTML = `<span class="respuesta-g">${esc(frase)}</span>`;
       if(ok){ sonido('bien'); decirVarias([[fraseBien(l),l],[frase,l]]); } else { decirVarias([[esLo(f,p,l),l],[FRASE.repite[l](frase),l]]); }
       resultado(ok);
     }

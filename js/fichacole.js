@@ -25,19 +25,29 @@ const TRABAJOS_COLE = [
 ];
 const primeraVezCole = t => !(cfgDe(perfil()).trabajosLog||[]).some(x=>x.t===t);
 const hechoHoyCole = paso => { const c=cfgDe(perfil()), hoy=claveDia(new Date());
+  if(paso.rep) return (c.repasoLog||[]).some(x=>claveDia(x.f)===hoy && (x.fichas||[]).includes(paso.rep));
   if(paso.cali) return (c.caliLog||[]).some(x=>claveDia(x.f)===hoy && (x.items||[]).map(i=>i.t).join(',')===paso.cali);
   return (c.trabajosLog||[]).some(x=>claveDia(x.f)===hoy && x.t===paso.id); };
 /* palabras sencillas con foto (para las variantes) */
 function palabrasCole(){ return Object.entries(CONT.palabras||{}).filter(([p,k])=>/^[a-záéíóúñ]{3,7}$/.test(p) && CONT.fotos[k] && sinTildeC(p)===k && !/[kwxy]|qu|gu|ch|ll|rr/.test(p)).map(([p,k])=>({p,k})); }
 
+/* fichas del cole hechas en el programa: la de vocales y las de «Aprende la ficha» (aprendeficha.js), una por cada ficha
+   de palabras. Primero las nuevas (obligatorias), luego la de vocales y al final las antiguas, para practicar. */
+const listaFichasCole = () => { const A=typeof aprFichas==='function' ? aprFichas() : [];
+  return [...A.filter(F=>F.obligatoria), FICHA_COLE, ...A.filter(F=>!F.obligatoria)]; };
+/* la que toca ahora: la primera que aún es nueva (pestanas.js › fichaColeEstado); si no, la primera */
+const fichaColeDeHoy = () => listaFichasCole().find(f=>f.obligatoria!==false && (typeof fichaColeEstado!=='function' || fichaColeEstado(perfil(), f))) || listaFichasCole()[0];
+function abrirPasoCole(paso){ if(paso.rep) empezarRepaso(paso.rep); else if(paso.cali) ir('caligrafia', 'lista:'+paso.cali); else ir('trabajo', paso.id); }
+
 /* tarjeta en Fichas y en Inicio */
 function fichaColeHTML(enInicio){
-  const f=FICHA_COLE, hechos=f.pasos.filter(hechoHoyCole).length;
-  if(enInicio) return `<button class="acceso ficha-cole-c" type="button" data-ir="repaso"><span class="emo-g">📄</span><span><b>Ficha nueva del cole: ${esc(f.titulo)}</b><span class="nota">Une, subraya, colorea, completa y repasa en ligada. Hoy: ${hechos} de ${f.pasos.length}.</span></span><span class="ir">${ic('dcha')}</span></button>`;
-  return `<div class="card bloque ficha-cole"><div><b style="font-size:1.4rem">📄 Ficha del cole: ${esc(f.titulo)}</b><p class="nota">Como la hoja de clase. Cada parte terminada da ⭐ y minutos de tele. Hoy: ${hechos} de ${f.pasos.length}.</p></div>
-    <div class="trabajos-grid">${f.pasos.map((p,i)=>`<button type="button" class="trabajo-c${hechoHoyCole(p)?' hecho':''}" data-cole="${i}"><span class="emo-j">${hechoHoyCole(p)?'✅':p.emo}</span><b>${i+1}. ${esc(p.t)}</b></button>`).join('')}</div></div>`;
+  if(enInicio){ const f=fichaColeDeHoy(), hechos=f.pasos.filter(hechoHoyCole).length;
+    return `<button class="acceso ficha-cole-c" type="button" data-ir="repaso"><span class="emo-g">${f.emo||'📄'}</span><span><b>Ficha nueva del cole: ${esc(f.titulo)}</b><span class="nota">${esc(f.resumen||'Une, subraya, colorea, completa y repasa en ligada.')} Hoy: ${hechos} de ${f.pasos.length}.</span></span><span class="ir">${ic('dcha')}</span></button>`; }
+  return listaFichasCole().map(f=>{ const hechos=f.pasos.filter(hechoHoyCole).length;
+    return `<div class="card bloque ficha-cole"><div><b style="font-size:1.4rem">${f.emo||'📄'} ${f.fid?'Aprende la ficha':'Ficha del cole'}: ${esc(f.titulo)}</b><p class="nota">${f.fid?(f.obligatoria?'Ficha nueva: hazla entera.':'Para practicar cuando quieras.'):'Como la hoja de clase.'} Cada parte terminada da ⭐ y minutos de tele. Hoy: ${hechos} de ${f.pasos.length}.</p></div>
+    <div class="trabajos-grid">${f.pasos.map((p,i)=>`<button type="button" class="trabajo-c${hechoHoyCole(p)?' hecho':''}" data-cole="${esc(f.id)}:${i}"><span class="emo-j">${hechoHoyCole(p)?'✅':p.emo}</span><b>${i+1}. ${esc(p.t)}</b></button>`).join('')}</div></div>`; }).join('');
 }
-function activarFichaCole(raiz){ $$('[data-cole]', raiz).forEach(b=>b.onclick=()=>{ const p=FICHA_COLE.pasos[+b.dataset.cole]; if(p.cali) ir('caligrafia', 'lista:'+p.cali); else ir('trabajo', p.id); }); }
+function activarFichaCole(raiz){ $$('[data-cole]', raiz).forEach(b=>b.onclick=()=>{ const [fid,i]=b.dataset.cole.split(':'); const f=listaFichasCole().find(x=>x.id===fid); if(f && f.pasos[+i]) abrirPasoCole(f.pasos[+i]); }); }
 
 /* ============ Une lo que corresponde: empieza por … ============ */
 function tColeEmpieza(z){

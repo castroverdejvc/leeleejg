@@ -23,7 +23,7 @@ function dibujoDel(p, grande){
 }
 const NL_EN = c => (typeof NOMBRE_LETRA!=='undefined' && NOMBRE_LETRA.en[c]) || c;
 const deletrearEn = t => [...t].filter(c=>c!==' ').map(NL_EN).join(', ');
-const fraseDel = (f,p) => p.color ? `${p.t}.` : (f.frases ? `It's ${articulo(p.t)} ${p.t}.` : `${p.t}.`);
+const fraseDel = (f,p) => p.color ? `${p.t}.` : p.fr ? p.fr : (f.frases ? `It's ${articulo(p.t)} ${p.t}.` : `${p.t}.`);
 
 /* tarjeta en Fichas */
 function tarjetaDeletreoHTML(){

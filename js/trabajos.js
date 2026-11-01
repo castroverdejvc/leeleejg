@@ -30,13 +30,16 @@ function activarTarjetaTrabajos(raiz){ $$('[data-trab]', raiz).forEach(b=>b.oncl
 function ordenHTML(txt){ return `<div class="orden-t"><p class="${claseTexto()}">${txt}<span class="nota" style="display:block;font-size:.85rem;margin-top:4px">✏️ Puedes tocar o dibujar con el dedo o el lápiz.</span></p><button class="ico-btn" type="button" id="oirOrden" aria-label="Escuchar">${ic('altavoz')}</button></div>`; }
 const textoOrden = () => { const p=$('#s-trabajo .orden-t p'); if(!p) return ''; const c=p.cloneNode(true); c.querySelectorAll('.nota').forEach(x=>x.remove()); return c.textContent.trim(); };
 
+/* todos los trabajos: los de siempre, los de la ficha de vocales (fichacole.js) y los de aprender cada ficha (aprendeficha.js) */
+const todosTrabajos = () => TRABAJOS.concat(typeof TRABAJOS_COLE!=='undefined' ? TRABAJOS_COLE : [], typeof trabajosApr==='function' ? trabajosApr() : []);
 definir('trabajo', {nav:'repaso', pintar(tipo){
   if(tipo) trab={tipo, a:0, e:0, fin:false};
-  const TODOS = TRABAJOS.concat(typeof TRABAJOS_COLE!=='undefined' ? TRABAJOS_COLE : []);
+  const TODOS = todosTrabajos();
   if(!trab || !TODOS.some(t=>t.id===trab.tipo)){ ir('repaso'); return; }
   const T=TODOS.find(t=>t.id===trab.tipo);
   $('#s-trabajo').innerHTML=`<div class="juego-cab"><button class="volver" type="button" data-ir="repaso">${ic('atras')} Fichas</button><h1 class="tit">${T.emo} ${esc(T.nombre)}</h1><span class="pill" id="trabMarca"></span></div><div class="card trabajo-zona" id="trabZona"></div>`;
-  ({puntos:tPuntos, numeros:tNumeros, relaciona:tRelaciona, camino:tCamino, dias:tDias, ...(typeof tColeEmpieza==='function'?{cole_empieza:tColeEmpieza, cole_subraya:z=>tColeBusca(z,'subraya'), cole_colorea:z=>tColeBusca(z,'colorea'), cole_completa:tColeCompleta}:{})})[trab.tipo]($('#trabZona'));
+  if(trab.tipo.startsWith('apr_')) correrApr(trab.tipo, $('#trabZona'));
+  else ({puntos:tPuntos, numeros:tNumeros, relaciona:tRelaciona, camino:tCamino, dias:tDias, ...(typeof tColeEmpieza==='function'?{cole_empieza:tColeEmpieza, cole_subraya:z=>tColeBusca(z,'subraya'), cole_colorea:z=>tColeBusca(z,'colorea'), cole_completa:tColeCompleta}:{})})[trab.tipo]($('#trabZona'));
   const o=$('#oirOrden'); if(o) o.onclick=()=>decir(textoOrden());
   marcaTrab(); setTimeout(()=>{ if(actual==='trabajo' && textoOrden()) decir(textoOrden()); }, 300);
 }});
@@ -269,7 +272,7 @@ function tDias(z){
 function trabajosAdultoHTML(p){
   const log=cfgDe(p).trabajosLog||[]; if(!log.length) return '';
   const desde=typeof sabadoDe==='function' ? sabadoDe() : new Date(0);
-  const filas=TRABAJOS.map(t=>{ const ps=log.filter(x=>x.t===t.id); if(!ps.length) return ''; const sem=ps.filter(x=>new Date(x.f)>=desde).length;
+  const filas=todosTrabajos().map(t=>{ const ps=log.filter(x=>x.t===t.id); if(!ps.length) return ''; const sem=ps.filter(x=>new Date(x.f)>=desde).length;
     const A=ps.reduce((s,x)=>s+(x.a||0),0), E=ps.reduce((s,x)=>s+(x.e||0),0); const pct=A+E?Math.round(100*A/(A+E)):null;
     return `<tr><td>${t.emo} ${esc(t.nombre)}</td><td>${ps.length}</td><td>${sem}</td><td>${pct==null?'–':pct+' %'}</td></tr>`; }).join('');
   return `<div class="card bloque" style="margin-top:18px"><h3 style="margin-bottom:6px">🖍️ Trabajos del cole · ${esc(p.nombre)}</h3><p class="nota" style="margin-bottom:8px">Cada trabajo terminado da ${minTxt(minTrabajo())} de tele (se cambia en Premios y gustos).</p>

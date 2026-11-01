@@ -22,13 +22,14 @@ function pestanaDe(p){ const d=PANT[p]||{}; return PESTANA_DE_PANT[p] || PESTANA
 /* ---------- lo que toca hoy ---------- */
 const hoyK = () => claveDia(new Date());
 /* ficha nueva del cole: toca mientras no se haya hecho entera alguna vez antes de hoy */
-function fichaColeEstado(p=perfil()){
+function fichaColeEstado(p=perfil(), F=null){
   if(typeof FICHA_COLE==='undefined') return null;
-  const c=cfgDe(p), hoy=hoyK();
+  F=F||FICHA_COLE; const c=cfgDe(p), hoy=hoyK();
   const hecho=(paso, soloAntes)=>{ const vale=f=>!soloAntes || claveDia(f)<hoy;
+    if(paso.rep) return (c.repasoLog||[]).some(x=>x.f && vale(x.f) && (x.fichas||[]).includes(paso.rep));
     if(paso.cali) return (c.caliLog||[]).some(x=>x.f && vale(x.f) && (x.items||[]).map(i=>i.t).join(',')===paso.cali);
     return (c.trabajosLog||[]).some(x=>x.f && vale(x.f) && x.t===paso.id); };
-  const P=FICHA_COLE.pasos; if(P.every(x=>hecho(x,true))) return null;   // ya la terminó otro día: ya no es nueva
+  const P=F.pasos; if(P.every(x=>hecho(x,true))) return null;   // ya la terminó otro día: ya no es nueva
   const n=P.filter(x=>hecho(x,false)).length;
   return {n, total:P.length, hecha:n===P.length};
 }
@@ -39,15 +40,17 @@ function tareasHoy(p=perfil()){
     const pend=typeof pendientesHoy==='function' ? pendientesHoy().length : 0, hecho=(cfg.repasoLog||[]).some(x=>x.f && claveDia(x.f)===hoyK());
     out.push({id:'repaso', t:'Repaso de fichas', sub: hecho ? '¡Repasado!' : pend ? `${Math.min(10,pend)} ${Math.min(10,pend)===1?'palabra':'palabras'}` : 'Hoy no hay nada que repasar', emo:'📝', hecha: hecho || !pend, btn:'Empezar', min:teleCfg().ficha});
   }
-  const fc=fichaColeEstado(p);
-  if(fc) out.push({id:'fichacole', t:`Ficha nueva del cole · ${fc.n} de ${fc.total}`, sub:FICHA_COLE.titulo, emo:'📄', hecha:fc.hecha, btn:fc.n?'Seguir':'Empezar'});
+  // cada ficha nueva del cole es una tarea (1/11: vocales y las fichas de palabras creadas desde el 1/11, como «School and family»)
+  (typeof listaFichasCole==='function' ? listaFichasCole() : typeof FICHA_COLE!=='undefined' ? [FICHA_COLE] : []).filter(F=>F.obligatoria!==false).forEach(F=>{ const fc=fichaColeEstado(p, F);
+    if(fc) out.push({id:'fichacole:'+F.id, t:`Ficha nueva del cole · ${fc.n} de ${fc.total}`, sub:F.titulo, emo:F.emo||'📄', hecha:fc.hecha, btn:fc.n?'Seguir':'Empezar'}); });
   return out;
 }
 function irATarea(id){
   if(id==='lectura') empezarHistoria(historiaDeHoy());
   else if(id==='repaso'){ if(typeof empezarRepaso==='function' && pendientesHoy().length) empezarRepaso(null); else ir('repaso'); }
-  else if(id==='fichacole'){ const fc=fichaColeEstado(); const P=FICHA_COLE.pasos; const sig=P.find(x=>!hechoHoyCole(x)) || P[0];
-    if(sig.cali) ir('caligrafia', 'lista:'+sig.cali); else ir('trabajo', sig.id); }
+  else if(id.startsWith('fichacole')){ const fid=id.split(':')[1]; const F=(typeof listaFichasCole==='function'?listaFichasCole():[FICHA_COLE]).find(x=>!fid || x.id===fid) || FICHA_COLE;
+    const P=F.pasos; const sig=P.find(x=>!hechoHoyCole(x)) || P[0];
+    if(typeof abrirPasoCole==='function') abrirPasoCole(sig); else if(sig.cali) ir('caligrafia', 'lista:'+sig.cali); else ir('trabajo', sig.id); }
 }
 function tareaHTML(t, i){
   return `<div class="tarea-hoy${t.hecha?' hecha':''}"><span class="tarea-num">${t.hecha?ic('check'):i+1}</span>
