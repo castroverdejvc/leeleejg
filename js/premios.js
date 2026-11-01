@@ -352,8 +352,33 @@ definir('criaturas', {nav:'cromos', pintar(){
     dialogo({cls:'dlg-premio dlg-fases', html:`<div class="cri-formas">${fs.map(x=>`<div class="cri-carta ${c.rareza===3||(x.forma||1)>=3?'rara':''}${(x.forma||1)>=6?' leyenda':''}">${criaturaSVG(x)}<b>${esc(x.nombre)}</b></div>`).join('<span class="flecha-evo">➜</span>')}</div>${c.especial?'':estrellasForma(f)}<span class="nota">${T.emo} Tipo ${T.n} · ${'★'.repeat(c.rareza)}</span><p class="nota">${esc(T.frase)}</p>${falta}`, botones:[{t:'Cerrar', cls:'btn-p'}]});
     decir(`${ult.nombre}. Tipo ${T.n.toLowerCase()}. ${T.frase}`); });
 }});
+/* ---------------- 8.5.1 · todas sus evoluciones juntas (pedido por José Luis: «que pudiera ver todos sus cromos con sus
+   evoluciones»): cada muñeco con sus 6 fases (las que tiene en color y las que le faltan en gris) y cada cromo con sus marcos ---------------- */
+definir('evoluciones', {nav:'cromos', pintar(){
+  const p=perfil(), st=estadoMunecos(p), tengo=CRIATURAS.filter(c=>st.forma[c.id]).sort((x,y)=>(st.forma[y.id]-st.forma[x.id])||(x.n-y.n));
+  const faltan=CRIATURAS.length-tengo.length;
+  const fila = c => { const f=st.forma[c.id];
+    return `<div class="evo-fila${f>=FORMA_MAX?' leyenda':''}"><div class="evo-cab"><b>${esc(criatura(f>1?c.id+'@'+f:c.id).nombre)}</b>${estrellasForma(f)}<span class="nota">${f>=FORMA_MAX?'🌈 ¡Todas sus fases!':f===FORMA_MAX_NORMAL?'Le falta Legendario: lee 7 días seguidos':`Le ${FORMA_MAX-f===1?'falta 1 fase':'faltan '+(FORMA_MAX-f)+' fases'}`}</span></div>
+      <div class="evo-pasos">${Array.from({length:FORMA_MAX},(_,i)=>{ const x=criatura(i?c.id+'@'+(i+1):c.id), si=i<f;
+        return `<div class="evo-paso${si?' si':' no'}${i===f?' prox':''}">${criaturaSVG(x)}<span>${si?esc(i?FORMAS[i+1].n:'Normal'):'🔒 '+esc(i?FORMAS[i+1].n:'Normal')}</span></div>`; }).join('')}</div></div>`; };
+  const ids=Object.keys(cromosDe(p)).filter(id=>historia(id)&&!esComp(id));
+  const cr=ids.map(id=>({h:historia(id), m:marcoDe(p,id)})).sort((a,b)=>(b.m-a.m)||String(conNombre(a.h.titulo)).localeCompare(conNombre(b.h.titulo)));
+  const conMarco=cr.filter(x=>x.m>0).length;
+  $('#s-evoluciones').innerHTML = `${albumTabsHTML('evoluciones')}
+  <div class="album-cab"><div><h1 class="tit">Mis evoluciones</h1><p class="sub">Todos tus muñecos con sus fases y todos tus cromos con sus marcos.</p></div>
+    <div class="contador">✨<div><b>${tengo.length} muñecos</b><br><span>${cr.length} cromos · ${conMarco} con marco</span></div></div></div>
+  ${evoPendienteHTML(p)}
+  <h2 class="sub-album">🐾 Mis muñecos y sus fases</h2>
+  ${tengo.length ? `<div class="evo-lista">${tengo.map(fila).join('')}</div>` : '<p class="nota">Todavía no tienes muñecos. ¡Cada 8 ⭐ ganas uno!</p>'}
+  ${faltan>0 ? `<p class="nota">Y te quedan ${faltan} muñecos por descubrir en el <button type="button" class="enlace" data-ir="criaturas">álbum de muñecos</button>.</p>` : ''}
+  <h2 class="sub-album">📚 Mis cromos y sus marcos</h2>
+  <p class="nota">Vuelve a leer una historia más rápido o con menos ayuda y su cromo sube de marco: 🃏 ➜ 🥉 ➜ 🥈 ➜ 🥇 ➜ 💎</p>
+  ${cr.length ? `<div class="evo-cromos">${cr.map(({h,m})=>`<button type="button" class="evo-cromo" data-h="${h.id}"><span class="ft${marcoClase(m)}">${imgHTML(h.portada)}</span><span class="tx"><b>${esc(conNombre(h.titulo))}</b><span class="marcos-paso">${MARCOS.map((M,i)=>`<i class="${i<=m?'si':''}" title="${M.t}">${M.emo}</i>`).join('<span>›</span>')}</span></span></button>`).join('')}</div>` : '<p class="nota">Cuando leas tu primera historia, aquí verás su cromo.</p>'}`;
+  activarAlbumTabs();
+  $$('#s-evoluciones [data-h]').forEach(b=>b.onclick=()=>ir('cromo', b.dataset.h));
+}});
 /* pestañas de los dos álbumes */
-function albumTabsHTML(act){ return `<div class="album-tabs"><button type="button" data-alb="cromos" aria-pressed="${act==='cromos'}">📚 Cromos de lecturas</button><button type="button" data-alb="cromosextra" aria-pressed="${act==='cromosextra'}">📚 Cromos de extras</button><button type="button" data-alb="criaturas" aria-pressed="${act==='criaturas'}">🐾 Muñecos</button><button type="button" data-alb="pegatinas" aria-pressed="${act==='pegatinas'}">📅 Álbum del año</button><button type="button" data-alb="pasaporte" aria-pressed="${act==='pasaporte'}">🛂 Pasaporte</button><button type="button" data-alb="juegos">🎮 Juegos</button></div>`; }
+function albumTabsHTML(act){ return `<div class="album-tabs"><button type="button" data-alb="cromos" aria-pressed="${act==='cromos'}">📚 Cromos de lecturas</button><button type="button" data-alb="cromosextra" aria-pressed="${act==='cromosextra'}">📚 Cromos de extras</button><button type="button" data-alb="criaturas" aria-pressed="${act==='criaturas'}">🐾 Muñecos</button><button type="button" data-alb="evoluciones" aria-pressed="${act==='evoluciones'}">✨ Evoluciones</button><button type="button" data-alb="pegatinas" aria-pressed="${act==='pegatinas'}">📅 Álbum del año</button><button type="button" data-alb="pasaporte" aria-pressed="${act==='pasaporte'}">🛂 Pasaporte</button><button type="button" data-alb="juegos">🎮 Juegos</button></div>`; }
 function activarAlbumTabs(){ $$('[data-alb]').forEach(b=>b.onclick=()=>ir(b.dataset.alb)); }
 
 /* ---------------- familia: resumen de la semana y ajustes de premios ---------------- */

@@ -1740,3 +1740,30 @@ svg.criatura.forma6{filter:drop-shadow(0 0 6px rgba(255,200,61,.75))}
 .marco-pista{margin:6px 0}
 .marco-det{padding:8px 12px;border-radius:12px;background:var(--bg-2);font-weight:800;border:2px solid transparent}
 .ft.marco-bronce,.ft.marco-plata,.ft.marco-oro,.ft.marco-brillante{border-radius:16px;overflow:hidden}
+
+/* 8.5.1 · Mis evoluciones */
+.evo-lista{display:grid;gap:12px;margin-bottom:12px}
+.evo-fila{background:var(--surface);border:2px solid #E3DBFF;border-radius:18px;padding:10px 12px;box-shadow:var(--shadow-s)}
+.evo-fila.leyenda{border:3px solid transparent;background:linear-gradient(#fff,#fff) padding-box,linear-gradient(135deg,#FF5FA2,#FFC83D,#3DD68C,#3BA7FF,#9B6BFF) border-box}
+.evo-cab{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;margin-bottom:4px}
+.evo-cab b{font-size:1.1rem;font-weight:900}
+.evo-pasos{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.evo-paso{display:grid;justify-items:center;gap:2px;padding:4px;border-radius:14px;text-align:center}
+.evo-paso svg{width:100%;max-width:96px;height:auto;aspect-ratio:1}
+.evo-paso span{font-size:.8rem;font-weight:800}
+.evo-paso.si{background:#F6F2FF}
+.evo-paso.no svg{filter:grayscale(1) opacity(.28)!important;animation:none!important}
+.evo-paso.no span{color:var(--ink-3)}
+.evo-paso.prox{outline:2px dashed #C4B5FD}
+.evo-cromos{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.evo-cromo{display:flex;align-items:center;gap:12px;text-align:left;background:var(--surface);border:2px solid #E6EEF9;border-radius:16px;padding:8px;box-shadow:var(--shadow-s);cursor:pointer}
+.evo-cromo .ft{width:76px;height:64px;flex:none;border-radius:12px;overflow:hidden;background:var(--bg-2)}
+.evo-cromo .ft img{width:100%;height:100%;object-fit:cover}
+.evo-cromo .tx{display:grid;gap:4px;min-width:0}
+.evo-cromo b{font-weight:900;line-height:1.2}
+.marcos-paso{display:flex;align-items:center;gap:2px;font-size:1.15rem}
+.marcos-paso i{font-style:normal;filter:grayscale(1);opacity:.3}
+.marcos-paso i.si{filter:none;opacity:1}
+.marcos-paso span{font-size:.8rem;color:var(--ink-3)}
+.enlace{border:0;background:none;padding:0;color:var(--primary-d);font-weight:800;text-decoration:underline;cursor:pointer;font-size:inherit}
+@media (max-width:560px){ .evo-pasos{grid-template-columns:repeat(3,1fr)} .evo-paso svg{max-width:80px} .evo-cromos{grid-template-columns:1fr} }
