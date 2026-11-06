@@ -39,7 +39,7 @@ definir('trabajo', {nav:'repaso', pintar(tipo){
   const T=TODOS.find(t=>t.id===trab.tipo);
   $('#s-trabajo').innerHTML=`<div class="juego-cab"><button class="volver" type="button" data-ir="repaso">${ic('atras')} Fichas</button><h1 class="tit">${T.emo} ${esc(T.nombre)}</h1><span class="pill" id="trabMarca"></span></div><div class="card trabajo-zona" id="trabZona"></div>`;
   if(trab.tipo.startsWith('apr_')) correrApr(trab.tipo, $('#trabZona'));
-  else ({puntos:tPuntos, numeros:tNumeros, relaciona:tRelaciona, camino:tCamino, dias:tDias, ...(typeof tColeEmpieza==='function'?{cole_empieza:tColeEmpieza, cole_subraya:z=>tColeBusca(z,'subraya'), cole_colorea:z=>tColeBusca(z,'colorea'), cole_completa:tColeCompleta}:{})})[trab.tipo]($('#trabZona'));
+  else ({puntos:tPuntos, numeros:tNumeros, relaciona:tRelaciona, camino:tCamino, dias:tDias, ...(typeof tColeEmpieza==='function'?{cole_empieza:tColeEmpieza, cole_subraya:z=>tColeBusca(z,'subraya'), cole_colorea:z=>tColeBusca(z,'colorea'), cole_completa:tColeCompleta}:{}), ...(typeof FUNC_PTDF!=='undefined'?FUNC_PTDF:{})})[trab.tipo]($('#trabZona'));
   const o=$('#oirOrden'); if(o) o.onclick=()=>decir(textoOrden());
   marcaTrab(); setTimeout(()=>{ if(actual==='trabajo' && textoOrden()) decir(textoOrden()); }, 300);
 }});

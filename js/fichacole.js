@@ -32,9 +32,9 @@ const hechoHoyCole = paso => { const c=cfgDe(perfil()), hoy=claveDia(new Date())
 function palabrasCole(){ return Object.entries(CONT.palabras||{}).filter(([p,k])=>/^[a-záéíóúñ]{3,7}$/.test(p) && CONT.fotos[k] && sinTildeC(p)===k && !/[kwxy]|qu|gu|ch|ll|rr/.test(p)).map(([p,k])=>({p,k})); }
 
 /* fichas del cole hechas en el programa: la de vocales y las de «Aprende la ficha» (aprendeficha.js), una por cada ficha
-   de palabras. Primero las nuevas (obligatorias), luego la de vocales y al final las antiguas, para practicar. */
+   de palabras, y la de «p, t, d y f» (fichacole2.js, 6/11). Primero las nuevas, luego las de lengua y al final las antiguas. */
 const listaFichasCole = () => { const A=typeof aprFichas==='function' ? aprFichas() : [];
-  return [...A.filter(F=>F.obligatoria), FICHA_COLE, ...A.filter(F=>!F.obligatoria)]; };
+  return [...A.filter(F=>F.obligatoria), ...(typeof FICHA_PTDF!=='undefined'?[FICHA_PTDF]:[]), FICHA_COLE, ...A.filter(F=>!F.obligatoria)]; };
 /* la que toca ahora: la primera que aún es nueva (pestanas.js › fichaColeEstado); si no, la primera */
 const fichaColeDeHoy = () => listaFichasCole().find(f=>f.obligatoria!==false && (typeof fichaColeEstado!=='function' || fichaColeEstado(perfil(), f))) || listaFichasCole()[0];
 function abrirPasoCole(paso){ if(paso.rep) empezarRepaso(paso.rep); else if(paso.cali) ir('caligrafia', 'lista:'+paso.cali); else ir('trabajo', paso.id); }

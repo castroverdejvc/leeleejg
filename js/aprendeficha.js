@@ -7,6 +7,7 @@
      «My daily routine» solo sale si la ficha trae su hoja (APR_HOJAS).
    - Si la ficha trae hojas (APR_HOJAS), la 1.ª, 2.ª… vez de cada ejercicio es igual que cada hoja; después se inventa uno
      nuevo con sus palabras y con cualquier dibujo de cada palabra (los de la hoja del cole y los de las hojas de ideas).
+   - 6/11: las fichas con «mapa» (Animals) llevan además «Clasifica»: poner cada animal en su caja del mapa de la hoja.
    - Las fichas creadas desde el 1/11/2026 son «fichas nuevas»: tarea del día hasta que se hacen enteras (como la de vocales).
      Las de antes salen en Fichas para practicar, sin ser obligatorias.
    - Los dibujos de las hojas de ideas de «School and family» son fi_famx_<hoja><n> y van con las imágenes privadas
@@ -19,7 +20,8 @@ const APR_TIPOS = {
   write:  {emo:'✍️', n:{en:'Look and write', es:'Mira y escribe', gl:'Mira e escribe'}, desc:'Pon cada palabra debajo de su dibujo.'},
   detect: {emo:'🔍', n:{en:'Word detective', es:'Detective de palabras', gl:'Detective de palabras'}, desc:'¿La palabra va con el dibujo?'},
   routine:{emo:'🕐', n:{en:'My daily routine', es:'Mi día', gl:'O meu día'}, desc:'Ordena tu día y dilo.'},
-  letters:{emo:'🔤', n:{en:'Missing letters', es:'Letras que faltan', gl:'Letras que faltan'}, desc:'Pon las letras que faltan.'}
+  letters:{emo:'🔤', n:{en:'Missing letters', es:'Letras que faltan', gl:'Letras que faltan'}, desc:'Pon las letras que faltan.'},
+  mapa:   {emo:'🗺️', n:{en:'Sort them out', es:'Clasifica', gl:'Clasifica'}, desc:'Pon cada uno en su caja, como en el mapa de la hoja.'}
 };
 const APR_APRENDE = {en:'Learn the words', es:'Aprende las palabras', gl:'Aprende as palabras'};
 
@@ -114,7 +116,7 @@ const hojaQueToca = (fid, tipo) => { const hs=hojasDe(fid)[tipo]; const n=vecesA
 /* ---------- las fichas «Aprende…» (salen en Fichas y, si son nuevas, en lo de hoy) ---------- */
 function aprFichas(){
   return fichasAprendibles().map(f=>{ const l=lenguaDe(f), id=IDIOMAS[l]||IDIOMAS.es, h=hojasDe(f.id);
-    const tipos=['choose','match','write','detect', ...(h.routine?['routine']:[]), 'letters'];
+    const tipos=[...(f.mapa?['mapa']:[]), 'choose','match','write','detect', ...(h.routine?['routine']:[]), 'letters'];
     return {id:'apr_'+f.id, fid:f.id, titulo:f.titulo, emo:id.bandera, obligatoria:(f.creada||'')>=APR_DESDE,
       resumen:'Mira, rodea, une, escribe y completa las palabras de la ficha.',
       pasos:[{id:'apr_rep:'+f.id, emo:'📖', t:APR_APRENDE[l]||APR_APRENDE.es, rep:f.id},
@@ -346,4 +348,35 @@ function tAprLetters(z, f){
   pinta();
 }
 
-const FUNC_APR = {choose:tAprChoose, match:tAprMatch, write:tAprWrite, detect:tAprDetect, routine:tAprRoutine, letters:tAprLetters};
+/* ============ Clasifica (6/11): fichas con «mapa» (Animals: can be / live in / eat / reproduce). En cada parte salen
+   animales que van claramente en una caja (2 o 3 por caja); se toca el animal y luego su caja. ============ */
+function tAprMapa(z, f){
+  const dims=(f.mapa||[]).map(D=>{ const porCaja=D.cajas.length>2 ? 2 : 3;
+    const items=barajar(D.cajas.flatMap(([c])=>barajar(conDibujo(f).filter(p=>p.m && p.m[D.k]===c)).slice(0,porCaja).map(p=>({id:p.id, c}))));
+    return {...D, items}; }).filter(D=>D.items.length>=2);
+  if(!dims.length){ ir('repaso'); return; }
+  let parte=0;
+  const pinta=()=>{
+    const D=dims[parte], puestos={}; let sel=null;
+    const dibu = id => aprDib(f, null, id);
+    const html=()=>ordenHTML(`${D.es} Toca un animal y luego su caja.`)+
+      `<p class="nota centro">Parte ${parte+1} de ${dims.length}</p>
+      <div class="mapa-raiz"><b>ANIMALS</b><span>${esc(D.t.replace('…',''))}</span></div>
+      <div class="mapa-bandeja">${D.items.map((it,i)=>puestos[i]?'':`<button type="button" class="mapa-an${sel===i?' sel':''}" data-i="${i}"><span class="ft">${dibu(it.id)}</span><b>${esc(verPal(f,it.id))}</b></button>`).join('')||'<span class="nota">¡Todos en su caja!</span>'}</div>
+      <div class="mapa-cajas c${D.cajas.length}">${D.cajas.map(([c,t,es])=>`<button type="button" class="mapa-caja" data-c="${c}"><b>${esc(t)}</b><span class="nota">${esc(es)}</span>
+        <span class="mapa-dentro">${D.items.map((it,i)=>puestos[i]&&it.c===c?`<span class="mapa-mini" title="${esc(verPal(f,it.id))}">${dibu(it.id)}</span>`:'').join('')}</span></button>`).join('')}</div>`;
+    const repinta=()=>{ z.innerHTML=html(); enlaza(); };
+    const enlaza=()=>{
+      const o=$('#oirOrden', z); if(o) o.onclick=()=>decir(textoOrden());
+      $$('.mapa-an', z).forEach(b=>b.onclick=()=>{ sel=+b.dataset.i; decirPal(f, D.items[sel].id); repinta(); });
+      $$('.mapa-caja', z).forEach(b=>b.onclick=()=>{ if(sel==null){ decir('Primero toca un animal.'); return; } const it=D.items[sel];
+        if(it.c===b.dataset.c){ puestos[sel]=true; sel=null; bienT(); const a=palDe(f,it.id).t; decir((D.fr&&D.fr[it.c] ? D.fr[it.c]('The '+a) : 'The '+a+'.'), 'en'); repinta();
+          if(Object.keys(puestos).length===D.items.length) setTimeout(()=>{ if(actual!=='trabajo' || trab.fin) return; if(parte+1<dims.length){ parte++; decir('¡Muy bien! Ahora otra parte del mapa.'); pinta(); } else terminarTrabajo(); }, 1500); }
+        else malT(b, `${D.es} Piensa otra vez.`); });
+    };
+    repinta();
+  };
+  pinta();
+}
+
+const FUNC_APR = {mapa:tAprMapa, choose:tAprChoose, match:tAprMatch, write:tAprWrite, detect:tAprDetect, routine:tAprRoutine, letters:tAprLetters};

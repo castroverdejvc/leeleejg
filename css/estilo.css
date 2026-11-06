@@ -1767,3 +1767,43 @@ svg.criatura.forma6{filter:drop-shadow(0 0 6px rgba(255,200,61,.75))}
 .marcos-paso span{font-size:.8rem;color:var(--ink-3)}
 .enlace{border:0;background:none;padding:0;color:var(--primary-d);font-weight:800;text-decoration:underline;cursor:pointer;font-size:inherit}
 @media (max-width:560px){ .evo-pasos{grid-template-columns:repeat(3,1fr)} .evo-paso svg{max-width:80px} .evo-cromos{grid-template-columns:1fr} }
+/* ficha «p, t, d y f» y mapa de Animals (6/11) */
+.ptdf-pals{display:flex;flex-wrap:wrap;gap:18px 34px;justify-content:center;margin:10px 0}
+.ptdf-pal{font-size:2.6rem;line-height:1.6;white-space:nowrap}
+.ptdf-l{cursor:pointer;padding:0 1px;border-radius:40%}
+.ptdf-l.sub{box-shadow:inset 0 -4px 0 #E5484D}
+.ptdf-l.rod{outline:3px solid #1E7BF2;outline-offset:1px;border-radius:50%}
+.sopa-pals{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:6px 0 14px}
+.sopa-w{font-size:1.8rem;padding:4px 16px;border-radius:12px;background:var(--surface-2,#EEF2F7)}
+.sopa-w.hallada{text-decoration:line-through;text-decoration-thickness:3px}
+.sopa{display:grid;gap:0;width:100%;max-width:430px;box-sizing:border-box;margin:0 auto;border:3px solid #1F2937;border-radius:14px;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.sopa-c{aspect-ratio:1;display:grid;place-items:center;font-size:2rem;font-weight:600;border:1px solid #94A3B8;background:#fff;color:#111827;cursor:pointer}
+.sopa-c.pasa,.sopa-c.ini{background:#FEF3C7 !important;box-shadow:inset 0 0 0 3px #F59E0B}
+.ptdf-dibs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.ptdf-dib{position:relative;display:grid;justify-items:center;gap:6px;padding:12px;border-radius:16px;border:3px solid var(--line);background:#fff;cursor:pointer}
+.ptdf-dib .ft{width:100%;aspect-ratio:1;display:grid;place-items:center}
+.ptdf-dib .ft img{width:100%;height:100%;object-fit:contain}
+.ptdf-dib .ptdf-nom{font-size:1.6rem;visibility:hidden}
+.ptdf-dib.coloreada{background:#FDE68A;border-color:#F59E0B}
+.ptdf-dib.coloreada .ft img{mix-blend-mode:multiply}
+.ptdf-dib.coloreada .ptdf-nom{visibility:visible}
+.ptdf-oir{position:absolute;top:6px;right:6px;width:40px;height:40px;border-radius:50%;border:2px solid var(--line);background:#fff;font-size:1.1rem}
+.cole-palabras.tacha .cole-p.tachada{text-decoration:line-through;text-decoration-color:#E5484D;text-decoration-thickness:5px;opacity:.7}
+.mapa-raiz{display:grid;justify-items:center;gap:2px;margin:4px auto 10px;padding:8px 22px;border:3px solid #1F2937;border-radius:8px;width:max-content;background:#fff}
+.mapa-raiz b{font-size:1.4rem;letter-spacing:.05em}
+.mapa-bandeja{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;min-height:120px;padding:10px;border:2px dashed var(--line);border-radius:16px;margin-bottom:14px}
+.mapa-an{display:grid;justify-items:center;gap:4px;width:118px;padding:6px;border-radius:14px;border:3px solid var(--line);background:#fff}
+.mapa-an .ft{width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden}
+.mapa-an .ft img{width:100%;height:100%;object-fit:cover}
+.mapa-an b{font-size:1.15rem}
+.mapa-an.sel{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft-2)}
+.mapa-cajas{display:grid;gap:12px}
+.mapa-cajas.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.mapa-cajas.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.mapa-caja{display:grid;align-content:start;justify-items:start;gap:2px;min-height:170px;padding:10px 12px;border:3px solid #1F2937;border-radius:6px;background:#fff;text-align:left}
+.mapa-caja b{font-size:1.3rem}
+.mapa-dentro{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.mapa-mini{width:62px;height:62px;border-radius:10px;overflow:hidden;border:2px solid #1E7BF2}
+.mapa-mini img{width:100%;height:100%;object-fit:cover}
+@media (max-width:560px){.ptdf-pal{font-size:1.9rem}.ptdf-dibs{grid-template-columns:repeat(2,minmax(0,1fr))}.sopa-c{font-size:1.5rem}.sopa-w{font-size:1.4rem}
+  .mapa-cajas.c3{grid-template-columns:1fr}.mapa-caja{min-height:96px}.mapa-an{width:96px}.mapa-mini{width:48px;height:48px}}

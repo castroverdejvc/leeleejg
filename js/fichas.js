@@ -57,13 +57,42 @@ const FICHAS_NUEVAS = [
     ['happy','happy','feliz','My emotions','e'], ['angry','angry','enfadado','My emotions','e'], ['sad','sad','triste','My emotions','e'], ['surprised','surprised','sorprendido','My emotions','e'], ['scared','scared','asustado','My emotions','e']
   ].map(([id,t,es,g,q,fr])=>{ const p={id, t, es, g, img:'fi_fam_'+id};
     if(q==='a'){ p.q="What's this?"; p.fr=`It's ${articulo(t)} ${t}.`; } else if(q==='f'){ p.q='Who is this?'; p.fr=`It's my ${t}.`; } else if(q==='e'){ p.q='How do you feel?'; p.fr=`I'm ${t}.`; } else { p.q=q; p.fr=fr; }
-    return p; })}
+    return p; })},
+  /* 6/11/2026: hoja «Animals» (Natural Science 3), un mapa para clasificar animales: can be (pets, farm animals, wild
+     animals), live in (on land, in water, in the air), eat (herbivores, carnivores, omnivores) y reproduce (oviparous,
+     viviparous). Las palabras usan las fotos reales de animales del programa (salen en el iPad sin esperar a nada);
+     solo la foto de la hoja es privada. «mapa» son las cajas de la hoja y m, en qué caja va cada animal (si en alguna
+     no está claro, el animal no sale en esa parte). El ejercicio del mapa está en aprendeficha.js. */
+  {id:'animals', titulo:'Animals', idioma:'en', frases:true, fotos:['fi_animals_h1'], creada:'2026-11-06T23:00:00',
+   mapa:[
+     {k:'g', t:'Animals can be…', es:'¿Qué tipo de animal es?', cajas:[['pet','Pets','mascotas'],['farm','Farm animals','de granja'],['wild','Wild animals','salvajes']], fr:{pet:a=>`${a} is a pet.`, farm:a=>`${a} is a farm animal.`, wild:a=>`${a} is a wild animal.`}},
+     {k:'h', t:'Animals live in…', es:'¿Dónde vive?', cajas:[['land','On land','en la tierra'],['water','In water','en el agua'],['air','In the air','en el aire']], fr:{land:a=>`${a} lives on land.`, water:a=>`${a} lives in water.`, air:a=>`${a} lives in the air.`}},
+     {k:'d', t:'Animals eat…', es:'¿Qué come?', cajas:[['herb','Herbivores','comen plantas'],['carn','Carnivores','comen carne'],['omni','Omnivores','comen de todo']], fr:{herb:a=>`${a} is a herbivore.`, carn:a=>`${a} is a carnivore.`, omni:a=>`${a} is an omnivore.`}},
+     {k:'r', t:'Animals reproduce…', es:'¿Cómo nace?', cajas:[['ovi','Oviparous','nacen de un huevo'],['vivi','Viviparous','nacen de su mamá']], fr:{ovi:a=>`${a} is oviparous.`, vivi:a=>`${a} is viviparous.`}}
+   ],
+   palabras:[
+    // [palabra, en castellano, foto, grupo, can be, live in, eat, reproduce]  ('' = no sale en esa parte)
+    ['dog','perro','perro','pet','land','','vivi'], ['cat','gato','gato','pet','land','carn','vivi'], ['rabbit','conejo','conejo','pet','land','herb','vivi'],
+    ['hamster','hámster','hamster','pet','land','','vivi'], ['parrot','loro','loro','pet','air','herb','ovi'], ['fish','pez','pez','','water','','ovi'],
+    ['cow','vaca','vaca','farm','land','herb','vivi'], ['pig','cerdo','cerdo','farm','land','omni','vivi'], ['horse','caballo','caballo','farm','land','herb','vivi'],
+    ['sheep','oveja','oveja','farm','land','herb','vivi'], ['hen','gallina','gallina','farm','land','omni','ovi'], ['duck','pato','pato','farm','','omni','ovi'],
+    ['lion','león','leon','wild','land','carn','vivi'], ['tiger','tigre','tigre','wild','land','carn','vivi'], ['elephant','elefante','elefante','wild','land','herb','vivi'],
+    ['giraffe','jirafa','jirafa','wild','land','herb','vivi'], ['zebra','cebra','cebra','wild','land','herb','vivi'], ['monkey','mono','mono','wild','land','omni','vivi'],
+    ['bear','oso','oso','wild','land','omni','vivi'], ['kangaroo','canguro','canguro','wild','land','herb','vivi'], ['wolf','lobo','lobo','wild','land','carn','vivi'],
+    ['dolphin','delfín','delfin','wild','water','carn','vivi'], ['whale','ballena','ballena','wild','water','carn','vivi'], ['shark','tiburón','tiburon','wild','water','carn',''],
+    ['eagle','águila','aguila','wild','air','carn','ovi'], ['owl','búho','buho','wild','air','carn','ovi'], ['butterfly','mariposa','mariposa','','air','herb','ovi'],
+    ['bee','abeja','abeja','','air','herb','ovi'], ['snake','serpiente','serpiente','wild','land','carn','ovi'], ['frog','rana','rana','wild','','carn','ovi'],
+    ['crocodile','cocodrilo','cocodrilo','wild','','carn','ovi'], ['turtle','tortuga','tortuga','','','','ovi'], ['penguin','pingüino','pinguino','wild','','carn','ovi']
+   ].map(([t,es,img,g,h,d,r])=>({id:t, t, es, img, g:{pet:'Pets',farm:'Farm animals',wild:'Wild animals'}[g]||'Other animals', m:{g,h,d,r}}))}
 ];
+/* la foto de la tarjeta: la última foto de la hoja que haya en este aparato; si no, el dibujo de la primera palabra */
+const fotoFicha = f => { const hs=(f.fotos||[]).filter(k=>MIS[k]); return hs.length ? imgHTML(hs[hs.length-1],true) : imgPalabra(f.palabras[0]||{},true); };
 async function anadirFichasNuevas(){
   aj.fichasSerie=aj.fichasSerie||[]; let n=0;
   for(const f of FICHAS_NUEVAS){
     if(aj.fichasSerie.includes(f.id) || FICHAS.some(x=>x.id===f.id)) continue;
-    if([...f.fotos, ...f.palabras.map(p=>p.img)].some(k=>!MIS[k])) continue;
+    // 6/11: basta con que estén los dibujos de las palabras (privados o fotos del programa); la foto de la hoja llega después
+    if(f.palabras.map(p=>p.img).some(k=>!MIS[k] && !(CONT.fotos||{})[k])) continue;
     FICHAS.push(JSON.parse(JSON.stringify({...f, activa:true}))); aj.fichasSerie.push(f.id); n++;
     registrar('Ficha nueva: '+f.titulo);
   }
@@ -99,7 +128,7 @@ definir('repaso', {nav:'repaso', pintar(){
   ${FICHAS.length ? `<div class="card bloque repaso-hoy"><div><b style="font-size:1.4rem">${n?`Repaso de hoy: ${n} ${n===1?'palabra':'palabras'}`:'¡Hoy ya lo has repasado todo!'}</b><p class="nota">${n?'Escucha, toca la foto correcta y di cómo se dice.':'Puedes volver a repasar si quieres.'}</p></div>
     <button class="btn btn-p btn-xl" type="button" id="btnRepasoHoy">${n?'Empezar':'Repasar otra vez'} ${ic('flecha')}</button></div>
   <div class="fichas-grid">${FICHAS.filter(f=>f.activa!==false).map(f=>{ const tot=f.palabras.length, ap=f.palabras.filter(p=>aprendida(f,p)).length; const id=IDIOMAS[f.idioma]||IDIOMAS.es;
-    return `<button type="button" class="ficha-c" data-f="${esc(f.id)}"><span class="ft">${f.fotos&&f.fotos[0]?imgHTML(f.fotos[f.fotos.length-1],true):imgPalabra(f.palabras[0]||{},true)}</span><span class="tx"><span class="chip">${id.bandera} ${id.propio}</span><b>${esc(f.titulo)}</b><span class="nota">${tot} palabras · ${ap} aprendidas</span><span class="barra-t" style="width:100%"><i style="width:${tot?Math.round(100*ap/tot):0}%;background:var(--green)"></i></span></span></button>`; }).join('')}</div>`
+    return `<button type="button" class="ficha-c" data-f="${esc(f.id)}"><span class="ft">${fotoFicha(f)}</span><span class="tx"><span class="chip">${id.bandera} ${id.propio}</span><b>${esc(f.titulo)}</b><span class="nota">${tot} palabras · ${ap} aprendidas</span><span class="barra-t" style="width:100%"><i style="width:${tot?Math.round(100*ap/tot):0}%;background:var(--green)"></i></span></span></button>`; }).join('')}</div>`
   : `<div class="card bloque centro"><p class="sub">Todavía no hay fichas. Papá o mamá pueden añadirlas en <b>Familia y profesorado › Fichas de clase</b>.</p></div>`}
   ${typeof tarjetaDeletreoHTML==='function'?tarjetaDeletreoHTML():''}${tarjetaDictadoHTML()}${typeof tarjetaCaligrafiaHTML==='function'?tarjetaCaligrafiaHTML():''}${typeof tarjetaTrabajosHTML==='function'?tarjetaTrabajosHTML():''}`;
   $('#s-repaso .pag-cab').insertAdjacentHTML('afterend', tarjetaLetrasHTML()); $('#btnLetras').onclick=empezarLetras;
@@ -225,7 +254,7 @@ definir('fichas', {zona:'adulto', pintar(id){
   const s=$('#s-fichas');
   if(!fichaEd){
     s.innerHTML = `<div class="pag-cab"><div><h1>Fichas de clase</h1><p class="sub">Añade las fichas del cole para que las repase cada día en su idioma (inglés, gallego o castellano).</p></div><button class="btn btn-p" type="button" id="fNueva">+ Nueva ficha</button></div>
-    <div class="fichas-grid">${FICHAS.map(f=>{ const idm=IDIOMAS[f.idioma]||IDIOMAS.es; return `<div class="ficha-c"><span class="ft">${f.fotos&&f.fotos[0]?imgHTML(f.fotos[f.fotos.length-1],true):imgPalabra(f.palabras[0]||{},true)}</span><span class="tx"><span class="chip">${idm.bandera} ${idm.nombre}</span><b>${esc(f.titulo)}</b><span class="nota">${f.palabras.length} palabras${f.activa===false?' · desactivada':''}</span>
+    <div class="fichas-grid">${FICHAS.map(f=>{ const idm=IDIOMAS[f.idioma]||IDIOMAS.es; return `<div class="ficha-c"><span class="ft">${fotoFicha(f)}</span><span class="tx"><span class="chip">${idm.bandera} ${idm.nombre}</span><b>${esc(f.titulo)}</b><span class="nota">${f.palabras.length} palabras${f.activa===false?' · desactivada':''}</span>
       <span class="botones"><button class="btn btn-mini" type="button" data-ed="${esc(f.id)}">Editar</button><button class="btn btn-mini btn-rojo" type="button" data-bo="${esc(f.id)}">Borrar</button></span></span></div>`; }).join('') || '<p class="vacio">Todavía no hay fichas.</p>'}</div>
     ${FICHAS.length?progresoFichasHTML():''}${dictadosAdultoHTML()}${aj.perfiles.filter(p=>!p.prueba).map(letrasAdultoHTML).join('')}${typeof trabajosAdultoHTML==='function'?aj.perfiles.filter(p=>!p.prueba).map(trabajosAdultoHTML).join(''):''}${typeof caligrafiaAdultoHTML==='function'?aj.perfiles.filter(p=>!p.prueba).map(caligrafiaAdultoHTML).join(''):''}${typeof deletreoAdultoHTML==='function'?aj.perfiles.filter(p=>!p.prueba).map(deletreoAdultoHTML).join(''):''}`;
     $('#fNueva').onclick=()=>ir('fichas','nueva');
