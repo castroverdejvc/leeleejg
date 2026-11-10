@@ -189,12 +189,12 @@ async function escucharUna({idioma='es', palabras=[], maxSeg=6, silencio=1300, c
   let st; try{ st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,channelCount:1}}); }catch(e){ if(escuchaActual===previa) escuchaActual=null; return {sinMic:!cancelada, texto:''}; }
   if(cancelada){ st.getTracks().forEach(t=>t.stop()); return {texto:'', ok:false}; }
   return new Promise(async res=>{
-    const u={fin:false, texto:'', finales:[], parcial:''}; let ctx=null, proc=null, sr=null, t0=performance.now(), ultimaVoz=0, habla=false;
+    const u={fin:false, texto:'', finales:[], parcial:'', extra:[]}; let ctx=null, proc=null, sr=null, t0=performance.now(), ultimaVoz=0, habla=false;
     const terminar=async ok=>{ if(u.fin) return; u.fin=true; try{ proc&&proc.disconnect(); }catch(e){} try{ sr&&sr.abort(); }catch(e){}
-      if(u.id){ try{ const r=await api('/api/oido/'+u.id+'/fin',{method:'POST', body:new ArrayBuffer(0)}); u.finales=r.finales||u.finales; }catch(e){} }
+      if(u.id){ try{ const r=await api('/api/oido/'+u.id+'/fin',{method:'POST', body:new ArrayBuffer(0)}); u.finales=r.finales||u.finales; u.extra=r.extra||u.extra; }catch(e){} }
       st.getTracks().forEach(t=>t.stop()); try{ fuenteNivel.disconnect(); }catch(e){} try{ ctx&&ctx.close(); }catch(e){}
       const texto = u.id ? u.finales.map(f=>f.w).join(' ') + (u.parcial?' '+u.parcial:'') : u.texto;
-      escuchaActual=null; res({texto:texto.trim(), ok: ok || comprobar(texto)}); };
+      escuchaActual=null; res({texto:texto.trim(), ok: ok || comprobar(texto) || (u.extra.length>0 && comprobar(texto+' '+u.extra.join(' ')))}); };   // 8.6.1: «extra» = otras ideas de lo oído (solo para comprobar; se enseña la mejor)
     escuchaActual={parar:()=>terminar(false)};
     const a=ctxAudio(); try{ await a.resume(); }catch(e){} const an=a.createAnalyser(); an.fftSize=512; const fuenteNivel=a.createMediaStreamSource(st); fuenteNivel.connect(an);
     (function vigila(){ if(u.fin) return; const v=nivel(an); alNivel && alNivel(v); const ahora=performance.now();
@@ -203,15 +203,15 @@ async function escucharUna({idioma='es', palabras=[], maxSeg=6, silencio=1300, c
       requestAnimationFrame(vigila); })();
     if((EST.oidos||[]).includes(idioma)){
       try{
-        const r=await postJSON('/api/oido/inicio', {palabras, idioma}); u.id=r.id;
+        const r=await postJSON('/api/oido/inicio', {palabras, idioma, corta:true}); u.id=r.id;
         let ratio=1; try{ ctx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000}); }catch(e){ ctx=null; }
         const c = ctx || a; if(!ctx) ratio=a.sampleRate/16000; try{ await c.resume(); }catch(e){}
         proc=c.createScriptProcessor(2048,1,1); c.createMediaStreamSource(st).connect(proc); const mudo=c.createGain(); mudo.gain.value=0; proc.connect(mudo).connect(c.destination);
         let cola=[], enviando=false, tot=0, resto=[];
         const enviar=async()=>{ if(enviando||u.fin) return; enviando=true;
           while(cola.length && !u.fin){ const tr=cola.splice(0); const n=tr.reduce((x,y)=>x+y.length,0); const j=new Int16Array(n); let o=0; tr.forEach(x=>{ j.set(x,o); o+=x.length; });
-            try{ const r=await api('/api/oido/'+u.id,{method:'POST', body:j.buffer}); u.finales=r.finales||[]; u.parcial=r.parcial||'';
-              const txt=u.finales.map(f=>f.w).join(' ')+' '+u.parcial; alTexto && alTexto(txt); if(comprobar(txt)){ terminar(true); break; } }catch(e){ break; } }
+            try{ const r=await api('/api/oido/'+u.id,{method:'POST', body:j.buffer}); u.finales=r.finales||[]; u.parcial=r.parcial||''; u.extra=r.extra||[];
+              const txt=u.finales.map(f=>f.w).join(' ')+' '+u.parcial; alTexto && alTexto(txt); if(comprobar(txt) || (u.extra.length && comprobar(txt+' '+u.extra.join(' ')))){ terminar(true); break; } }catch(e){ break; } }
           enviando=false; };
         proc.onaudioprocess=ev=>{ if(u.fin) return; const d=ev.inputBuffer.getChannelData(0); let out;
           if(ratio===1){ out=new Int16Array(d.length); for(let i=0;i<d.length;i++){ const v=Math.max(-1,Math.min(1,d[i])); out[i]=v<0?v*0x8000:v*0x7fff; } }
@@ -234,5 +234,7 @@ function diceRespuesta(texto, respuesta){
   const obj=String(respuesta).split(/\s+/).map(normalizar).filter(w=>w && !VACIAS.has(w));
   if(!obj.length) return false;
   const suena = (t,w) => typeof ALINEA!=='undefined' && ALINEA.parecido(ALINEA.fon(t), ALINEA.fon(w))>0;   // 31/10: también por cómo suena (b/v, c/z…)
-  return obj.every(w=>oido.some(t=>coincide(t,w) || (w.length<=4 && t===w) || (w.endsWith('s') && coincide(t, w.slice(0,-1))) || suena(t,w)));
+  const esta = w => oido.some(t=>coincide(t,w) || (w.length<=4 && t===w) || (w.endsWith('s') && coincide(t, w.slice(0,-1))) || suena(t,w));
+  const bien = obj.filter(esta).length;
+  return bien===obj.length || (obj.length>=3 && bien>=obj.length-1);   // 8.6.1: en frases de 3 o más palabras puede faltar una (el niño se come alguna)
 }

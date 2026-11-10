@@ -17,7 +17,7 @@
   --tam:44px;
 }
 *{box-sizing:border-box}
-html,body{margin:0}
+html,body{margin:0;touch-action:manipulation}   /* 8.6.1: tocar rápido con el dedo no amplía la pantalla (doble toque) */
 body{font-family:var(--f);color:var(--ink);background:var(--bg);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;min-height:100vh}
 button{font:inherit;color:inherit;cursor:pointer}
 button:disabled{cursor:default;opacity:.55}
@@ -1768,9 +1768,9 @@ svg.criatura.forma6{filter:drop-shadow(0 0 6px rgba(255,200,61,.75))}
 .enlace{border:0;background:none;padding:0;color:var(--primary-d);font-weight:800;text-decoration:underline;cursor:pointer;font-size:inherit}
 @media (max-width:560px){ .evo-pasos{grid-template-columns:repeat(3,1fr)} .evo-paso svg{max-width:80px} .evo-cromos{grid-template-columns:1fr} }
 /* ficha «p, t, d y f» y mapa de Animals (6/11) */
-.ptdf-pals{display:flex;flex-wrap:wrap;gap:18px 34px;justify-content:center;margin:10px 0}
+.ptdf-pals{display:flex;flex-wrap:wrap;gap:18px 34px;justify-content:center;margin:10px 0;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .ptdf-pal{font-size:2.6rem;line-height:1.6;white-space:nowrap}
-.ptdf-l{cursor:pointer;padding:0 1px;border-radius:40%}
+.ptdf-l{cursor:pointer;padding:.08em .06em;border-radius:40%;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .ptdf-l.sub{box-shadow:inset 0 -4px 0 #E5484D}
 .ptdf-l.rod{outline:3px solid #1E7BF2;outline-offset:1px;border-radius:50%}
 .sopa-pals{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:6px 0 14px}
@@ -1807,3 +1807,7 @@ svg.criatura.forma6{filter:drop-shadow(0 0 6px rgba(255,200,61,.75))}
 .mapa-mini img{width:100%;height:100%;object-fit:cover}
 @media (max-width:560px){.ptdf-pal{font-size:1.9rem}.ptdf-dibs{grid-template-columns:repeat(2,minmax(0,1fr))}.sopa-c{font-size:1.5rem}.sopa-w{font-size:1.4rem}
   .mapa-cajas.c3{grid-template-columns:1fr}.mapa-caja{min-height:96px}.mapa-an{width:96px}.mapa-mini{width:48px;height:48px}}
+
+/* 8.6.1: en los ejercicios con el dedo no se selecciona texto (en el iPad salía la lupa y parecía que la pantalla se ampliaba) */
+#s-trabajo .card,.trab-zona{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#s-trabajo input,#s-trabajo textarea{-webkit-user-select:text;user-select:text}

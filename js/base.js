@@ -273,3 +273,14 @@ function aviso(msg){ const t=document.createElement('div'); t.className='toast';
 function confeti(cont){ const c=document.createElement('div'); c.className='confeti'; const col=['#1E7BF2','#18B47B','#F5B301','#8B5CF6','#E5484D','#5FA4FF'];
   for(let i=0;i<46;i++){ const s=document.createElement('i'); s.style.left=Math.random()*100+'%'; s.style.background=col[i%col.length]; s.style.animationDuration=(1.8+Math.random()*1.8)+'s'; s.style.animationDelay=(Math.random()*.6)+'s'; s.style.transform=`rotate(${Math.random()*180}deg)`; c.appendChild(s); }
   cont.appendChild(c); setTimeout(()=>c.remove(), 4500); }
+
+/* 8.6.1: que la pantalla no se amplíe ni se reduzca sin querer al hacer los ejercicios con la mano
+   (pellizco con dos dedos en el iPad o en una pantalla táctil, y Ctrl + rueda en el ordenador).
+   Los que necesitan dos dedos (recortar una imagen) siguen funcionando: esto solo quita el zoom de la página. */
+(function sinZoom(){
+  const no = e => { try{ e.preventDefault(); }catch(x){} };
+  ['gesturestart','gesturechange','gestureend'].forEach(t => document.addEventListener(t, no, {passive:false}));
+  document.addEventListener('touchmove', e => { if(e.touches && e.touches.length>1) no(e); }, {passive:false});
+  document.addEventListener('wheel', e => { if(e.ctrlKey) no(e); }, {passive:false});
+  // el doble toque lo quita el CSS (touch-action: manipulation), sin perder ningún toque
+})();
