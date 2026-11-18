@@ -19,14 +19,14 @@ definir('mispremios', {nav:'inicio', pintar(){
   try{ guardarLoYaVisto(perfil()); }catch(e){}
   const p=perfil(), cfg=premiosCfg(), est=estrellasDe(p), sem=estrellasEntre(p, sabadoDe(hoyTele()), diasDespues(sabadoDe(hoyTele()),7));
   const barra=(v,k,col)=>`<span class="barra-t"><i style="width:${Math.max(0,Math.min(100,Math.round(100*v/Math.max(1,k))))}%;background:${col}"></i></span>`;
-  const falta=n=>n<=0?'¡Ya lo tienes!':n===1?'¡Te falta 1 ⭐!':`Te faltan ${n} ⭐`;
+  const falta=n=>n<=0?'¡Ya lo tienes!':n===1?'¡Te falta 1 ⭐!':`Te faltan ${estTxt(n)} ⭐`;
   const fila=(emo,t,nota,b='')=>`<div class="mp-fila"><span class="emo-g">${emo}</span><div class="tx"><b>${t}</b><span class="nota">${nota}</span>${b}</div></div>`;
   // próximos
   const pc=progresoCada(p,'estCriatura'), pj=progresoCada(p,'estJuego'); const nJ=typeof JUEGOS!=='undefined'?JUEGOS.length:0;
   const prox=[fila('🐾','Próximo muñeco', falta(pc.falta), barra(pc.hecho,pc.k,'#8B5CF6'))];
   if(juegosAbiertos(p)<nJ) prox.push(fila('🎮','Próximo juego', falta(pj.falta), barra(pj.hecho,pj.k,'#F5A300')));
   if(typeof revistasDe==='function'){ const v=revistasDe(p); if(v.activo && v.sem && v.sem.r1){ const w=v.sem, r1=w.r1, r2=w.r2; const meta = sem<r1 ? r1 : (r2 && sem<r2) ? r2 : null;
-    prox.push(fila('📰', meta?`Revista ${meta===r1?'1':'2'} de esta semana`:(r2?'¡Las 2 revistas de esta semana!':'¡La revista de esta semana!'), meta?`${falta(meta-sem)} (llevas ${sem} esta semana)`:'¡Conseguidas!', meta?barra(sem,meta,'#0EA5B7'):'')); } }
+    prox.push(fila('📰', meta?`Revista ${meta===r1?'1':'2'} de esta semana`:(r2?'¡Las 2 revistas de esta semana!':'¡La revista de esta semana!'), meta?`${falta(meta-sem)} (llevas ${estTxt(sem)} esta semana)`:'¡Conseguidas!', meta?barra(sem,meta,'#0EA5B7'):'')); } }
   if(typeof cajasHitos==='function'){ const c=cajasHitos(p); if(c.activo && c.sig && c.ver) prox.push(fila('🎁', `¡Cofre del tesoro: ${c.sig.tipo==='grande'?'caja grande':'caja pequeña'}!`, falta(c.sig.v-est), barra(c.est-c.ant,c.sig.v-c.ant,'#E11D48'))); }
   if(typeof nuevosDe==='function') nuevosDe(p).filter(x=>x.ver && !x.lleno).forEach(x=>prox.push(fila(esc(x.emo||'🎁'), esc(x.nombre||'Premio'), falta(x.falta), barra(x.hecho,x.k,'#7C3AED'))));
   // hoy
@@ -44,7 +44,7 @@ definir('mispremios', {nav:'inicio', pintar(){
   const rec=premiosPorRecoger(p);
   const nM=criaturasDe(p).length, nC=Object.keys(cromosDe(p)).length;
   $('#s-mispremios').innerHTML=`<button class="volver" type="button" data-ir="inicio">${ic('atras')} Inicio</button>
-    <div class="card mp-cab"><span class="mp-est">⭐ ${est}</span><div><h1 class="tit">Mis premios</h1><p class="nota">Esta semana llevas <b>${sem} ⭐</b>. Cada lectura, ficha y juego de aprender te da estrellas.</p></div></div>
+    <div class="card mp-cab"><span class="mp-est">⭐ ${estTxt(est)}</span><div><h1 class="tit">Mis premios</h1><p class="nota">Esta semana llevas <b>${sem} ⭐</b>. Cada lectura, ficha y juego de aprender te da estrellas.</p></div></div>
     ${rec.length?`<div class="card bloque mp-recoger"><h3>🙌 Para recoger</h3>${rec.map(x=>fila(x.emo, `Tienes ${x.t}`, 'Pídeselo a papá o a mamá.')).join('')}</div>`:''}
     <div class="mp-grid">
       <div class="card bloque"><h3>🎯 Lo próximo</h3>${prox.join('')}</div>
@@ -56,5 +56,5 @@ definir('mispremios', {nav:'inicio', pintar(){
         ${typeof pegatinasDe==='function' && lecturasDia().length?(()=>{ const nP=Object.keys(pegatinasDe(p)).length; return `<button type="button" class="mp-fila mp-link" data-ir="pegatinas"><span class="emo-g">📅</span><div class="tx"><b>${nP} ${nP===1?'pegatina':'pegatinas'} del año</b><span class="nota">Ver mi Álbum del año</span></div></button>`; })():''}
         <button type="button" class="mp-fila mp-link" data-ir="juegos"><span class="emo-g">🎮</span><div class="tx"><b>${juegosAbiertos(p)} de ${nJ} juegos</b><span class="nota">Ir a los juegos</span></div></button></div>
     </div>`;
-  decir(`Tienes ${est} estrellas. ${rec.length?'¡Y tienes premios para recoger! ':''}Mira lo que te falta para el próximo premio.`);
+  decir(`Tienes ${estTxt(est)} estrellas. ${rec.length?'¡Y tienes premios para recoger! ':''}Mira lo que te falta para el próximo premio.`);
 }});

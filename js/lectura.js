@@ -63,6 +63,7 @@ function turnoJuntos(ptr){
 /* ---------- empezar una historia ---------- */
 function empezarHistoria(h){
   hist = typeof iaVariante==='function' ? iaVariante(h) : h;   // al volver a leerla, las preguntas nuevas aprobadas (Ayudante IA)
+  if(typeof conSeisPreguntas==='function' && p6Activo()) hist = conSeisPreguntas(hist);   // 18/11/2026: 6 preguntas solo con texto (preguntas6.js)
   sesion=null; audioBlob=null; lect=null;
   sinMic=false;   // «Leer sin micrófono» vale solo para una historia: en la siguiente se vuelve a ofrecer
   if(!micProbado && navigator.mediaDevices) ir('mic'); else ir('lectura');
@@ -89,7 +90,7 @@ function marcapaginasHTML(){
 }
 function seguirDondeLoDejo(){
   const s=sesionAMedias();
-  if(s){ hist=historia(s.historiaId); if(s.pregIA && typeof iaVariante==='function') hist=iaVariante(hist, true); sesion=JSON.parse(JSON.stringify(s)); sesion._audioSubido=true; audioBlob=null; lect=null;
+  if(s){ hist=historia(s.historiaId); if(s.pregIA && typeof iaVariante==='function') hist=iaVariante(hist, true); if(s.p6 && typeof conSeisPreguntas==='function') hist=conSeisPreguntas(hist); sesion=JSON.parse(JSON.stringify(s)); sesion._audioSubido=true; audioBlob=null; lect=null;
     qi=sesion.preguntas.length; qEst=null; cEst=null;
     if(qi<hist.preguntas.length) ir('pregunta'); else if(hist.calculo && !sesion.calculo) ir('calculo'); else ir('cromonuevo');
     return; }
@@ -305,7 +306,7 @@ async function cerrarLectura(){
     segundos:Math.round(seg), totalPalabras:palabras.length, ppm:Math.round(palabras.slice(ini).filter(w=>!w.adulto).length/(seg/60)), palabras:estados, ...(ini?{desdePalabra:ini}:{}), auto:oyo, oido:l.oidoId?'vosk':l.oidoTab?'aparato':(l.sr?'navegador':'ninguno'),
     oidoStats: l.rt ? {peticiones:l.rt.n, msMedio:Math.round(l.rt.suma/l.rt.n), msMax:Math.round(l.rt.max), retrasoMedio: l.retrasos&&l.retrasos.length ? +media(l.retrasos).toFixed(2) : null, reconocidas:l.ok?l.ok.filter(Boolean).length:0} : null,
     oidoTexto: ((l.oidoId||l.oidoTab) ? l.finales.map(f=>f.w).join(' ') : (l.txtPrevio+' '+l.txtSesion)).trim().slice(0,2000) || undefined, ...(l.oidoTab && (l.txtPrevio||l.txtSesion) ? {oidoTextoNav:(l.txtPrevio+' '+l.txtSesion).trim().slice(0,2000)} : {}), oidoLimite: oyo ? +limite.toFixed(1) : undefined,
-    ...(palabras.some(w=>w.adulto)?{juntos:aj.juntos}:{}), ...(l.modelo?{escuchada:true}:{}), ...(hist.pregIA?{pregIA:true}:{}), frasesEscuchadas:l.frases||0, letra:aj.letra, tam:aj.tam, imagenes:aj.img, preguntas:[], aciertos:0, totalPreguntas:hist.preguntas.length, calculo:null, revisada: pendientes===0, incompleta:true };
+    ...(palabras.some(w=>w.adulto)?{juntos:aj.juntos}:{}), ...(l.modelo?{escuchada:true}:{}), ...(hist.pregIA?{pregIA:true}:{}), ...(hist.p6?{p6:true}:{}), frasesEscuchadas:l.frases||0, letra:aj.letra, tam:aj.tam, imagenes:aj.img, preguntas:[], aciertos:0, totalPreguntas:hist.preguntas.length, calculo:null, revisada: pendientes===0, incompleta:true };
   if(sesion.oidoStats) registrar(`Oído ${sesion.oido}: ${sesion.oidoStats.reconocidas}/${palabras.length} palabras reconocidas, retraso medio ${sesion.oidoStats.retrasoMedio} s, petición media ${sesion.oidoStats.msMedio} ms (máx ${sesion.oidoStats.msMax})`);
   audioBlob=blob;
   if(aj.marcapaginas && aj.marcapaginas.historiaId===hist.id){ aj.marcapaginas=null; guardarAj(); }
@@ -319,14 +320,15 @@ definir('pregunta', {nav:'historias', pintar(){
   if(!qEst) qEst=nuevaQ();
   const q=hist.preguntas[qi]; const e=qEst; const T=hist.preguntas.length;
   const puntos=`<span class="puntos" style="margin-left:6px">${hist.preguntas.map((_,i)=>`<i class="${i<qi?'ok':i===qi?'on':''}"></i>`).join('')}</span>`;
-  const etiqueta = e.resuelta ? {t:'Respuesta correcta', cls:'verde'} : e.intentos ? {t:'Volver a intentarlo', cls:'morada'} : {t:`Pregunta ${qi+1} de ${T} · Escucha y toca`};
+  const etiqueta = e.resuelta ? {t:'Respuesta correcta', cls:'verde'} : e.intentos ? {t:'Volver a intentarlo', cls:'morada'} : {t:`Pregunta ${qi+1} de ${T} · ${hist.p6?'Lee y toca':'Escucha y toca'}`};
   $('#s-pregunta').innerHTML = `<div class="card preg">${cabPaso(2+qi, etiqueta, puntos)}
-    <h2>${esc(conNombre(q.q))}</h2>
-    ${e.intentos && !e.resuelta ? '<div class="aviso-int">Escucha otra vez y prueba.</div>' : ''}
+    <h2>${esc(conNombre(q.q))}</h2>${q.frase?`<p class="preg-frase">${esc(conNombre(q.frase))}</p>`:''}
+    ${e.intentos && !e.resuelta ? `<div class="aviso-int">${hist.p6?'Lee otra vez despacio y prueba.':'Escucha otra vez y prueba.'}</div>` : ''}
     ${e.resuelta ? '' : `<button class="altavoz" type="button" id="btnOirQ" aria-label="Escuchar la pregunta">${ic('altavoz')}</button>`}
-    <div class="ops">${e.orden.map((o,i)=>{ const cls = o.ok && e.resuelta ? 'bien' : e.mal.has(i) ? 'mal' : '';
-      return `<button type="button" class="op ${cls}" data-i="${i}" ${e.resuelta||e.mal.has(i)?'disabled':''}><span class="ft">${imgHTML(o.k,true)}</span><b>${o.ok&&e.resuelta?'¡Eso es!':esc(cap(conNombre(o.t)))}</b></button>`; }).join('')}</div>
-    <div class="pie-preg">${!e.resuelta && e.intentos ? `<button class="btn btn-borde btn-g" type="button" id="btnPista">${ic('bombilla')} Una pista</button>` : ''}${e.resuelta?`<button class="btn btn-p btn-g" type="button" id="btnSigQ">Siguiente ${ic('flecha')}</button>`:''}</div></div>`;
+    <div class="ops${hist.p6?' ops-texto':''}">${e.orden.map((o,i)=>{ const cls = o.ok && e.resuelta ? 'bien' : e.mal.has(i) ? 'mal' : '';
+      return hist.p6 ? `<button type="button" class="op op-texto ${cls}" data-i="${i}" ${e.resuelta||e.mal.has(i)?'disabled':''}><b>${esc(cap(conNombre(o.t)))}${o.ok&&e.resuelta?' ✓':''}</b></button>`
+        : `<button type="button" class="op ${cls}" data-i="${i}" ${e.resuelta||e.mal.has(i)?'disabled':''}><span class="ft">${imgHTML(o.k,true)}</span><b>${o.ok&&e.resuelta?'¡Eso es!':esc(cap(conNombre(o.t)))}</b></button>`; }).join('')}</div>
+    <div class="pie-preg">${!e.resuelta && e.intentos && !q.sinPista ? `<button class="btn btn-borde btn-g" type="button" id="btnPista">${ic('bombilla')} Una pista</button>` : ''}${e.resuelta?`<button class="btn btn-p btn-g" type="button" id="btnSigQ">Siguiente ${ic('flecha')}</button>`:''}</div></div>`;
   const oirQ=()=>{ const b=$('#btnOirQ'); if(b) b.classList.add('hablando'); decir(conNombre(q.q)).then(()=>{ const b2=$('#btnOirQ'); if(b2) b2.classList.remove('hablando'); }); };
   if($('#btnOirQ')) $('#btnOirQ').onclick=oirQ;
   $$('#s-pregunta .op').forEach(b=>b.onclick=()=>responder(+b.dataset.i));
@@ -337,19 +339,19 @@ definir('pregunta', {nav:'historias', pintar(){
 function responder(i){
   const e=qEst, o=e.orden[i], q=hist.preguntas[qi]; if(e.resuelta) return; e.intentos++;
   if(o.ok){ e.resuelta=true; sonido('bien'); const f=['¡Muy bien!','¡Eso es!','¡Genial!','¡Correcto!'][Math.floor(Math.random()*4)]; decir(f);
-    sesion.preguntas.push({q:conNombre(q.q), ok:e.intentos===1, intentos:e.intentos, pista:e.pista}); sesion.aciertos=sesion.preguntas.filter(x=>x.ok).length; guardarSesionActual(); }
-  else { e.mal.add(i); sonido('mal'); decir('Casi. Escucha otra vez y prueba.'); }
+    sesion.preguntas.push({q:conNombre(q.q)+(q.frase?' '+conNombre(q.frase):''), ok:e.intentos===1, intentos:e.intentos, pista:e.pista, ...(q.auto?{auto:true}:{})}); sesion.aciertos=sesion.preguntas.filter(x=>x.ok).length; guardarSesionActual(); }
+  else { e.mal.add(i); sonido('mal'); decir(hist.p6 ? 'Casi. Lee otra vez despacio y prueba.' : 'Casi. Escucha otra vez y prueba.'); }
   ir('pregunta');
 }
 function siguientePregunta(){ qi++; qEst=null; if(qi<hist.preguntas.length) ir('pregunta'); else if(hist.calculo){ cEst=null; ir('calculo'); } else ir('cromonuevo'); }
 /* 16 · Una pista: la frase de la historia donde está la respuesta */
 definir('pista', {nav:'historias', pintar(){
   const q=hist.preguntas[qi]; const ok=q.ops[q.ok]; const clave=ok[1];
-  let linea = hist.lineas.find(l=>l.includes('|'+clave+']')) || hist.lineas.find(l=>normalizar(l).includes(normalizar(ok[0]))) || hist.lineas[0];
-  const html = esc(conNombre(linea)).replace(/\[([^|\]]+)\|([^\]]+)\]/g, (m,t,k)=> k===clave ? `<span class="clave">${t}</span>` : t);
+  let linea = (q.linea!=null && hist.lineas[q.linea]) || (clave && hist.lineas.find(l=>l.includes('|'+clave+']'))) || hist.lineas.find(l=>normalizar(l).includes(normalizar(ok[0]))) || hist.lineas[0];
+  const html = esc(conNombre(linea)).replace(/\[([^|\]]+)\|([^\]]+)\]/g, (m,t,k)=> k===clave && !hist.p6 ? `<span class="clave">${t}</span>` : t);   // con las 6 preguntas de texto, la pista es la frase sin marcar ni dibujo
   const T=pasos();
   $('#s-pista').innerHTML = `<div class="card preg"><div class="paso-cab"><span class="pill">Una pista</span><span class="der"><span class="pill morada">${ic('bombilla')} Con ayuda</span>${2+qi} de ${T}</span></div>
-    <div class="pista-frase">${html}</div><div class="pista-ft">${imgHTML(fotoURL(clave)?clave:hist.portada,true)}</div>
+    <div class="pista-frase">${html}</div>${hist.p6?'':`<div class="pista-ft">${imgHTML(fotoURL(clave)?clave:hist.portada,true)}</div>`}
     <div class="centro" style="margin-top:18px"><button class="btn btn-borde btn-g" type="button" id="btnVolverQ">${ic('atras')} Volver a la pregunta</button></div></div>`;
   $('#btnVolverQ').onclick=()=>ir('pregunta');
   decir(conNombre(linea).replace(/\[([^|\]]+)\|[^\]]+\]/g,'$1'));
@@ -376,7 +378,7 @@ definir('cromonuevo', {nav:'cromos', pintar(){
   <div class="card cromo-g" id="cromoCaja" style="margin-top:-10px;border-top-left-radius:0;border-top-right-radius:0"><div class="carta${typeof marcoClase==='function'?marcoClase(mAhora):''}"><div class="ft">${imgHTML(h.portada,true)}</div><div class="pie"><b>${esc(conNombre(h.titulo))}</b><span>${TA.emo} ${esc(TA.nombre)} · ${nA} de ${hsA.length}</span></div></div>
     <div class="tx"><h1>${eraNueva?'¡Nuevo cromo!':'¡Muy bien!'}</h1><p class="sub">${albumCompleto?`🏆 ¡Has completado el álbum de ${esc(TA.nombre)}!`:eraNueva?`Has aprendido sobre ${esc(m.nombre.toLowerCase())}.`:'¡Cromo repetido! Ya tenías este, así que te llevas un repe para cambiar con otro niño.'}</p>${mf.html}${typeof esfuerzoHTML==='function'?esfuerzoHTML():''}
       ${typeof fluidezHTML==='function' ? fluidezHTML(h, sesion, eraNueva) : (mejora?`<p class="mejora-rel">🚀 ¡Hoy la has leído más rápido! La otra vez, ${mejora.antes} palabras por minuto; hoy, ${mejora.hoy}.</p>`:'')}
-      <div class="res-mini"><span class="chip">Preguntas ${sesion.aciertos} de ${sesion.totalPreguntas}</span>${teleChipHTML(sesion)}${typeof estrellasChipHTML==='function'?estrellasChipHTML(sesion):''}${sesion.calculo?`<span class="chip">Números ${sesion.calculo.ok?'✓':'con ayuda'}</span>`:''}<span class="chip">${sesion.segundos<60?sesion.segundos+' segundos':mmss(sesion.segundos)+' min'}</span></div>
+      <div class="res-mini"><span class="chip">Preguntas ${sesion.aciertos} de ${sesion.totalPreguntas}</span>${typeof puntosChipHTML==='function'?puntosChipHTML(sesion):''}${teleChipHTML(sesion)}${typeof estrellasChipHTML==='function'?estrellasChipHTML(sesion):''}${sesion.calculo?`<span class="chip">Números ${sesion.calculo.ok?'✓':'con ayuda'}</span>`:''}<span class="chip">${sesion.segundos<60?sesion.segundos+' segundos':mmss(sesion.segundos)+' min'}</span></div>
       ${miAudio?`<button class="btn btn-verde btn-g btn-bloque" type="button" id="btnEscucharme">${ic('altavoz')} Escucharme</button>`:''}
       ${typeof ordenarBotonHTML==='function' ? ordenarBotonHTML(h) : ''}
       <button class="btn btn-borde btn-g btn-bloque" type="button" data-ir="cromos">${ic('album')} Ver mi álbum</button>

@@ -301,7 +301,7 @@ const quedaJuego = (p=perfil()) => Math.max(0, premiosCfg().minutos*60 - segJueg
 definir('juegos', {nav:'juegos', pintar(){
   const p=perfil(), n=juegosAbiertos(p), fj=faltanParaJuego(p), pj=puedeJugar(p), c=premiosCfg();
   $('#s-juegos').innerHTML = `${albumTabsHTML('juegos')}<div class="album-cab"><div><h1 class="tit">Mis juegos</h1><p class="sub">Cada ${c.estJuego} ⭐ se abre un juego nuevo.</p></div>
-    <div class="contador">🎮<div><b>${n} de ${JUEGOS.length}</b><br><span>${fj==null?'¡todos abiertos!':fj===1?'te falta 1 ⭐':'te faltan '+fj+' ⭐'}</span></div></div></div>
+    <div class="contador">🎮<div><b>${n} de ${JUEGOS.length}</b><br><span>${fj==null?'¡todos abiertos!':fj===1?'te falta 1 ⭐':'te faltan '+estTxt(fj)+' ⭐'}</span></div></div></div>
   ${typeof aprenderHTML==='function' ? aprenderHTML() : ''}
   ${typeof deportesHTML==='function' ? deportesHTML() : ''}
   ${pj.ok ? (c.minutos>0 && !p.prueba ? `<div class="card aviso-juego"><span>⏱ Hoy te quedan <b>${Math.ceil(quedaJuego(p)/60)} minutos</b> de juego.</span></div>` : '')
@@ -310,7 +310,7 @@ definir('juegos', {nav:'juegos', pintar(){
   ${fiestaJ() && typeof juegoFiestaHTML==='function' ? juegoFiestaHTML(fiestaJ()) : ''}
   <div class="juegos-grid">${JUEGOS.map((j,i)=> i<n
     ? `<button type="button" class="juego-c" data-j="${j.id}" ${pj.ok?'':'disabled'}><span class="emo-j">${j.emo}</span><b>${esc(j.nombre)}</b><span class="nota">${esc(j.desc)}</span></button>`
-    : `<div class="juego-c bloq"><span class="emo-j">🔒</span><b>${i===n?'Próximo juego':'¿?'}</b><span class="nota">${i===n&&fj!=null?(fj===1?'¡Te falta 1 ⭐!':'Te faltan '+fj+' ⭐'):'Sigue leyendo para abrirlo'}</span></div>`).join('')}</div>`;
+    : `<div class="juego-c bloq"><span class="emo-j">🔒</span><b>${i===n?'Próximo juego':'¿?'}</b><span class="nota">${i===n&&fj!=null?(fj===1?'¡Te falta 1 ⭐!':'Te faltan '+estTxt(fj)+' ⭐'):'Sigue leyendo para abrirlo'}</span></div>`).join('')}</div>`;
   activarAlbumTabs(); if(typeof activarJuegoFiesta==='function') activarJuegoFiesta($('#s-juegos'));
   $$('#s-juegos [data-j]').forEach(b=>b.onclick=()=>ir('juego', b.dataset.j));
 }});

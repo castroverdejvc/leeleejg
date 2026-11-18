@@ -135,7 +135,7 @@ function premiosCasaMini(p){
     const r=typeof revistasDe==='function'?revistasDe(p):null;
     if(r && r.activo && r.sem && r.sem.r1){ const max=r.sem.r2?2:1; h+=`<span class="pm${r.sem.n>=max?' ok':''}${r.pend?' pide':''}" title="Revistas de esta semana: ${r.sem.n} de ${max}">📰<b>${r.sem.n}/${max}</b></span>`; }
     const c=typeof cajasHitos==='function'?cajasHitos(p):null;
-    if(c && c.activo && ((c.sig && c.ver) || c.pend)) h+=`<span class="pm cofre${c.pend?' ok pide':''}" title="${c.pend?'¡Tienes una caja del cofre!':`Cofre del tesoro: faltan ${c.sig.v-c.est} ⭐`}">🎁<b>${c.pend?'¡ya!':(c.sig.v-c.est)+'⭐'}</b></span>`;
+    if(c && c.activo && ((c.sig && c.ver) || c.pend)) h+=`<span class="pm cofre${c.pend?' ok pide':''}" title="${c.pend?'¡Tienes una caja del cofre!':`Cofre del tesoro: faltan ${estTxt(c.sig.v-c.est)} ⭐`}">🎁<b>${c.pend?'¡ya!':estTxt(c.sig.v-c.est)+'⭐'}</b></span>`;
   }catch(e){ console.error(e); }
   return h;
 }

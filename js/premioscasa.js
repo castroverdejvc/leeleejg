@@ -19,7 +19,7 @@ function nuevosDe(p=perfil()){
   const log=cfgDe(p).nuevosLog||[], sab=claveDia(sabadoDe(hoyTele()));
   return premiosNuevos().map(x=>{
     const h=nuevoHitos(p, x.id), dados=log.filter(l=>l.id===x.id).length, pend=Math.max(0, h.lista.length-dados);
-    const k=Math.max(1, h.n || +x.cada || 1), falta = h.sig!=null ? Math.max(1, h.sig-h.est) : null;
+    const k=Math.max(1, h.n || +x.cada || 1), falta = h.sig!=null ? Math.max(0.01, Math.round((h.sig-h.est)*100)/100) : null;
     const semN=h.lista.filter(e=>claveDia(sabadoDe(new Date(e.f)))===sab).length, max=Math.max(0, +x.maxSemana||0);
     const lleno = max>0 && semN>=max;
     const pc=pctCerca(); const cerca = falta!=null && (x.ver!=='cerca' || !(pc>0) || falta<=Math.ceil(k*pc/100));
@@ -32,7 +32,7 @@ const pendientesNuevos = (p=perfil()) => nuevosDe(p).filter(x=>x.pend>0);
 function premiosCasaHTML(){
   const p=perfil(); if(p.prueba) return '';
   const barra=(v,k,col)=>`<span class="barra-t"><i style="width:${Math.max(0,Math.min(100,Math.round(100*v/Math.max(1,k))))}%;background:${col}"></i></span>`;
-  const faltaE=n=>n===1?'¡Te falta 1 ⭐!':`Te faltan ${n} ⭐`;
+  const faltaE=n=>n===1?'¡Te falta 1 ⭐!':`Te faltan ${estTxt(n)} ⭐`;
   const ok=b=>b?'✅':'⬜';
   const fila=(emo,t,nota,b='',cls='')=>`<div class="premio pc-fila${cls?' '+cls:''}"><span class="emo-g">${emo}</span><div class="tx"><b>${t}</b><span class="nota">${nota}</span>${b}</div></div>`;
   const filas=[], recoger=[];
@@ -48,7 +48,7 @@ function premiosCasaHTML(){
   const r=typeof revistasDe==='function' ? revistasDe(p) : {activo:false};
   if(r.activo && r.sem && r.sem.r1){ const w=r.sem, meta = w.est<w.r1 ? w.r1 : (w.r2 && w.est<w.r2 ? w.r2 : null), max=w.r2?2:1;
     filas.push(fila('📰', meta ? `Revista ${meta===w.r1?'1':'2'} de esta semana` : `¡Ya tienes ${max===1?'la revista':'las 2 revistas'} de esta semana!`,
-      meta ? `${faltaE(meta-w.est)} Llevas ${w.est} ⭐ esta semana. (Como mucho ${max} a la semana.)` : 'La semana que viene, más.', meta ? barra(w.est, meta, '#0EA5B7') : '', meta?'':'gana'));
+      meta ? `${faltaE(meta-w.est)} Llevas ${estTxt(w.est)} ⭐ esta semana. (Como mucho ${max} a la semana.)` : 'La semana que viene, más.', meta ? barra(w.est, meta, '#0EA5B7') : '', meta?'':'gana'));
   }
   // cofre del tesoro: solo cuando está cerca
   const c=typeof cajasHitos==='function' ? cajasHitos(p) : {activo:false};

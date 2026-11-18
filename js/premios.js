@@ -6,7 +6,7 @@
 const PREMIOS_DEF = {criatura:2, juego:5, minutos:15, trasLeer:true, tele:10, teleExtra:15, teleRelee:5, teleFicha:5, teleTrabajo:1, sobre:15, restaFallo:0.5, peliExtra:9,
   estCriatura:8, estJuego:30, sobreDia:4, sorpresa:true, sorpresaExtras:2, movilCada:3, movilMax:30, eduMax:4,
   tDia:15, tExtra:10, tRelee:5, tFicha:5, tTrabajo:2, peliExtras:7, teleMaxDia:120, teleMaxSemana:240,
-  revista1:45, revista2:75, cajaPeq:500, cajaGrande:1000, tMini:1,
+  revista1:45, revista2:75, cajaPeq:500, cajaGrande:1000, tMini:1, ePapel:1,   // ePapel (18/11): ⭐ por cada ficha en papel del cole hecha en casa
   /* 31/10/2026 (la familia): como mucho 4 sobres de cartas por semana; el cofre se ve cuando falta el 20 %;
      las estrellas de cada tarea se pueden cambiar; premios nuevos de la familia (nuevos: [{id, emo, nombre, cada, maxSemana, ver, activo}]) */
   sobresSemana:4, cajaVerPct:20, tJuego:1, movilJuego:1, eDia:3, eNueva:2, eExtra:2, eRelee:1, eFicha:1, eFichaBien:2, eJuegoOro:1, eObjetivos:10, nuevos:[]};
@@ -337,7 +337,7 @@ definir('criaturas', {nav:'cromos', pintar(){
     <div class="contador">🐾<div><b>${base} de ${CRIATURAS.length}</b><br><span>${evos} ${evos===1?'evolución':'evoluciones'} de ${totEvos}${leyendas?` · ${leyendas} 🌈`:''}</span></div></div></div>
   ${evoPendienteHTML(p)}
   <div class="card fases-explica"><b>Las fases</b><span class="fases-lista">${[1,2,3,4,5,6].map(f=>`<span><i class="f${f}">${'★'.repeat(f)}</i>${f===1?'Normal':FORMAS[f].n}</span>`).join('')}</span><span class="nota">Legendario: lee 7 días seguidos y elige uno de tus muñecos Giga.</span></div>
-  <div class="card album-prog"><span class="emo-g">🎁</span><div class="tx"><b>${fc===1?'¡Te falta 1 ⭐ para el próximo!':'Te faltan '+fc+' ⭐ para el próximo'}${st.sig==='evo'?' (¡será una evolución!)':st.sig==='nuevo'?' (¡un muñeco nuevo!)':''}</b><span class="barra-t"><i style="width:${Math.round(100*(kc-fc)/kc)}%;background:#8B5CF6"></i></span></div></div>
+  <div class="card album-prog"><span class="emo-g">🎁</span><div class="tx"><b>${fc===1?'¡Te falta 1 ⭐ para el próximo!':'Te faltan '+estTxt(fc)+' ⭐ para el próximo'}${st.sig==='evo'?' (¡será una evolución!)':st.sig==='nuevo'?' (¡un muñeco nuevo!)':''}</b><span class="barra-t"><i style="width:${Math.round(100*(kc-fc)/kc)}%;background:#8B5CF6"></i></span></div></div>
   <div class="cri-grid">${CRIATURAS.map(c=>tengo.has(c.id)
     ? (()=>{ const f=formaDe(c), cf=criatura(f>1?c.id+'@'+f:c.id); return `<button type="button" class="cri-hueco tengo ${c.rareza===3||f>=3?'rara':''}${f>=6?' leyenda':''}" data-cri="${c.id}"><span class="num">${c.n}</span>${criaturaSVG(cf)}<b>${esc(cf.nombre)}</b>${estrellasForma(f)}</button>`; })()
     : `<div class="cri-hueco"><span class="num">${c.n}</span>${criaturaSVG(c,{silueta:true})}<b class="nota">¿?</b></div>`).join('')}</div>

@@ -105,7 +105,7 @@ function valoracionesDe(p, sem){
   if(compU!=null) V.push([compU>=80?'bien':compU>=60?'info':'ojo', `Comprensión: acierta el <b>${Math.round(compU)} %</b> de las preguntas (últimas semanas).${tc>0?' Va mejorando. 📈':tc<0?' Ha bajado: puede que lea deprisa para acabar o que las historias le cuesten más. 📉':''}${compU<60?' Conviene leer la historia con él y preguntarle de palabra.':''}`]);
   // 4 · fallos (cada uno resta 30 s de tele)
   const fl=cerr.slice(-3), fPorLect=media(fl.map(w=>w.lecturas?w.fallos/w.lecturas:null));
-  if(fPorLect!=null) V.push([fPorLect<=1?'bien':fPorLect<=2?'info':'ojo', `Falla de media <b>${Math.round(fPorLect*10)/10}</b> ${Math.round(fPorLect*10)/10===1?'vez':'veces'} por lectura.${restaFallo()>0?` Con la resta de ${restaFallo()===0.5?'30 segundos':minTxt(restaFallo())}, son unos ${minTxt(fPorLect*restaFallo()*prom(fl,w=>w.lecturas))} de tele menos a la semana.`:''}`]);
+  if(fPorLect!=null) V.push([fPorLect<=1?'bien':fPorLect<=2?'info':'ojo', `Falla de media <b>${Math.round(fPorLect*10)/10}</b> ${Math.round(fPorLect*10)/10===1?'vez':'veces'} por lectura.${restaFallo()>0 && !(typeof p6Activo==='function' && p6Activo())?` Con la resta de ${restaFallo()===0.5?'30 segundos':minTxt(restaFallo())}, son unos ${minTxt(fPorLect*restaFallo()*prom(fl,w=>w.lecturas))} de tele menos a la semana.`:''}`]);
   // 5 · fluidez
   const ppmU=prom(cerr.slice(-3), w=>w.ppm), tp=tend(w=>w.ppm, 0.1);
   if(ppmU!=null) V.push([tp<0?'ojo':tp>0?'bien':'info', `Lee unas <b>${Math.round(ppmU)} palabras por minuto</b>.${tp>0?' Cada vez más rápido. 📈':tp<0?' Algo más despacio que antes (puede ser porque las historias son más largas o difíciles).':''}`]);

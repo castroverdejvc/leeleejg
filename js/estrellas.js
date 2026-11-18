@@ -26,7 +26,7 @@ const pctBien = (bien, n) => n ? bien/n : 0;
 let _cacheEv={k:null, v:null};
 function estrellasEventos(p=perfil()){
   const c=cfgDe(p);
-  const k=[p.id, SES.length, SES.filter(s=>!s.incompleta).length, claveDia(new Date()), JSON.stringify(aj.premios||{}), (aj.premiosHist||[]).length, ...[...LOGS_FICHA,...LOGS_MINI,'trabajosLog','eduLog','objManualLog','deporteLog','juegoLog'].map(x=>(c[x]||[]).length)].join('|');
+  const k=[p.id, SES.length, SES.filter(s=>!s.incompleta).length, claveDia(new Date()), JSON.stringify(aj.premios||{}), (aj.premiosHist||[]).length, ...[...LOGS_FICHA,...LOGS_MINI,'trabajosLog','eduLog','objManualLog','deporteLog','juegoLog','papelLog'].map(x=>(c[x]||[]).length), (c.papelLog||[]).reduce((a,x)=>a+(+x.n||0),0)].join('|');
   if(_cacheEv.k===k) return _cacheEv.v;
   const ev=calcularEventos(p, c); _cacheEv={k, v:ev}; return ev;
 }
@@ -39,12 +39,15 @@ function calcularEventos(p, c){
     else if(primera && esPropuesta(p, s.historiaId)){ tipo='dia'; n=+R.eDia||0; }
     else if(primera){ tipo='nueva'; n=+R.eNueva||0; }
     else { tipo='relee'; n=+R.eRelee||0; }
+    if(s.p6 && typeof factorP6==='function') n*=factorP6(s);   // 18/11/2026: según los puntos de las 6 preguntas (puede tener decimales)
     ev.push({f:s.fecha, n, tipo, hid:s.historiaId, sid:s.id});
   });
   const estFicha = (f, bien) => { const R=premiosCfg(f); return bien ? +R.eFichaBien||0 : +R.eFicha||0; };   // ⭐ (⭐⭐ con un 80 % bien o más)
   LOGS_FICHA.forEach(k=>(c[k]||[]).forEach(x=>{ if(!x.f) return; const n=+x.n||0; ev.push({f:x.f, n: estFicha(x.f, n && pctBien(+x.bien||0, n)>=0.8), tipo:'ficha'}); }));
   (c.trabajosLog||[]).forEach(x=>{ if(!x.f) return; const a=+x.a||0, e=+x.e||0; ev.push({f:x.f, n: estFicha(x.f, (a+e) && pctBien(a, a+e)>=0.8), tipo:'trabajo'}); });
   LOGS_MINI.forEach(k=>(c[k]||[]).forEach(x=>{ if(!x.f) return; const n=+x.n||0; ev.push({f:x.f, n: estFicha(x.f, n && pctBien(+x.bien||0, n)>=0.8), tipo:'mini'}); }));
+  // 18/11/2026: fichas en papel del cole hechas en casa (las apunta la familia): ePapel ⭐ cada una
+  (c.papelLog||[]).forEach(x=>{ if(!x.f) return; ev.push({f:x.f, n:(+x.n||0)*(+premiosCfg(x.f).ePapel||0), tipo:'papel'}); });
   // juegos de «Aprender jugando»: una ronda terminada ⭐ (⭐⭐ si casi todo bien), como mucho eduMax ⭐ al día
   const porDia={};
   (c.eduLog||[]).filter(x=>x.f).sort((a,b)=>a.f<b.f?-1:1).forEach(x=>{ const k=claveDia(x.f), ya=porDia[k]||0, n=+x.n||0, maxEdu=+premiosCfg(x.f).eduMax||0;
@@ -58,16 +61,17 @@ function calcularEventos(p, c){
 /* estrellas entre dos fechas (por defecto, desde el 24/10/2026 hasta ahora) */
 function estrellasEntre(p=perfil(), desde=CORTE_PREMIOS, hasta=null){
   const d=+new Date(desde), h=hasta?+new Date(hasta):Infinity;
-  return estrellasEventos(p).filter(e=>{ const t=+new Date(e.f); return t>=d && t<h; }).reduce((a,e)=>a+e.n,0);
+  return Math.round(estrellasEventos(p).filter(e=>{ const t=+new Date(e.f); return t>=d && t<h; }).reduce((a,e)=>a+e.n,0)*100)/100;   // con decimales desde el 18/11/2026
 }
 const estrellasDe = (p=perfil()) => estrellasEntre(p);
 /* estrellas que da una lectura concreta (para el final de la lectura) */
 function estrellasDeSesion(p, s){
   const antes=sesDe(p.id).some(x=>x.id!==s.id && !x.incompleta && x.historiaId===s.historiaId && x.fecha<s.fecha), R=premiosCfg(s.fecha);
-  if(esComp(s.historiaId)) return antes ? +R.eRelee||0 : +R.eExtra||0;
-  return antes ? +R.eRelee||0 : esPropuesta(p, s.historiaId) ? +R.eDia||0 : +R.eNueva||0;
+  const k = s.p6 && typeof factorP6==='function' ? factorP6(s) : 1;
+  if(esComp(s.historiaId)) return k*(antes ? +R.eRelee||0 : +R.eExtra||0);
+  return k*(antes ? +R.eRelee||0 : esPropuesta(p, s.historiaId) ? +R.eDia||0 : +R.eNueva||0);
 }
-function estrellasChipHTML(s){ const p=perfil(); if(p.prueba) return ''; const n=estrellasDeSesion(p, s); if(!n) return ''; return `<span class="chip chip-estrella">${'⭐'.repeat(Math.min(3,n))} +${n}</span>`; }
+function estrellasChipHTML(s){ const p=perfil(); if(p.prueba) return ''; const n=estrellasDeSesion(p, s); if(!n) return ''; return `<span class="chip chip-estrella">${'⭐'.repeat(Math.max(1,Math.min(3,Math.round(n))))} +${estTxt(n)}</span>`; }
 
 /* ---------- 31/10/2026: premios «cada N ⭐» con reglas que pueden cambiar ----------
    Lo ganado se queda. Si la familia cambia N, el siguiente se cuenta con el N nuevo desde el último ganado; si con el N
@@ -80,7 +84,7 @@ function hitosEstrellas(p, clave, nDe, maxDe=null){
   const d0=+CORTE_PREMIOS; let est=0, base=0, nAnt=null; const lista=[], porSem={};
   const cabe = (f, R) => { const m=maxDe ? +maxDe(R)||0 : 0; if(m<=0) return true; return (porSem[claveDia(sabadoDe(new Date(f)))]||0) < m; };
   const gana = (v, f) => { lista.push({v, f}); const w=claveDia(sabadoDe(new Date(f))); porSem[w]=(porSem[w]||0)+1; };
-  for(const e of ev){ if(+new Date(e.f)<d0) continue; est+=e.n; const R=premiosCfg(e.f), n=Math.max(0, +nDe(R)||0);
+  for(const e of ev){ if(+new Date(e.f)<d0) continue; est=Math.round((est+e.n)*1e4)/1e4; const R=premiosCfg(e.f), n=Math.max(0, +nDe(R)||0);
     if(!n){ base=est; nAnt=0; continue; }
     if(nAnt===0){ base=est-e.n; }   // se acaba de encender: cuenta desde aquí
     if(nAnt && n!==nAnt && est-base>=n){ if(cabe(e.f, R)){ gana(est, e.f); base=est; } }
@@ -91,7 +95,7 @@ function hitosEstrellas(p, clave, nDe, maxDe=null){
 }
 const hitosCada = (p, clave) => hitosEstrellas(p, clave, R=>cadaK(R[clave]));   // muñecos y juegos (siempre encendidos)
 /* cuánto le falta para el siguiente «cada N ⭐»: {falta, hecho, k} */
-function progresoCada(p, clave){ const h=hitosCada(p, clave), k=Math.max(1,h.n||1), falta=Math.max(1, (h.sig==null?h.est+k:h.sig)-h.est); return {falta, hecho:Math.max(0,k-falta), k}; }
+function progresoCada(p, clave){ const h=hitosCada(p, clave), k=Math.max(1,h.n||1), falta=Math.max(0.01, Math.round(((h.sig==null?h.est+k:h.sig)-h.est)*100)/100); return {falta, hecho:Math.max(0,k-falta), k}; }
 
 /* ---------- muñecos: criaturas nuevas y sus evoluciones ---------- */
 /* 8.5 (1/11/2026, pedido por José Luis): 6 fases. Una palabra nueva en cada fase para que se distingan y las lea él:
@@ -195,9 +199,9 @@ function estrellasHTML(conSobre=true){   // 31/10: en la pestaña Premios el sob
   const ok=b=>b?'✅':'⬜';
   const sobre = conSobre && sd.activo ? `<div class="premio sobre-dia${sd.sorpresa?' sorpresa':''}${sd.ganado?' gana':''}"><span class="emo-g">${sd.sorpresa?'🎁':'🎴'}</span><div class="tx"><b>${sd.ganado?'¡Sobre de hoy conseguido!':sd.lleno?`¡Ya tienes los ${sd.semana.tope} sobres de esta semana!`:sd.sorpresa?'¡Hoy es día sorpresa!':'Sobre de cartas de hoy'}</b>
       <span class="nota">${sd.ganado?'Pídeselo a papá o a mamá.':sd.lleno?'El sábado empiezan otros.':`${ok(sd.dia)} La historia de hoy · ${ok(sd.extras>=sd.meta)} ${Math.min(sd.extras,sd.meta)} de ${sd.meta} lecturas extra`}</span>${sd.ganado||sd.lleno?'':barra(Math.min(sd.meta+1,(sd.dia?1:0)+Math.min(sd.extras,sd.meta)), sd.meta+1, '#E11D48')}</div></div>` : '';
-  return `${typeof evoPendienteHTML==='function'?evoPendienteHTML(p):''}<div class="card premios estrellas-card"><div class="estrellas-cab"><span class="est-n">⭐ ${est}</span><span class="nota">estrellas desde el 24 de octubre</span>${typeof rachaHTML==='function'?rachaHTML():''}</div>
-    <div class="premio" data-ir="criaturas"><span class="emo-g">🐾</span><div class="tx"><b>Próximo muñeco · ${esc(sigTxt)}</b><span class="nota">${fc===1?'¡Te falta 1 ⭐!':'Te faltan '+fc+' ⭐'}</span>${barra(kc-fc,kc,'#8B5CF6')}</div></div>
-    <div class="premio" data-ir="juegos"><span class="emo-g">🎮</span><div class="tx"><b>${fj==null?'¡Tienes todos los juegos!':'Próximo juego'}</b><span class="nota">${fj==null?'Juega un ratito cuando acabes.':fj===1?'¡Te falta 1 ⭐!':'Te faltan '+fj+' ⭐'}</span>${fj==null?'':barra(kj-fj,kj,'#F5A300')}</div></div>
+  return `${typeof evoPendienteHTML==='function'?evoPendienteHTML(p):''}<div class="card premios estrellas-card"><div class="estrellas-cab"><span class="est-n">⭐ ${estTxt(est)}</span><span class="nota">estrellas desde el 24 de octubre</span>${typeof rachaHTML==='function'?rachaHTML():''}</div>
+    <div class="premio" data-ir="criaturas"><span class="emo-g">🐾</span><div class="tx"><b>Próximo muñeco · ${esc(sigTxt)}</b><span class="nota">${fc===1?'¡Te falta 1 ⭐!':'Te faltan '+estTxt(fc)+' ⭐'}</span>${barra(kc-fc,kc,'#8B5CF6')}</div></div>
+    <div class="premio" data-ir="juegos"><span class="emo-g">🎮</span><div class="tx"><b>${fj==null?'¡Tienes todos los juegos!':'Próximo juego'}</b><span class="nota">${fj==null?'Juega un ratito cuando acabes.':fj===1?'¡Te falta 1 ⭐!':'Te faltan '+estTxt(fj)+' ⭐'}</span>${fj==null?'':barra(kj-fj,kj,'#F5A300')}</div></div>
     ${sobre}</div>`;
 }
 /* aviso por la mañana del día sorpresa (una vez al día) */
@@ -230,7 +234,7 @@ function movilCajaHTML(p, finde){
     <div class="peli-barra" role="img" aria-label="${m.ganados} de ${m.max} minutos"><span style="width:${Math.min(100,Math.round(m.ganados*100/Math.max(1,m.max)))}%;background:#0EA5B7"></span><b>${minTxt(m.ganados)} de ${minTxt(m.max)}</b></div>
     ${finde ? (m.saldo>0 ? `<div class="tele-reloj movil-reloj" id="movilReloj">${relojTele(m.saldo*60)}</div><div class="botones"><button class="btn btn-p" type="button" id="movilBtn">▶ Empezar a jugar</button></div>`
                          : `<p class="sub">${m.ganados?'¡Ya has jugado todos tus minutos de móvil!':'Esta vez no hay minutos de móvil.'}</p>`)
-            : `<p class="sub">Llevas ${m.est} ⭐ esta semana: ${minTxt(m.ganados)} de móvil para el fin de semana.${m.ganados<m.max?` Con ${m.cada*(Math.floor(m.ganados)+1)-m.est} ⭐ más, otro minuto.`:''}</p>`}
+            : `<p class="sub">Llevas ${estTxt(m.est)} ⭐ esta semana: ${minTxt(m.ganados)} de móvil para el fin de semana.${m.ganados<m.max?` Con ${estTxt(m.cada*(Math.floor(m.ganados)+1)-m.est)} ⭐ más, otro minuto.`:''}</p>`}
     ${finde && sig && sig.ganados>0?`<p class="nota">Para el próximo fin de semana ya llevas ${minTxt(sig.ganados)}.</p>`:''}</div>`;
 }
 function activarMovilCaja(p){
@@ -246,7 +250,7 @@ function activarMovilCaja(p){
 function semanasEstrellas(p=perfil()){
   const ev=estrellasEventos(p); if(!ev.length) return [];
   const hoySab=sabadoDe(hoyTele()); let d=sabadoDe(new Date(ev[0].f)); const out=[];
-  for(; +d<=+hoySab; d=diasDespues(d,7)){ const h=diasDespues(d,7); out.push({desde:new Date(d), est:ev.filter(e=>{ const t=+new Date(e.f); return t>=+d && t<+h; }).reduce((a,e)=>a+e.n,0), actual:+d===+hoySab}); }
+  for(; +d<=+hoySab; d=diasDespues(d,7)){ const h=diasDespues(d,7); out.push({desde:new Date(d), est:Math.round(ev.filter(e=>{ const t=+new Date(e.f); return t>=+d && t<+h; }).reduce((a,e)=>a+e.n,0)*100)/100, actual:+d===+hoySab}); }
   return out;
 }
 const ORD = n => n+'.º';
@@ -264,11 +268,11 @@ function motivacionHTML(){
   const p=perfil(); if(p.prueba) return ''; const m=motivacionDe(p); if(!m || m.total<1) return '';
   const fc=d=>d.toLocaleDateString('es-ES',{day:'numeric', month:'short'});
   const comp = !m.hayPasada ? 'Es tu primera semana con estrellas.' : m.dif>0 ? `Vas <b>${m.dif} ⭐ por delante</b> de la semana pasada a estas horas. ¡Sigue así!` : m.dif<0 ? `Vas <b>${-m.dif} ⭐ por detrás</b> de la semana pasada a estas horas. ¡Tú puedes!` : 'Vas igual que la semana pasada a estas horas.';
-  const recTxt = !m.rec ? '' : m.falta<0 ? `🏅 <b>¡Nuevo récord!</b> Superas tu mejor semana (${m.rec.est} ⭐).` : m.falta===0 ? `🏅 ¡Igualas tu récord de ${m.rec.est} ⭐! Una estrella más y lo batirás.` : m.falta<=5 ? `🏅 ¡Estás a <b>${m.falta} ${m.falta===1?'estrella':'estrellas'}</b> de tu récord (${m.rec.est} ⭐)!` : `🏅 Tu récord: ${m.rec.est} ⭐ (semana del ${fc(m.rec.desde)}). Te faltan ${m.falta}.`;
+  const recTxt = !m.rec ? '' : m.falta<0 ? `🏅 <b>¡Nuevo récord!</b> Superas tu mejor semana (${estTxt(m.rec.est)} ⭐).` : m.falta===0 ? `🏅 ¡Igualas tu récord de ${estTxt(m.rec.est)} ⭐! Una estrella más y lo batirás.` : m.falta<=5 ? `🏅 ¡Estás a <b>${m.falta} ${m.falta===1?'estrella':'estrellas'}</b> de tu récord (${estTxt(m.rec.est)} ⭐)!` : `🏅 Tu récord: ${estTxt(m.rec.est)} ⭐ (semana del ${fc(m.rec.desde)}). Te faltan ${m.falta}.`;
   const nomb=i=>i===0?'Esta semana':i===1?'La pasada':'Hace 2 semanas';
   const top=m.sem.filter(w=>w.est>0).sort((a,b)=>b.est-a.est || b.desde-a.desde).slice(0,3);
-  const escalon=(w,pos)=>w?`<div class="esc e${pos}${w.actual?' yo':''}"><span class="med">${['🥇','🥈','🥉'][pos-1]}</span><b>${w.est} ⭐</b><span class="nota">${w.actual?'¡esta semana!':fc(w.desde)}</span><i></i></div>`:'<div class="esc vacio"></div>';
-  return `<div class="card motivacion"><div class="mot-tx"><b>🏆 Tu semana: ${m.cur.est} ⭐</b><span class="nota">${comp}</span>${recTxt?`<span class="nota">${recTxt}</span>`:''}
+  const escalon=(w,pos)=>w?`<div class="esc e${pos}${w.actual?' yo':''}"><span class="med">${['🥇','🥈','🥉'][pos-1]}</span><b>${estTxt(w.est)} ⭐</b><span class="nota">${w.actual?'¡esta semana!':fc(w.desde)}</span><i></i></div>`:'<div class="esc vacio"></div>';
+  return `<div class="card motivacion"><div class="mot-tx"><b>🏆 Tu semana: ${estTxt(m.cur.est)} ⭐</b><span class="nota">${comp}</span>${recTxt?`<span class="nota">${recTxt}</span>`:''}
       <span class="puestos">${m.puestos.map(x=>`<span class="pst${x.i===0?' yo':''}">${nomb(x.i)}: <b>${x.puesto<=3?['🥇','🥈','🥉'][x.puesto-1]:''} ${ORD(x.puesto)}</b>${x.i===0?' <small>(de momento)</small>':''}</span>`).join('')}</span></div>
     ${m.total>=2?`<div class="podio">${escalon(top[1],2)}${escalon(top[0],1)}${escalon(top[2],3)}</div>`:''}</div>`;
 }
@@ -276,7 +280,7 @@ function motivacionHTML(){
 function avisarRecord(){
   const p=perfil(); if(p.prueba) return; const m=motivacionDe(p); if(!m || !m.rec || m.falta>=0) return;
   const c=cfgDe(p), k=claveDia(m.cur.desde); if(c.recordAvisado===k) return; c.recordAvisado=k; guardarAj();
-  (typeof cuandoLibre==='function' ? cuandoLibre : (fn,ms)=>setTimeout(()=>{ if(actual==='inicio') fn(); },ms))(()=>{ const d=dialogo({titulo:'🏅 ¡Nuevo récord!', html:`<p class="sub">Esta semana llevas <b>${m.cur.est} ⭐</b>: ¡más que en ninguna otra semana!</p>`, cls:'dlg-premio', botones:[{t:'¡Bien!', cls:'btn-p'}]}); sonido('cromo'); confeti(d.el.querySelector('.dialogo')||document.body); decir(`¡Nuevo récord, ${nombre()}! Esta semana llevas ${m.cur.est} estrellas.`); }, 2200);
+  (typeof cuandoLibre==='function' ? cuandoLibre : (fn,ms)=>setTimeout(()=>{ if(actual==='inicio') fn(); },ms))(()=>{ const d=dialogo({titulo:'🏅 ¡Nuevo récord!', html:`<p class="sub">Esta semana llevas <b>${estTxt(m.cur.est)} ⭐</b>: ¡más que en ninguna otra semana!</p>`, cls:'dlg-premio', botones:[{t:'¡Bien!', cls:'btn-p'}]}); sonido('cromo'); confeti(d.el.querySelector('.dialogo')||document.body); decir(`¡Nuevo récord, ${nombre()}! Esta semana llevas ${estTxt(m.cur.est)} estrellas.`); }, 2200);
 }
 
 /* ---------- 28/10: lo ganado se ve al terminar (fichas, dictado, Spell it!, practicar, sorpresas…) ---------- */
@@ -287,4 +291,4 @@ function premioChipHTML(antes, p=perfil()){
   setTimeout(()=>{ if(typeof avisarTele==='function') avisarTele(p, true); }, 600);
   return `<div class="premio-chip">${e>0?`<span>${'⭐'.repeat(Math.min(3,e))} +${e}</span>`:''}${m>0?`<span>📺 +${minTxt(m)} de tele</span>`:''}</div>`;
 }
-const premioVoz = (antes, p=perfil()) => { if(p.prueba || !antes) return ''; const d=fotoPremios(p); const e=d.est-antes.est, m=Math.round((d.min-antes.min)*2)/2; return [e>0?`${e===1?'una estrella':e+' estrellas'}`:'', m>0?`${minTxt(m)} de tele`:''].filter(Boolean).join(' y '); };
+const premioVoz = (antes, p=perfil()) => { if(p.prueba || !antes) return ''; const d=fotoPremios(p); const e=Math.round((d.est-antes.est)*100)/100, m=Math.round((d.min-antes.min)*2)/2; return [e>0?`${e===1?'una estrella':estTxt(e)+' estrellas'}`:'', m>0?`${minTxt(m)} de tele`:''].filter(Boolean).join(' y '); };

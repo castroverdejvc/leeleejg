@@ -42,7 +42,7 @@ function premiosFamiliaHTML(p){
   const cajaPend = cj.pend ? cj.ganados[cj.dadas] : null;
   filas.push(fila('🎁','Cofre del tesoro (cajas)', `Caja pequeña de Pokémon cada ${pfSel('cajaPeq',[0,300,400,500,600,750],x=>x?x+' ⭐':'nunca')} acumuladas.<br>Caja grande (One Piece o Pokémon) cada ${pfSel('cajaGrande',[0,800,1000,1200,1500,2000],x=>x?x+' ⭐':'nunca')}.<br>El niño la ve cuando falta el ${pfSel('cajaVerPct',[0,10,20,30,50],x=>x===0?'— (siempre la ve)':x+' %')}.`,
     'Por estrellas',
-    `Lleva ${cj.est} ⭐.${cj.sig?` Próxima: ${esc(nombreCaja(cj.sig.tipo).replace(/^una /,''))} a los ${cj.sig.v} ⭐ (faltan ${cj.sig.v-cj.est}; ${cj.ver?'<b>ya la ve</b>':'todavía no la ve'}).`:''}${cj.pend?` <b class="pf-pend">${cj.pend} por dar</b>`:''}`,
+    `Lleva ${estTxt(cj.est)} ⭐.${cj.sig?` Próxima: ${esc(nombreCaja(cj.sig.tipo).replace(/^una /,''))} a los ${cj.sig.v} ⭐ (faltan ${estTxt(cj.sig.v-cj.est)}; ${cj.ver?'<b>ya la ve</b>':'todavía no la ve'}).`:''}${cj.pend?` <b class="pf-pend">${cj.pend} por dar</b>`:''}`,
     cajaPend?`<div class="pf-dar">${cajaPend.tipo==='grande'?dar('pfCajaOP','Ya le he dado la caja: One Piece')+dar('pfCajaPK','Ya le he dado la caja: Pokémon'):dar('pfCajaPK','Ya le he dado la caja')}</div>`:''));
   filas.push(fila('🐾','Muñeco (en el programa)', `Cada ${pfSel('estCriatura',[5,6,8,10,12],pfEst)}.`, 'Por estrellas', `${criaturasDe(p).length} muñecos; el próximo, en ${progresoCada(p,'estCriatura').falta} ⭐.`));
   filas.push(fila('🎮','Juego nuevo (en el programa)', `Cada ${pfSel('estJuego',[15,20,30,40,50],pfEst)}. Se juega cuando acaba lo de hoy.`, `${pfSel('minutos',[0,5,10,15,20,30,45,60],x=>x?x+' min al día':'Sin límite de tiempo')}`, `${juegosAbiertos(p)} de ${typeof JUEGOS!=='undefined'?JUEGOS.length:'?'} juegos abiertos.`));
@@ -73,6 +73,7 @@ function tareasFamiliaHTML(p){
     ${fila('🆕','Historia nueva de sus temas', pfSel('eNueva',e5,pfEst), 'Como «Volver a leer»', '🎯 Objetivos («días leyendo»)')}
     ${fila('🔁','Volver a leer', pfSel('eRelee',e5,pfEst), pfSel('tRelee',[0,2,5,10],pfMin), '')}
     ${fila('✏️','Ficha, dictado, «As letras», caligrafía, Spell it!, palabras del día', `${pfSel('eFicha',e5,pfEst)}<br><span class="nota">con 80 % bien:</span> ${pfSel('eFichaBien',e5,pfEst)}`, `hasta ${pfSel('tFicha',[0,2,5,10],pfMin)}`, '🎯 Objetivos (fichas)')}
+    ${fila('📄','Ficha en papel del cole hecha en casa (la apunta la familia con el PIN)', `${pfSel('ePapel',[0,1,2,3],pfEst)} cada una`, '—', (()=>{ const n=typeof papelSemana==='function'?papelSemana(p):0; return `Esta semana: ${n}${n?' <button class="btn btn-mini" type="button" id="pfPapelQuitar">Quitar la última apuntada</button>':''}`; })())}
     ${fila('🖍️','Trabajo del cole', 'Como las fichas', pfSel('tTrabajo',[0,1,2,3,5],pfMin), '🎯 Objetivos (fichas)')}
     ${fila('🎁','Sorpresas de hoy y Practicar', 'Como las fichas', pfSel('tMini',[0,1,2,3],pfMin), '🎯 Objetivos (fichas)')}
     ${fila('🧩','Aprender jugando (cada ronda)', `⭐ (⭐⭐ si casi todo bien), como mucho ${pfSel('eduMax',[0,2,4,6,8],x=>x?x+' ⭐ al día':'no dan ⭐')}`, '—', '🎯 Objetivos (fichas)')}
@@ -81,11 +82,12 @@ function tareasFamiliaHTML(p){
     ${racha}
     </tbody></table></div>
     <div class="fam-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:12px">
-      <div class="campo"><label>Cada pregunta fallada resta a la tele</label>${pfSel('restaFallo',[0,0.5,1],pfMin)}</div></div></div>`;
+      <div class="campo"><label>Cada fallo resta a la tele (solo fichas y trabajos)</label>${pfSel('restaFallo',[0,0.5,1],pfMin)}</div></div></div>`;
 }
 
 function activarPremiosFamilia(p){
   const raiz=document.querySelector('#s-cfgpremios:not([hidden])')||$('#s-evolucion')||document;
+  { const q=$('#pfPapelQuitar', raiz); if(q) q.onclick=()=>{ if(typeof quitarUltimoPapel==='function' && quitarUltimoPapel(p)){ aviso('Quitada'); irPremiosFam(); } }; }
   const volver=(txt='Guardado. Cuenta desde hoy.')=>{ const y=window.scrollY; aviso(txt); irPremiosFam(); setTimeout(()=>window.scrollTo(0,y), 30); };
   $$('[data-pk]', raiz).forEach(e=>e.onchange=()=>{ guardarPremios({[e.dataset.pk]: +e.value}); volver(); });
   $$('[data-pkb]', raiz).forEach(b=>b.onclick=()=>{ const v=b.getAttribute('aria-checked')!=='true'; guardarPremios({[b.dataset.pkb]: v}); volver(); });

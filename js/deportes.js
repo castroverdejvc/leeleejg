@@ -330,11 +330,11 @@ function apuntarDep(j, r, nivel){ try{ const c=cfgDe(perfil()); c.deporteLog=(c.
 definir('deportes', {nav:'juegos', pintar(){
   const p=perfil(), est=estrellasTotales(p), pj=typeof puedeJugar==='function'?puedeJugar(p):{ok:true};
   $('#s-deportes').innerHTML = `<button class="volver" type="button" data-ir="juegos">${ic('atras')} Juegos</button>
-  <div class="album-cab"><div><h1 class="tit">🏆 Deportes</h1><p class="sub">Minijuegos muy fáciles: cada fase superada abre otra más difícil. ¡Bate tus récords! Se abren nuevos deportes con las ⭐.</p></div><div class="contador">⭐<div><b>${est}</b><br><span>estrellas</span></div></div></div>
+  <div class="album-cab"><div><h1 class="tit">🏆 Deportes</h1><p class="sub">Minijuegos muy fáciles: cada fase superada abre otra más difícil. ¡Bate tus récords! Se abren nuevos deportes con las ⭐.</p></div><div class="contador">⭐<div><b>${estTxt(est)}</b><br><span>estrellas</span></div></div></div>
   ${pj.ok?'':`<div class="card aviso-juego"><span class="emo-g">${pj.por==='leer'?'📖':'🌙'}</span><div><b>${pj.por==='leer'?'Primero, lo de hoy':'Hoy ya has jugado tu rato'}</b><span class="nota">${pj.por==='leer'?'Cuando termines la lectura del día, el repaso y la ficha nueva, podrás jugar.':'¡Mañana más!'}</span></div></div>`}
   <div class="juegos-grid">${DEPORTES.map(d=>{ const ab=deporteAbierto(d,p); const fases=(d.modos||[[null]]).map(([m])=>faseMaxDep(claveDep(d.id,m),p)); const rec=Math.max(-1,...(d.modos||[[null]]).map(([m])=>recordDep(claveDep(d.id,m),null,p)??-1));
     return ab ? `<button type="button" class="juego-c dep-c" data-dep="${d.id}" ${pj.ok?'':'disabled'}><span class="emo-j">${d.emo}</span><b>${esc(d.nombre)}</b><span class="nota">${esc(d.desc)}</span><span class="pill">Fase ${Math.max(...fases)}${rec>=0?` · récord ${rec}`:''}</span></button>`
-              : `<div class="juego-c bloq"><span class="emo-j">🔒</span><b>${esc(d.nombre)}</b><span class="nota">Se abre con ${d.est} ⭐ (te faltan ${d.est-est})</span></div>`; }).join('')}</div>`;
+              : `<div class="juego-c bloq"><span class="emo-j">🔒</span><b>${esc(d.nombre)}</b><span class="nota">Se abre con ${estTxt(d.est)} ⭐ (te faltan ${estTxt(d.est-est)})</span></div>`; }).join('')}</div>`;
   $$('#s-deportes [data-dep]').forEach(b=>b.onclick=()=>ir('juego', 'dep:'+b.dataset.dep));
 }});
 /* el juego dentro de la pantalla «juego» (así cuenta el tiempo de juego del día) */
@@ -362,4 +362,4 @@ function deporteJuego(z, d){
   return {parar(){ if(vivoJ){ try{ vivoJ.parar(); }catch(e){} } }};
 }
 function deportesHTML(){ const p=perfil(), est=estrellasTotales(p); const n=DEPORTES.filter(d=>deporteAbierto(d,p)).length; const sig=DEPORTES.find(d=>!deporteAbierto(d,p));
-  return `<button class="acceso deportes-c" type="button" data-ir="deportes"><span class="emo-g">🏆</span><span><b>Deportes</b><span class="nota">Penaltis, baloncesto, natación… ${n} de ${DEPORTES.length} abiertos.${sig?` ${sig.nombre}: con ${sig.est} ⭐ (te faltan ${sig.est-est}).`:''}</span></span><span class="ir">${ic('dcha')}</span></button>`; }
+  return `<button class="acceso deportes-c" type="button" data-ir="deportes"><span class="emo-g">🏆</span><span><b>Deportes</b><span class="nota">Penaltis, baloncesto, natación… ${n} de ${DEPORTES.length} abiertos.${sig?` ${sig.nombre}: con ${estTxt(sig.est)} ⭐ (te faltan ${estTxt(sig.est-est)}).`:''}</span></span><span class="ir">${ic('dcha')}</span></button>`; }

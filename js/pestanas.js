@@ -109,10 +109,12 @@ definir('inicio', {nav:'inicio', pintar(){
         ${comp ? accesoHTML('extra','📚','Lecturas extra',`+${minTxt(teleCfg().extra)} de tele cada una`) : ''}
         ${accesoHTML('juegos','🧠','Juegos de pensar', puedeJugar(yo).ok ? 'Con oro: +1 min de tele, +1 de móvil y ⭐' : '🔒 Cuando acabes lo de hoy')}
         ${accesoHTML('premios','🏆','Mis premios','Tele, pelis, móvil, sobres de cartas y revistas')}
+        ${f_('papelHTML')}
       </div>
     </div>
   </div>`;
   activarTareas($('#s-inicio'));
+  if(typeof activarPapel==='function') activarPapel($('#s-inicio'));
   try{ activarSemanaPasadaNino(); }catch(e){}
   activarAvisoTemas($('#s-inicio')); activarTemporada($('#s-inicio'));
   setTimeout(()=>{ if(actual==='inicio') comprobarPremios(); }, 400);
@@ -150,13 +152,14 @@ definir('actividades', {nav:'', pintar(){
   $('#s-actividades').innerHTML = `<div class="pag-cab"><div><h1 class="tit">✏️ Actividades</h1><p class="sub">Escribir, palabras y juegos.</p></div></div>
   ${seccion('✍️ Escribir', [f_('fichaColeHTML', true),
       accesoHTML('repaso','📝','Fichas y dictado', !FICHAS.length?'Te dicto palabras y tú me dices cómo se escriben.':pendRep?`Repaso de hoy: ${pendRep} ${pendRep===1?'palabra':'palabras'}. Y dictado.`:'¡Repaso de hoy hecho! ¿Un dictado?'),
-      f_('spellitInicioHTML')].join(''))}
+      f_('spellitInicioHTML'), f_('papelHTML')].join(''))}
   ${seccion('🔤 Palabras', [f_('palabrasDiaHTML'), accesoHTML('practicar','✏️','Practicar','Las palabras que más te cuestan.'), f_('sorpresaHTML')].join(''))}
   ${seccion('🎮 Jugar', [ pj.ok ? accesoHTML('juegos','🧠','Juegos de pensar','Parejas, ¿qué falta?, diferencias, puzles… Con oro: +1 min de tele, +1 de móvil y ⭐', 'juegos-abiertos')
         : `<div class="card acceso candado-acc"><span class="emo-g">🔒</span><span><b>Juegos de pensar</b><span class="nota">Se abren cuando acabes lo de hoy.</span></span><button class="btn btn-p" type="button" data-ir="inicio">Ver lo de hoy</button></div>`,
       f_('aprenderHTML'), f_('deportesHTML'), f_('advientoHTML'), f_('cartaHTML')].join(''))}`;
   const s=$('#s-actividades');
   if(typeof activarFichaCole==='function') activarFichaCole(s);
+  if(typeof activarPapel==='function') activarPapel(s);
 }});
 
 /* ================= PREMIOS ================= */

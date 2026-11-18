@@ -245,7 +245,7 @@ definir('juegos', {nav:'juegos', pintar(){
   const pensar=JUEGOS_PENSAR.map(id=>JUEGOS.find(j=>j.id===id)).filter(Boolean), divertirse=JUEGOS.filter(j=>!esPensar(j.id));
   const carta=j=>{ const ab=juegoAbierto(j,p);
     return ab ? `<button type="button" class="juego-c" data-j="${j.id}" ${pj.ok?'':'disabled'}><span class="emo-j">${j.emo}</span><b>${esc(j.nombre)}</b><span class="nota">${esc(j.desc)}</span>${esPensar(j.id)?medallasHoyHTML(j.id):''}</button>`
-      : `<div class="juego-c bloq"><span class="emo-j">🔒</span><b>${esc(j.nombre)}</b><span class="nota">${fj!=null?(fj===1?'Se abre con 1 ⭐ más':'Se abre con '+fj+' ⭐ más'):'Sigue leyendo para abrirlo'}</span></div>`; };
+      : `<div class="juego-c bloq"><span class="emo-j">🔒</span><b>${esc(j.nombre)}</b><span class="nota">${fj!=null?(fj===1?'Se abre con 1 ⭐ más':'Se abre con '+estTxt(fj)+' ⭐ más'):'Sigue leyendo para abrirlo'}</span></div>`; };
   $('#s-juegos').innerHTML = `<button class="volver" type="button" data-ir="actividades">${ic('atras')} Actividades</button>
     <div class="pag-cab"><div><h1 class="tit">Juegos</h1><p class="sub">Juegos de pensar: cuanto mejor y más rápido, más premio.</p></div></div>
     ${pj.ok ? (c.minutos>0 && !p.prueba ? `<div class="card aviso-juego"><span>⏱ Hoy te quedan <b>${Math.ceil(quedaJuego(p)/60)} minutos</b> de juego.</span></div>` : '')
